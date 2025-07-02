@@ -10,26 +10,27 @@ import messageRoute from "./routes/message.route.js";
 
 const app = express();
 
-// Normalize the client URL by removing trailing slash
-const clientUrl = process.env.CLIENT_URL.endsWith('/') 
-  ? process.env.CLIENT_URL.slice(0, -1) 
-  : process.env.CLIENT_URL;
-
-// Configure CORS to allow both with and without trailing slash
-app.use(cors({
-  origin: (origin, callback) => {
+// Development CORS configuration
+const corsOptions = {
+  origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
-    // Check if the origin matches with or without trailing slash
-    const normalizedOrigin = origin.endsWith('/') ? origin.slice(0, -1) : origin;
-    if (normalizedOrigin === clientUrl) {
+    // Allow all localhost origins for development
+    if (origin.startsWith('http://localhost:')) {
       return callback(null, true);
     }
+    
+    // You can add production domain checks here when needed
     return callback(new Error('Not allowed by CORS'));
   },
-  credentials: true
-}));
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['set-cookie']
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
 
