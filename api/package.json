@@ -6,9 +6,8 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "node app.js",
+    "dev": "nodemon --config nodemon.json app.js",
     "start": "node app.js"
-    
   },
   "keywords": [],
   "author": "",
@@ -22,6 +21,7 @@
     "jsonwebtoken": "^9.0.2"
   },
   "devDependencies": {
+    "nodemon": "^3.1.10",
     "prisma": "^6.11.0"
   }
 }

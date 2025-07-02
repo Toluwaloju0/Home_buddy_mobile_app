@@ -1,0 +1,22 @@
+{
+  "watch": [
+    "app.js",
+    "routes/",
+    "controllers/",
+    "models/",
+    "prisma/",
+    ".env"
+  ],
+  "ext": "js,json",
+  "ignore": [
+    "node_modules/**/*",
+    ".git",
+    ".vscode"
+  ],
+  "execMap": {
+    "js": "node --experimental-modules"
+  },
+  "env": {
+    "NODE_ENV": "development"
+  }
+}
