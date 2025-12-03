@@ -7,6 +7,7 @@ import testRoute from "./routes/test.route.js";
 import userRoute from "./routes/user.route.js";
 import chatRoute from "./routes/chat.route.js";
 import messageRoute from "./routes/message.route.js";
+import mongoose from "mongoose";
 
 const app = express();
 
@@ -29,6 +30,9 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization'],
   exposedHeaders: ['set-cookie']
 };
+
+mongoose.connect('mongodb://127.0.0.1:27017/test')
+.then(() => { console.log('Mongoose has connected'); });
 
 app.use(cors(corsOptions));
 app.use(express.json());

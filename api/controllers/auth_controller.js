@@ -1,6 +1,8 @@
 import { addToken } from '../middleware/verifyToken.js';
 import dbClient from '../utils/mongo_db.js';
 import Password from '../utils/password_hash.js';
+import services from '../services/index.js'
+const { userService } = services
 
 export default class AuthController {
   // a class to define all auth processes on the API such as register, login and logout
@@ -8,22 +10,20 @@ export default class AuthController {
   static async register (req, res) {
     // the register a new user part
 
-    const { email, password, username } = req.body;
-    if (!email || !password || !username) {return res.status(405).json({
-      "error": "The email, password and username must be provided"
+    const { email, username } = req.body;
+    if (!email || !username ) {return res.status(405).json({
+      "error": "The email and username must be provided when creating an account"
     })}
 
-    let user = await dbClient.users.findOne({email});
+    const user = await userService.getUser(email);
     if (user) {
       return res.status(403).json({ "error": "User already exists" }).end();
     }
-    const hashed_password = 
-    user = await dbClient.users.insertOne({ 
-      email, 
-      "password": await Password.hasher(password), 
+    const userId = await userService.addUser( 
+      email,
       username
-    });
-    const token = addToken(JSON.stringify(user.insertedId));
+    );
+    const token = addToken(JSON.stringify(userId));
     res.status(201).cookie("secure-token", token, {
      httpOnly: true,
      secure: true, // use only with HTTPS
