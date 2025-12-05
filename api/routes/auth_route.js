@@ -1,13 +1,15 @@
 import express from "express";
-import AuthController from "../controllers/auth_controller.js";
-import { verifyToken } from "../middleware/verifyToken.js";
+import Controller from '../controllers/index.js';
+import Middleware from "../middleware/index.js";
+
+const { VerifyToken } = Middleware;
+const { AuthController } = Controller;
 
 const router = express.Router();
 
 router.post("/register", AuthController.register);
 router.post("/login", AuthController.login);
-
-// router.use(verifyToken);   // use the token to authenticate the user
+router.use(VerifyToken)
 router.post("/logout", AuthController.logout);
 
 export default router;

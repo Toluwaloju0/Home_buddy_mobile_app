@@ -1,5 +1,4 @@
 import Models from '../../repository/Models/index.js';
-import Password from '../../utils/password_hash.js';
 
 /**
  * A function to add a new user to the mongo database
@@ -11,22 +10,18 @@ import Password from '../../utils/password_hash.js';
  */
 export default async function (
   email,
-  userName,
-  otherObjects={},
+  password,
+  firstName,
+  lastName
 ) {
 
   const user = new Models.User({
     email,
-    userName,
-    // firstName,
-    // lastName,
-    // Nationality,
-    // gender,
-    // age,
-    // city,
+    password,
+    firstName,
+    lastName,
   })
 
-  console.log(user);
   await user.save()
 
   return user._id;
