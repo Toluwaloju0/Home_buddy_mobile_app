@@ -1,19 +1,20 @@
 import Models from '../../repository/Models/index.js';
-const User = { Models };
+import services from '../../services/index.js';
 
+const { User } = Models;
 
 
 /**
- * A function to get a user from the mongo database
- * @param {*} email : the email address of the user
- * @param {*} password: the hashed password of the current user
+ * A function to get a user from the mongo database using the user id
+ * @param {*} UserId : the id of the user
  * @returns the user document if found else null
  */
 
-export default async function (email) {
-  if (!email && !password) { return null; }
-  const user = await Models.User.findOne({ email });
+export default async function (UserId) {
+  const user = await User.findById(UserId);
 
-  if (user) return user;
+  if (user) {
+    return { firstName: user.firstName, lastName: user.lastName, email: user.email };
+  }
   throw new Error('The User cant be found');
 }

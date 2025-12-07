@@ -11,7 +11,7 @@ export default async function (req, res, next) {
 
   const { token } = req.cookies;
   if (!token) {
-    return res.status(500).json({ error: 'The authentication token is not provided' });
+    return res.status(500).json({ error: 'The authentication token is not provided, Log in to get a authentication code' });
   }
   try {
     let userId = TokenService.verifyToken(token);

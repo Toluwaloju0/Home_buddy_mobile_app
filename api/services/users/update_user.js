@@ -1,10 +1,11 @@
 import Models from '../../repository/Models/index.js';
 
-export default async function (userId, reqBody) {
-  if (!userId) { return null; }
+const { User } = Models;
 
-  // get the important details from the request body
-
-  const user = Models.User.findByIdAndUpdate(userId, reqBody);
-
+export default async function (userId, values={}) {
+  try {
+    const user = await User.findByIdAndUpdate(userId, {$set: values});
+  } catch (err) {
+    throw err;
+  }
 }

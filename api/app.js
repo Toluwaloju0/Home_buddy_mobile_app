@@ -2,9 +2,9 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import authRoute from "./routes/auth_route.js";
-// import userRoute from "./routes/user.route.js";
+import userRoute from "./routes/user_route.js";
 import mongoose from "mongoose";
-
+ 
 const app = express();
 
 // Development CORS configuration
@@ -35,7 +35,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.use("/api/auth", authRoute);
-// app.use("/api/users", userRoute);
+app.use("/api/users", userRoute);
 
 const PORT = process.env.API_PORT || 8800;
 app.listen(PORT, () => {
