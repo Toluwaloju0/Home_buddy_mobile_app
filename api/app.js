@@ -1,8 +1,7 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import authRoute from "./routes/auth_route.js";
-import userRoute from "./routes/user_route.js";
+import Routes from './routes/index.js';
 import mongoose from "mongoose";
  
 const app = express();
@@ -33,9 +32,11 @@ mongoose.connect('mongodb://127.0.0.1:27017/home_buddy')
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
+app.get('/', Routes.HomePage);
 
-app.use("/api/auth", authRoute);
-app.use("/api/users", userRoute);
+app.use("/api/auth", Routes.AuthRoute);
+app.use("/api/users", Routes.UserRoute);
+app.use("/api/sellers", Routes.SellerRoute)
 
 const PORT = process.env.API_PORT || 8800;
 app.listen(PORT, () => {

@@ -19,7 +19,11 @@ const UserSchema = new Schema(
     isEmailVerified: {
       type: Boolean,
       default: false,
-    }
+    },
+    isSeller: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

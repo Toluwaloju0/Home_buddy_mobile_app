@@ -1,6 +1,8 @@
 import services from '../../services/index.js';
+import utils from '../../utils/index.js';
 
 const { UserService, TokenService, PasswordService } = services;
+const { CookieOptions } = utils
 
 /**
  * a function to create a register a new user if not already in the database
@@ -16,15 +18,13 @@ export default async function (request, response) {
       return response.status(500).json({ error: 'The necessary information are not provided for user creation' });
     }
 
-    if (await UserService.getUser(email)) {
+    if (await UserService.getUserId(email)) {
       return response.status(400).json({ error: "Email already registered, login to use the application" });
     }
+
     const userId = await UserService.addUser(email, await PasswordService.hashPassword(password), firstName, lastName);
 
-    const token = TokenService.createToken(userId);
-
-    return response.status(201).json({
-      token,
+    return response.status(201).cookie('token', TokenService.createToken(userId), CookieOptions).json({
       msg: 'User created successfully',
       TokenExpiresIn: '5 min',
     });

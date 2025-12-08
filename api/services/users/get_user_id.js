@@ -11,7 +11,7 @@ const { User } = Models;
  * @returns the user document if found else null
  */
 
-export default async function (email, password) {
+export default async function (email, password=null) {
   if (!email && !password) { throw new Error('The information for login is not complete'); }
   const user = await User.findOne({ email });
 
@@ -22,5 +22,6 @@ export default async function (email, password) {
     if (user.isEmailVerified) return user._id;
     throw new Error('Please verify the Email address before logging into the app');
   }
+  if (!password) return false;
   throw new Error('The User cant be found');
 }
