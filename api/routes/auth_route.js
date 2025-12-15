@@ -11,5 +11,5 @@ router.post("/register", AuthController.register);
 router.post("/login", AuthController.login);
 router.use(VerifyToken)
 router.post("/logout", AuthController.logout);
-
+router.put('/validate', AuthController.validate);
 export default router;

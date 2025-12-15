@@ -14,7 +14,7 @@ export default async function (req, res) {
 
   try {
     await SellerService.ApplySeller(UserId, businessName);
-    return res.status(200).cookie('token', TokenService.createToken(UserId), CookieOptions).json({
+    return res.status(200).json({
       status: 'success',
       msg: 'Seller has been added awaiting verification from admins',
     });

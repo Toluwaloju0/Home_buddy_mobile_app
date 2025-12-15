@@ -8,7 +8,7 @@ export default async function (req, res) {
     try {
       const sellerStatus = await SellerService.SellerStatus(req.UserId);
 
-      return res.status(200).cookie('token', TokenService.createToken(req.UserId), CookieOptions).json(sellerStatus);
+      return res.status(200).json(sellerStatus);
     } catch (err) {
         return res.status(500).json({ error: err.message });
     }

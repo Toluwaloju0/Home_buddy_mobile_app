@@ -9,18 +9,10 @@ import Models from '../../repository/Models/index.js';
  * @param {string} lastName 
  */
 export default async function (
-  email,
-  password,
-  firstName,
-  lastName
+  objectDict,
 ) {
 
-  const user = new Models.User({
-    email,
-    password,
-    firstName,
-    lastName,
-  })
+  const user = new Models.User(objectDict)
 
   await user.save()
 

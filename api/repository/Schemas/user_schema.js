@@ -7,16 +7,22 @@ const UserSchema = new Schema(
 
     email: {
       type: String,
-      required: true,
       unique: true,
       lowercase: true,
     },
-
+    phoneNumber: {
+      type: String,
+      unique: true,
+    },
     password: {
       type: String,
       required: true,
     },
     isEmailVerified: {
+      type: Boolean,
+      default: false,
+    },
+    isPhoneNumberVerified: {
       type: Boolean,
       default: false,
     },

@@ -11,5 +11,5 @@ export default async function (req, res) {
 
   const user = await UserService.getUser(UserId);
 
-  return res.status(200).cookie('token', TokenService.createToken(UserId), utils.CookieOptions).json(user);
+  return res.status(200).json(user);
 }

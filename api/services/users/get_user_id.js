@@ -11,9 +11,9 @@ const { User } = Models;
  * @returns the user document if found else null
  */
 
-export default async function (email, password=null) {
-  if (!email && !password) { throw new Error('The information for login is not complete'); }
-  const user = await User.findOne({ email });
+export default async function (objectDict, password=null) {
+  if (!objectDict) { throw new Error('The information for login is not complete'); }
+  const user = await User.findOne({ objectDict });
 
   if (user) {
     if (password) {
