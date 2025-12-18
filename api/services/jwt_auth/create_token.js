@@ -1,9 +1,14 @@
 import jwt from 'jsonwebtoken';
 
-export default function (userId) {
+export default function (userId=null) {
   const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY || 'secret';
-
-  return jwt.sign({ userId }, JWT_SECRET_KEY, {
-    algorithm: 'HS512', expiresIn: 300,
-  });
+  
+  if (userId) {
+    return jwt.sign({ userId }, JWT_SECRET_KEY, {
+      algorithm: 'HS512', expiresIn: 300,
+    });
+  }
+  return jwt.sign({}, JWT_SECRET_KEY, {
+    algorithm: 'HS512', expiresIn: 15 * 60,
+  })
 }

@@ -15,11 +15,7 @@ export default async function (userId) {
     // send validation message
 
     if (user.email && !user.isEmailVerified) {
-      console.log('email found');
-      // use a function to send email to the user email
-
       await sendEmail(user.email, otpString);
-      console.log("email sent");
     }
     if (user.phoneNumber && !user.isPhoneNumberVerified) {
       console.log("phone number found");
@@ -32,7 +28,7 @@ export default async function (userId) {
     const validator = new Validation({
       userId,
       otpHash: await PasswordServices.hashOtp(otpString),
-      expiresAt: new Date(Date.now() + 10 * 60 * 1000)
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000),
     })
 
     validator.save()

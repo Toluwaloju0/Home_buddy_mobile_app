@@ -4,6 +4,7 @@ import PasswordService from './Password/index.js';
 // import checkEmail from './check_email.js';
 import SellerService from './sellers/index.js';
 import ValidationService from './validation/index.js';
+import RefreshService from './refresh/index.js';
 
 
 export default {
@@ -12,4 +13,5 @@ export default {
   PasswordService,
   SellerService,
   ValidationService,
+  RefreshService,
 };

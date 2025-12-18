@@ -2,25 +2,32 @@ import { Types, Schema } from "mongoose";
 
 const SellerSchema = new Schema(
   {
-    user: {
-      type: Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
-    status: {
+    firstName: { type: String, required: true },
+    lastName: { type: String, required: true },
+
+    email: {
       type: String,
-      enum: ["pending", "approved", "rejected"],
-      default: "pending",
+      unique: true,
+      lowercase: true,
     },
-    businessName: {
+    phoneNumber: {
       type: String,
       unique: true,
     },
-    documents: [{
-      type: String
-    }], // optional documents
+    password: {
+      type: String,
+      required: true,
+    },
+    isEmailVerified: {
+      type: Boolean,
+      default: false,
+    },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
   },
-  { timestamps: true },
+  { timestamps: true }
 );
 
 

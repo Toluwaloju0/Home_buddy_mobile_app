@@ -13,14 +13,16 @@ const { User } = Models;
 
 export default async function (objectDict, password=null) {
   if (!objectDict) { throw new Error('The information for login is not complete'); }
-  const user = await User.findOne({ objectDict });
+  const user = await User.findOne(objectDict);
+
 
   if (user) {
     if (password) {
       await PasswordService.verifyPassword(password, user.password);
     }
-    if (user.isEmailVerified) return user._id;
-    throw new Error('Please verify the Email address before logging into the app');
+    return user._id
+    // if (user.isEmailVerified) return user._id;
+    // throw new Error('Please verify the Email address before logging into the app');
   }
   if (!password) return false;
   throw new Error('The User cant be found');
