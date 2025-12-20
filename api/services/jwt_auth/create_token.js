@@ -1,3 +1,9 @@
+/**
+ * create a jwt token using the provided user id from the database to signify a registered user
+ * set token expiration to 5minuites if the token is an access token
+ * set token expiration to 15 if the needed token is the refresh token
+ */
+
 import jwt from 'jsonwebtoken';
 
 export default function (userId=null) {

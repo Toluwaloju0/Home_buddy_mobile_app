@@ -1,3 +1,10 @@
+/** 
+ * delete a user from the database
+ * 
+ * this endpoint do not need admin approval for now 
+ * 
+ * admin approval applies to sellers only for now
+ */
 import services from "../../services/index.js";
 
 const { UserService } = services;

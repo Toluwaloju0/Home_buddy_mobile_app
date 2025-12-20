@@ -3,6 +3,7 @@ import CookieOptions from './cookie_object.js'
 import OTP_generator from './create_otp_token.js';
 import checkPhoneNumber from './check_phone_number.js';
 import checkEmail from './check_email.js';
+import FunctionResponse from './function_response.js';
 
 export default {
   PublicRoutes,
@@ -10,4 +11,5 @@ export default {
   OTP_generator,
   checkPhoneNumber,
   checkEmail,
+  FunctionResponse,
 }

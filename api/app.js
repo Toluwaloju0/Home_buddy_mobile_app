@@ -39,7 +39,8 @@ app.get('/', Routes.HomePage);
 
 app.use("/api/auth", Routes.AuthRoute);
 app.use("/api/users", Routes.UserRoute);
-app.use("/api/sellers", Routes.SellerRoute)
+app.use("/api/sellers", Routes.SellerRoute);
+app.use("/api/houses", Routes.HouseRoute);
 
 const PORT = process.env.API_PORT || 8800;
 app.listen(PORT, () => {

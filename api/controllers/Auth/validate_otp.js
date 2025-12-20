@@ -1,3 +1,8 @@
+/** 
+ * validate the provided ONE TIME PASSWORD generated and sent to the user
+ * confirm the user as a valid user in the database
+ */
+
 import services from '../../services/index.js';
 
 const { ValidationService } = services;

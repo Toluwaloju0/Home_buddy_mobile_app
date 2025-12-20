@@ -1,12 +1,3 @@
-import dotenv from 'dotenv';
-import send_sms from "./services/validation/send_sms.js";
+import function_response from "./utils/function_response.js";
 
-dotenv.config();
-
-send_sms().then(result => {
-  console.log(result);
-}).catch ((err) => {
-  console.log("\n\n\nAn error occured\n\n\n");
-
-  console.log(err);
-});
+console.log(function_response(true, 'good to go', '/good_bye'));

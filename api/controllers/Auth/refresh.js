@@ -1,3 +1,8 @@
+/**
+ * use refresh token for authentication refresh to provide a new login refresh
+ * create a new refresh token to the user cookie and a new access token for the user
+ * get any error and return it to the user for token refresh retry
+ */
 import utils from '../../utils/index.js';
 import services from "../../services/index.js";
 

@@ -2,17 +2,25 @@ import { Schema } from "mongoose";
 
 const UserSchema = new Schema(
   {
-    firstName: { type: String, required: true },
-    lastName: { type: String, required: true },
+    firstName: { 
+      type: String, 
+      default: '',
+    },
+    lastName: { 
+      type: String,
+      default: '',
+     },
 
     email: {
       type: String,
       unique: true,
       lowercase: true,
+      required: true,
     },
     phoneNumber: {
       type: String,
       unique: true,
+      default: null,
     },
     password: {
       type: String,

@@ -1,3 +1,11 @@
+/**
+ * this endpoint is used to update the user information in the database
+ * if an email or phone number is passed a otp verification is sent to the changed value for verification
+ * for password change the hash is stored in the database
+ * 
+ * if an error is encountered a retry is processed
+ */
+
 import services from '../../services/index.js';
 
 const { PasswordService, UserService } = services;

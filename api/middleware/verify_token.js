@@ -1,3 +1,13 @@
+/**
+ * the middleware to verify if a user is in the database and is registered
+ * 
+ * remove some routes from the middle ware check
+ * use the cookie access token to get the user id
+ * pass the gotten id to the request context and use it for all authenticated routes
+ * 
+ * if any error occurs retry the verification and parse it again
+ * 
+ */
 import utils from '../utils/index.js';
 import services from '../services/index.js';
 import mongoose from 'mongoose';

@@ -1,9 +1,13 @@
-import Models from '../../repository/Models/index.js';
-import services from '../../services/index.js';
-import utils from '../../utils/index.js';
+/**
+ * this endpoint returns the user information as stored in our database
+ * 
+ * the get user function in the user service is used to get the user information and return it to the clients
+ * 
+ */
 
-const { User } = Models;
-const { TokenService, UserService } = services;
+import services from '../../services/index.js';
+
+const { UserService } = services;
 
 
 export default async function (req, res) {

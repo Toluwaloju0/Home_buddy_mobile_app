@@ -3,11 +3,12 @@ import Controller from '../controllers/index.js';
 import Middleware from "../middleware/index.js";
 
 const { VerifyToken } = Middleware;
-const { AuthController, UserController } = Controller;
+const { AuthController, UserController,SellerController, } = Controller;
 
 const router = express.Router();
 
-router.post("/user/register", UserController.UserAuth.register);
+router.post("/register", AuthController.register);
+// router.post("/seller/register", SellerController.SellerAuth.register);
 router.post("/login", AuthController.login);
 router.get('/refresh', AuthController.refresh)
 router.use(VerifyToken)
