@@ -1,3 +1,8 @@
+/**
+ * get a validation OTP string and send it to the users email for validation of the email
+ * if a validation exists return to the user to check mail for OTP string and use it or request a new OTP
+ */
+
 import utils from '../../utils/index.js';
 import UserService from '../users/index.js';
 import Models from '../../repository/Models/index.js';
@@ -15,12 +20,12 @@ export default async function (userId) {
     // send validation message
 
     if (user.email && !user.isEmailVerified) {
+      // check if an OTP has not been sent to the user
+      // add a way to check if the user has requested more than threee OTP CODES
+      // 
+
+      // const otpDocument = await OTP.get(userId) // the otp document in the database
       await sendEmail(user.email, otpString);
-    }
-    if (user.phoneNumber && !user.isPhoneNumberVerified) {
-      console.log("phone number found");
-      // create a function to send a message to the user phone number
-    }
 
     
 
@@ -32,6 +37,7 @@ export default async function (userId) {
     })
 
     validator.save()
+    }
   } catch (err) {
     throw err;
   }

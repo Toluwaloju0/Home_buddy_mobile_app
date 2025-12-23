@@ -34,6 +34,15 @@ const UserSchema = new Schema(
       type: Boolean,
       default: false,
     },
+    role: {
+      type: String,
+      enum: ['user', 'seller'],
+      default: 'user',
+    },
+    googleId: {
+      type: String,
+      allowNull: true, // This field will only be populated for OAuth users
+    },
   },
   { timestamps: true }
 );

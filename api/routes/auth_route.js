@@ -7,7 +7,7 @@ const { AuthController, UserController,SellerController, } = Controller;
 
 const router = express.Router();
 
-router.post("/register", AuthController.register);
+// router.post("/register", AuthController.register);
 // router.post("/seller/register", SellerController.SellerAuth.register);
 router.post("/login", AuthController.login);
 router.get('/refresh', AuthController.refresh)

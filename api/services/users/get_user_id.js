@@ -25,7 +25,7 @@ export default async function (email, password=null) {
     }
     // if the password is correct and the user is verified return a dict with the user id inputed inside
     if (user.isEmailVerified) return utils.FunctionResponse(true, 'User Found', '/select_role', {userId: user._id});
-    return utils.FunctionResponse(false, 'Not Verified', '/OTP_code');
+    return utils.FunctionResponse(false, 'Not Verified', '/OTP_code', {userId: user._id});
   }
   return utils.FunctionResponse(false, 'Not Found', null);
 }

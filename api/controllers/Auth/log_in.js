@@ -37,13 +37,20 @@ export default async function (request, response) {
       delete result.userId;
 
       if (result.status) {
-        // if the result is true and the user is verified log the user in by returning a json response with the next action url
-        return response.status(200).json(result);
+        // if the result is true and the user is verified log the user in by returning a json response with the next action url to go to the select page
+        return response.status(200)
+        .cookie('token', TokenService.createToken(userId), CookieOptions)
+        .cookie('refresh_token', await RefreshService.createRefreshToken(userId), CookieOptions)
+        .json(result);
       }
 
       if (result.message === 'Not Verified') {
         // send OTP message to the user and redirect the user to the OTP page
-        return response.json(result);
+        await services.ValidationService.userValidator(userId);
+        return response
+        .cookie('token', TokenService.createToken(userId), CookieOptions)
+        .cookie('refresh_token', await RefreshService.createRefreshToken(userId), CookieOptions)
+        .json(result);
       }
 
       if (result.message === 'Not Found') {
