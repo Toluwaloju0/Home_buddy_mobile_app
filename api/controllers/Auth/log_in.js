@@ -70,9 +70,10 @@ export default async function (request, response) {
       response.status(201)
       .cookie('token', TokenService.createToken(userId), CookieOptions)
       .cookie('refresh_token', await RefreshService.createRefreshToken(userId), CookieOptions)
-      .json(result);
+      .json(utils.FunctionResponse(true, 'User created', '/otp/page', result));
   } catch (err) {
     // if the error is gotten from the send email function delete the user and reask for the user login details
     console.log(err);
+    return response.status(500).json(utils.FunctionResponse(false, err.message, null));
   }
 }
