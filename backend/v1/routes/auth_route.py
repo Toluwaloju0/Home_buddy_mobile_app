@@ -156,3 +156,30 @@ def verify_otp_code(otp_code: str, user_response = Depends(get_user_from_token))
     return JSONResponse(content.to_dict())
 
 # create an endpooint to process resend of otp codes
+@auth.get("/otp/resend")
+def resend_otp_code(user_response=Depends(get_user_from_token)):
+    """ a function to resend the an otp code to the user"""
+
+    if not user_response.status:
+        content = api_response(False, "The token is not provided")
+
+        return JSONResponse(content.model_dump)
+    
+    if  not user_response.payload:
+        content = api_response(True, "Refresh the access token to continue using this service")
+        return JSONResponse(content.to_dict())
+    
+    user = user_response.payload
+
+    if user.get("is_verified"):
+        content = api_response(True, "The user is already verified\n Login and select a role")
+
+        return JSONResponse(content.to_dict())
+    
+    email_send_response = email_sender.send_otp_mail(user.get("email"))
+    if not email_send_response.status:
+        content = api_response(False, "The email was not sent")
+        return JSONResponse(content.to_dict())
+    
+    content = api_response(True, "The email is successfully sent")
+    return JSONResponse(content.to_dict())
