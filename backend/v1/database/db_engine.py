@@ -73,8 +73,38 @@ class DBStorage:
             kwargs: the arguments to be updated on the document
         """
 
-        self.__user.update_one({"_id": ObjectId(user_id)}, {"$set": kwargs})
+        update_result = self.__user.update_one({"_id": ObjectId(user_id)}, {"$set": kwargs})
+        if not update_result.acknowledged:
+            return function_response(False)
+        return function_response(True) # change this to return the data gotten from the database
         
+    def update_password(self, user_id: str, old_password: str, new_password: str):
+        """ a method to update the user password to a new one
+        Args:
+            user_id: the user id of the user
+            old_password: the old password of the user
+            new_password: the password to change to
+        """
+
+        user = self.__user.find_one({"_id": ObjectId(user_id)})
+        if not user:
+            return function_response(False)
+
+        try:
+            ph.verify(user.get("password"), old_password)
+        except VerifyMismatchError:
+            return function_response(False)
+        
+        self.__user.update_one({"_id": ObjectId(user_id)}, {"$set": {"password": ph.hash(new_password)}})
+        return function_response(True)
+
+    def delete_user(self, user_id: str):
+        """ a methodn to delete a  user from the database
+        Args:
+            user_id (str): a string containing the user id to be deleted
+        """
+        self.__user.delete_many({"_id": ObjectId(user_id)})
+
     def save_refresh_token(self, refresh_token_object: Dict):
         """ a method to save the refresh token and the email to the database
         Args:
