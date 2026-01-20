@@ -54,6 +54,7 @@ def delete_me(user_response = Depends(get_user_from_token)):
 
     storage.delete_user(user.get("_id"))
     del user
+
     content = api_response(True, "The user has been deleted")
     response = JSONResponse(content.to_dict())
     response.delete_cookie("access_token")
