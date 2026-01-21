@@ -8,6 +8,7 @@ import uvicorn
 from os import getenv
 
 from routes.auth_route import auth
+from routes.user_route import user
 
 app = FastAPI(
     title="PROPERTIX",
@@ -25,6 +26,7 @@ def get_status():
 
 
 app.include_router(auth)
+app.include_router(user)
 
 if __name__ == "__main__":
     port = int(getenv("BACKEND_PORT", 8000))

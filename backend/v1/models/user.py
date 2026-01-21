@@ -1,5 +1,7 @@
 """ a module to define the user and user create classes """
 
+import enum
+
 from pydantic import BaseModel
 
 from models.base_model import Basemodel
@@ -12,8 +14,25 @@ class UserCreate(BaseModel):
     email: str
     password: str
 
+class UserRole(str, enum.Enum):
+    """ a class to define the user roles accepted """
+
+    SELLER = "seller"
+    BUYER = "buyer"
+    ADMIN = "admin"
+
 class User(Basemodel):
     """The base model class"""
+
+    email: str | None = None
+    first_name: str | None = None
+    last_name: str | None = None
+    is_verified: bool = False
+    role: UserRole = UserRole.BUYER
+    password: str | None = None
+    email: str | None = None
+    phone_number: str | None = None
+    phone_number_verified: bool = False
 
     def __init__(self, **kwargs):
         """ the initializing class 
@@ -33,5 +52,3 @@ class User(Basemodel):
         if not save_user_response.status:
             return function_response(False)
         return save_user_response
-
-        
