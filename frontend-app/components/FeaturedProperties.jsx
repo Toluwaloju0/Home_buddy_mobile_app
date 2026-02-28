@@ -228,20 +228,20 @@ const FeaturedProperties = () => {
 								{/* Property features - responsive layout */}
                   <div className="flex justify-between border-t border-gray-100 p-4">
                     
-                      <div className="flex flex-row items-center gap-1">
-                        <TbRuler3 className="text-gray-500 text-lg" />
-                        <span className="font-medium text-gray-700 text-xs sm:text-sm">{property.size}</span>
-                      </div>
-                    
-                      <div className="flex flex-row items-center gap-1">
-                        <IoBedOutline className="text-gray-500 text-lg" />
-                        <span className="font-medium text-gray-700 text-xs sm:text-sm">{property.beds}</span>
-                      </div>
-                   
-                      <div className="flex flex-row items-center gap-1">
-                        <MdOutlineShower className="text-gray-500 text-lg" />
-                        <span className="font-medium text-gray-700 text-xs sm:text-sm">{property.baths}</span>
-                      </div>
+                    <div className="flex flex-row items-center gap-1">
+                      <TbRuler3 className="text-gray-500 text-lg" />
+                      <span className="font-medium text-gray-700 text-xs sm:text-sm">{property.size}</span>
+                    </div>
+                  
+                    <div className="flex flex-row items-center gap-1">
+                      <IoBedOutline className="text-gray-500 text-lg" />
+                      <span className="font-medium text-gray-700 text-xs sm:text-sm">{property.beds}</span>
+                    </div>
+                  
+                    <div className="flex flex-row items-center gap-1">
+                      <MdOutlineShower className="text-gray-500 text-lg" />
+                      <span className="font-medium text-gray-700 text-xs sm:text-sm">{property.baths}</span>
+                    </div>
                   </div>
               </div>
             );

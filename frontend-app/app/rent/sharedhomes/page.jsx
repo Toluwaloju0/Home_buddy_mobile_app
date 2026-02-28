@@ -1,8 +1,18 @@
-import React from 'react'
+"use client";
+
+import Body from './body';
+import Ikoyi from './ikoyi';
+import Footer from '@/components/Footer';
 
 const page = () => {
   return (
-    <div>shared home page</div>
+    <div>
+      <div className="container mx-auto px-4 py-8 md:px-6 md:py-10 lg:px-20">
+        <Body />
+        <Ikoyi />
+      </div>
+      <Footer />  
+    </div>
   )
 }
 

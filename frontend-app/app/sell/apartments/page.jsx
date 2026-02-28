@@ -1,8 +1,14 @@
-import React from 'react'
+import Body from './body'
+import Footer from '@/components/Footer';
 
 const page = () => {
   return (
-    <div>sell apartment page</div>
+    <div>
+      <div className='mb-6'>
+        <Body />
+      </div>
+      <Footer />
+    </div>
   )
 }
 
