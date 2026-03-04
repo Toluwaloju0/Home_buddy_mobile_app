@@ -1,0 +1,11 @@
+fastapi
+fastapi[standard]
+pymongo
+argon2-cffi
+pyjwt
+python-dotenv
+uvicorn
+google-api-python-client
+google-auth
+google-auth-httplib2
+google-auth-oauthlib
