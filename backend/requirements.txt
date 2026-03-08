@@ -1,7 +1,0 @@
-fastapi
-fastapi[standard]
-pymongo
-argon2-cffi
-pyjwt
-python-dotenv
-uvicorn
