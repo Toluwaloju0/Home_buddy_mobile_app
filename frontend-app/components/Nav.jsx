@@ -6,7 +6,7 @@ import { Button } from "./ui/button";
 import { useUser } from "@/app/context/UserContext";
 import { MdOutlineMarkEmailUnread } from "react-icons/md";
 import { FaAngleDown } from "react-icons/fa";
-import { FaBars } from "react-icons/fa";
+
 
 const links = [
   {
@@ -20,7 +20,7 @@ const links = [
   },
   {
     name: "rent",
-    path: "/rent",
+    path: "/",
 		subItems: [
 			{ name: "Apartments", path: "/rent/apartments" },
 			{ name: "Shared Homes", path: "/rent/sharedhomes" },
@@ -32,7 +32,7 @@ const links = [
   },
   {
     name: "sell",
-    path: "/sell",
+    path: "/",
 		subItems: [
 			{ name: "Apartments", path: "/sell/apartments" },
 			{ name: "Lands", path: "/sell/lands" },
@@ -43,7 +43,7 @@ const links = [
   },
   {
     name: "agent",
-    path: "/agent",
+    path: "/",
 		subItems: [
 			{ name: "All Agents", path: "/agent/allagent" },
 			{ name: "Top Rated Agents", path: "/agent/topagent" },
@@ -51,7 +51,7 @@ const links = [
   },
   {
     name: "facility mgt",
-    path: "/facility mgt",
+    path: "/",
 		subItems: [
 			{ name: "Maintenance Request", path: "/facilitymgt/maintainance" },
 			{ name: "Waste Collection", path: "/facilitymgt/waste" },

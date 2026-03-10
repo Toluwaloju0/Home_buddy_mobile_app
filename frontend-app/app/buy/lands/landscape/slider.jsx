@@ -9,8 +9,8 @@ import { FaAngleRight } from 'react-icons/fa';
 import { FaAngleLeft } from 'react-icons/fa';
 import { FaLocationDot } from "react-icons/fa6";
 import { TbRuler3 } from "react-icons/tb";
-import { IoBedOutline } from "react-icons/io5";
 import { ImFileOpenoffice } from "react-icons/im";
+import { IoBedOutline } from "react-icons/io5";
 import { FaStar } from "react-icons/fa";
 import { VscVerifiedFilled } from "react-icons/vsc";
 import { IoCallOutline } from "react-icons/io5";
@@ -221,8 +221,13 @@ const Slider = () => {
 							</div>
 						
 							<div className="flex flex-row items-center gap-1">
+								<IoBedOutline className="text-gray-400 text-lg" />
+								<span className="font-bold text-gray-400 text-xs sm:text-sm">2</span><p className="text-gray-400">bath</p>
+							</div>
+
+							<div className="flex flex-row items-center gap-1">
 								<ImFileOpenoffice className="text-gray-400 text-lg" />
-								<span className="font-bold text-gray-400 text-xs sm:text-sm">3</span><p className="text-gray-400">bath</p>
+								<span className="font-bold text-gray-400 text-xs sm:text-sm"></span><p className="text-gray-400">C of O</p>
 							</div>
 						</div>
 					</div>
