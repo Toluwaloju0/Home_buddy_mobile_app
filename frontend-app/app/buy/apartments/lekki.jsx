@@ -242,7 +242,7 @@ const Lekki = () => {
 								<div className="mx-4 relative top-[-40px] p-4 flex border-2 bg-white rounded-xl shadow-[4px_4px_10px_rgba(0,0,0,0.15)]">
 									<div className="w-full">
 										<div className="mb-3">
-											<h3 className="font-semibold text-gray-800 text-base sm:text-lg line-clamp-1">
+											<h3 className="font-semibold text-gray-400 text-base sm:text-md line-clamp-1">
 												{property.title}
 											</h3>
 											<p className="font-bold text-lg sm:text-xl mt-1 text-gray-900">

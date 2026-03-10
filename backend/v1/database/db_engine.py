@@ -6,7 +6,7 @@ from argon2.exceptions import VerifyMismatchError
 from pymongo import MongoClient
 
 from utils.responses import function_response
-from utils.password_hasher import ph
+from utils.password import ph
 
 class DBStorage:
     """The db storage class"""
@@ -36,7 +36,7 @@ class DBStorage:
         
         return function_response(True, {"user_id":user_id})
     
-    def get_user_by_email(self, email: str):
+    def get_user_by_email(self, email: str, password: str|None = None):
         """ a method to get the user from the database using the user email address
         Args:
             email (str): the email address of the user to get from the database
@@ -47,8 +47,12 @@ class DBStorage:
         if not user:
             return function_response(False)
         # verify that the password passed is the correct one
-        return function_response(True, user)
-        
+        try:
+            ph.verify(user.get("password"), password)
+            return function_response(True, user)
+        except VerifyMismatchError:
+            return function_response(False)
+
     def get_user_by_id(self, user_id: str):
         """ a method to get the user by the user id
         Args:

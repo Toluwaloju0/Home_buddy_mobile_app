@@ -281,3 +281,111 @@ const FeaturedProperties = () => {
 };
 
 export default FeaturedProperties;
+
+
+{/* <div>
+            <div className='container mx-auto px-4 py-8 md:px-6 md:py-10 lg:px-20'>
+                <div className='grid grid-cols-2 border-2 min-h-screen place-items-center'>
+                    <div>
+                        <h1 className='text-2xl font-bold'>We're Here to Help</h1>
+                        <p className='text-sm text-gray-300'>Contact our team for support, enquireies, feedback, or partnership opportunites.</p>
+                    </div>
+                    <div className="sm:h-full sm:w-full sm:px-0 relative h-150 w-150">
+                        <Image src="/assets/agent-1.png" alt="" className="object-contain px-5 sm:px-0" fill />
+                    </div>
+                </div>
+            </div>
+    </div> */}
+
+
+    /* <div className="w-[420px]">
+          <div
+            className="
+              relative 
+              overflow-hidden
+              rounded-3xl
+              [clip-path:polygon(5%_0%,100%_0%,100%_100%,0%_100%)]
+                        border-2 border-blue-500
+            "
+          >
+            <Image
+              src="/assets/contact.jpg" // put image in /public
+              alt="Customer support agent"
+              width={800}
+              height={600}
+              className="object-cover"
+            />
+          </div>
+        </div> */
+
+
+        /* <div className="border-1">
+            <p className="text-sm text-gray-300">Fill out the form below and we will get back to you</p>
+             <form className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Full Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                    placeholder="Enter your full name"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Email Address *
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                    placeholder="Enter your email address"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                    placeholder="Enter your phone number"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Subject *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                    placeholder="What is this regarding?"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Message *
+                  </label>
+                  <textarea
+                    required
+                    rows={5}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition resize-none"
+                    placeholder="Type your message here..."
+                  />
+                </div>
+                
+                <button
+                  type="submit"
+                  className="w-full bg-blue-900 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 focus:outline-none transition"
+                >
+                  Send Message
+                </button>
+              </form>
+          </div> */

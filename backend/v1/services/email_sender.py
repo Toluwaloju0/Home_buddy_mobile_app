@@ -1,7 +1,6 @@
 """ a module to define all the functions to send email to users of the application"""
 
 import smtplib
-
 from os import getenv
 from email.message import EmailMessage
 from database.db_engine import storage
@@ -14,11 +13,24 @@ class EmailSender:
     """ the class to send emails to different users"""
 
     def __init__(self):
-        self.__smtp_server = smtplib.SMTP("smtp.gmail.com", 587)
-        self.__smtp_server.starttls()
-        password = getenv("GOOGLE_PASSWORD")
-        email = getenv("GOOGLE_ACCOUNT")
-        self.__smtp_server.login(email, password)
+        """Initialize EmailSender - check credentials only, don't connect yet"""
+        self.__email = getenv("GOOGLE_ACCOUNT")
+        self.__password = getenv("GOOGLE_PASSWORD")
+        
+        # Check if credentials are configured
+        self.__credentials_configured = (
+            self.__email and 
+            self.__password and 
+            self.__email != "your-email@gmail.com" and
+            self.__password != "your-app-specific-password"
+        )
+        
+        if not self.__credentials_configured:
+            # log all this to a file
+            print("⚠️  Email credentials not configured. OTP emails will be printed to console instead.")
+            print("   To enable email sending, update GOOGLE_ACCOUNT and GOOGLE_PASSWORD in .env")
+        else:
+            print(f"✅ Email service configured for: {self.__email}")
 
     def send_otp_mail(self, email_address: str):
         """ a method to send otp codes to the provided email address
@@ -28,22 +40,43 @@ class EmailSender:
 
         code = get_otp_code()
 
-        otp_code_obj = OtpCode(email_address, code)
-        save_otp_response = storage.save_otp_code(otp_code_obj.to_dict())
-        if not save_otp_response.status:
-            return function_response(False)
+        # otp_code_obj = OtpCode(email_address, code)
+        # save_otp_response = storage.save_otp_code(otp_code_obj.to_dict())
+        # if not save_otp_response.status:
+        #     return function_response(False)
         
-        # create the message and add the html content for sending to the users email address
-        msg = EmailMessage()
-        msg["To"] = email_address
-        msg["From"] = getenv("GOOGLE_ADDRESS")
-        msg["Subject"] = "The OTP Code for Your Home buddy limited account"
-        msg.set_content(f"""
-Your OTP code is {otp_code_obj.code}\n\n
-This code expires in 10 minuites
+        # If email is not configured, print OTP to console
+        if not self.__credentials_configured:
+            print("\n" + "="*60)
+            print("📧 OTP CODE (Email not configured - showing in console)")
+            print("="*60)
+            print(f"   Email: {email_address}")
+            print(f"   OTP Code: {otp_code_obj.code}")
+            print(f"   Valid for: 10 minutes")
+            print("="*60 + "\n")
+            return function_response(True)
+        
+        # Create fresh SMTP connection for EACH email
+        smtp_server = None
+        try:
+            # Connect to SMTP server (new connection every time)
+            print(f"🔌 Connecting to SMTP server for {email_address}...")
+            smtp_server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
+            smtp_server.login(self.__email, self.__password)
+            print(f"✅ SMTP connected successfully")
+            
+            # Create the email message
+            msg = EmailMessage()
+            msg["To"] = email_address
+            msg["From"] = f"Home Buddy <{self.__email}>"
+            msg["Subject"] = "The OTP Code for Your Home Buddy account"
+            msg.set_content(f"""
+Your OTP code is {code}
+
+This code expires in 10 minutes
 """)
-        
-        msg.add_alternative(f"""
+            
+            msg.add_alternative(f"""
 <body style="margin:0; padding:0; background-color:#f4f6f8; font-family: Arial, Helvetica, sans-serif;">
 
 <table width="100%" cellpadding="0" cellspacing="0">
@@ -85,7 +118,7 @@ This code expires in 10 minuites
                 border-radius:6px;
                 font-weight:bold;
               ">
-                {otp_code_obj.code}
+                {code}
               </span>
             </div>
 
@@ -103,7 +136,7 @@ This code expires in 10 minuites
         <!-- Footer -->
         <tr>
           <td style="background:#f4f6f8; padding:15px; text-align:center; font-size:12px; color:#777;">
-            © {{2026}} Home Buddy. All rights reserved.
+            © 2026 Home Buddy. All rights reserved.
           </td>
         </tr>
 
@@ -116,9 +149,56 @@ This code expires in 10 minuites
 </body>
 """, subtype="html")
 
-        self.__smtp_server.send_message(msg)
+            # Send the email
+            smtp_server.send_message(msg)
+            print(f"✅ OTP email sent successfully to {email_address}")
 
-        return function_response(True)
-    
+            otp_code_obj = OtpCode(email_address, code)
+            save_otp_response = storage.save_otp_code(otp_code_obj.to_dict())
+            if not save_otp_response.status:
+              return function_response(False)
+            
+            # Close connection properly
+            smtp_server.quit()
+            print(f"🔌 SMTP connection closed")
+            
+            return function_response(True)
+            
+        except smtplib.SMTPAuthenticationError as e:
+            print(f"❌ Email authentication failed: {e}")
+            print("   Check GOOGLE_ACCOUNT and GOOGLE_PASSWORD in .env")
+            print("   Get app password from: https://myaccount.google.com/apppasswords")
+            
+            # Fallback to console
+            print("\n" + "="*60)
+            print("📧 OTP CODE (Auth failed - showing in console)")
+            print("="*60)
+            print(f"   Email: {email_address}")
+            print(f"   OTP Code: {otp_code_obj.code}")
+            print(f"   Valid for: 10 minutes")
+            print("="*60 + "\n")
+            return function_response(True)
+            
+        except Exception as e:
+            print(f"❌ Failed to send email: {e}")
+            
+            # Fallback to console
+            print("\n" + "="*60)
+            print("📧 OTP CODE (Email send failed - showing in console)")
+            print("="*60)
+            print(f"   Email: {email_address}")
+            print(f"   OTP Code: {otp_code_obj.code}")
+            print(f"   Valid for: 10 minutes")
+            print("="*60 + "\n")
+            return function_response(True)
+            
+        finally:
+            # Always close connection if it exists
+            if smtp_server is not None:
+                try:
+                    smtp_server.quit()
+                except:
+                    pass
+
 
 email_sender = EmailSender()

@@ -4,7 +4,7 @@ import { FaFacebookF, FaTwitter, FaLinkedinIn, FaInstagram, FaWhatsapp } from "r
 
 const Footer = () => {
   return (
-    <div className="bg-gray-900 py-8 px-4 md:px-6 lg:px-20">
+    <div className="bg-[#243235] py-8 px-4 md:px-6 lg:px-20">
       {/* Main content container */}
       <div className="flex flex-col lg:flex-row gap-8 lg:gap-20 pb-8 lg:pb-10 justify-center">
         {/* Logo and description */}
@@ -23,7 +23,7 @@ const Footer = () => {
             {[FaFacebookF, FaTwitter, FaLinkedinIn, FaInstagram, FaWhatsapp].map((Icon, index) => (
               <div 
                 key={index}
-                className="w-8 h-8 lg:w-10 lg:h-10 bg-gray-800 flex items-center justify-center rounded-md hover:bg-gray-600 transition-colors cursor-pointer"
+                className="w-8 h-8 lg:w-10 lg:h-10 bg-[#2e3d40] flex items-center justify-center rounded-md hover:bg-gray-600 transition-colors cursor-pointer"
               >
                 <Icon className="text-white text-lg lg:text-xl" />
               </div>

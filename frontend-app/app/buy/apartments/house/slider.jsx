@@ -228,13 +228,6 @@ const Slider = () => {
 						</div>
 					)
 				})}
-				{/* {sliderImages.map((item, index) => {
-					return (
-						<div key={index} className="h-48 sm:h-64 sm:w-64 border-2 border-red-400">
-							<img src={item.image} className="w-full h-full object-cover"/>
-						</div>
-					)
-				})} */}
 			</div>
 
 			{/* Mobile-optimized navigation buttons */}

@@ -30,21 +30,6 @@ const Header = () => {
 
         {/* Mobile Navigation */}
         <div className="xl:hidden flex items-center gap-4">
-          {/* {isLoggedIn ? (
-            <button 
-              onClick={() => setShowUserMenu(!showUserMenu)}
-              className="flex items-center gap-2"
-            >
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                <img src="assets/agent-1.png" className="rounded-full" />
-              </div>
-            </button>
-          ) : (
-            <Link href="/join">
-              <Button size="sm" className="px-4">Join</Button>
-            </Link>
-          )}
-          <FaBars className="text-2xl" /> */}
           <MobileNav />
         </div>
       </div>
