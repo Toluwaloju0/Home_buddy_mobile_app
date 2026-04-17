@@ -2,6 +2,7 @@ import FeaturedProperties from "@/components/FeaturedProperties";
 import Hero from "@/components/Hero";
 import Verifiedagents from "@/components/Verifiedagents";
 import Footer from "@/components/Footer";
+import { resolveAssetPath } from "@/lib/asset";
 
 const options = [
   {
@@ -58,7 +59,7 @@ const Home = () => {
                 className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all duration-300 border border-gray-100"
               >
                 <div className="relative h-48 w-full overflow-hidden">
-                  <img src={item.image} className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-300" />
+                  <img src={resolveAssetPath(item.image)} className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-300" />
                 </div>
                 <div className="p-5 md:p-6">
                   <h3 className="text-xl font-bold mb-3 text-gray-800">{item.title}</h3>
@@ -85,7 +86,7 @@ const Home = () => {
                 className="flex flex-col items-center justify-center p-5 md:p-6 rounded-xl bg-white shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100"
               >
                 <div className="h-16 w-16 md:h-20 md:w-20 rounded-full bg-green-50 flex items-center justify-center mb-4 p-3">
-                  <img src={icon.image} className="h-8 w-8 md:h-10 md:w-10 object-contain"  />
+                  <img src={resolveAssetPath(icon.image)} className="h-8 w-8 md:h-10 md:w-10 object-contain"  />
                 </div>
                 <p className="text-gray-700 text-base md:text-lg font-semibold text-center">
                   {icon.title}

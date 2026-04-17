@@ -6,10 +6,14 @@ import { useUser } from "@/app/context/UserContext";
 import { authAPI } from "@/lib/api";
 import Image from "next/image";
 
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+const GOOGLE_API_URL = import.meta.env.VITE_API_URL || import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+
 const Login = () => {
   const router = useRouter();
   const { login } = useUser();
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [googleLoaded, setGoogleLoaded] = useState(false);
@@ -28,6 +32,11 @@ const Login = () => {
       return;
     }
 
+    if (!password) {
+      setError("Please enter your password");
+      return;
+    }
+
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
@@ -39,16 +48,46 @@ const Login = () => {
 
     try {
       console.log("Sending OTP to:", email);
-      const response = await authAPI.login(email);
+      const response = await authAPI.login(email, password);
       
       console.log("Login response:", response);
 
       if (response.status) {
         // Store email for OTP page
-        localStorage.setItem("tempEmail", email);
-        
-        // Navigate to OTP verification
-        router.push("/verify-otp");
+        if (response.payload && response.payload.email) {
+          localStorage.setItem("tempEmail", response.payload.email);
+        } else {
+          localStorage.setItem("tempEmail", email);
+        }
+
+        // Prefer explicit payload-driven routing when available
+        const isVerified = response.payload && response.payload.is_verified;
+        const role = response.payload && response.payload.role;
+
+        // If backend returned a full user object (verified user), update global context
+        if (response.payload && response.payload._id) {
+          try {
+            login(response.payload);
+          } catch (e) {
+            console.debug("Failed to set user context:", e);
+          }
+        }
+
+        if (typeof isVerified !== "undefined") {
+          if (isVerified) {
+            // If a verified buyer, send to buyer home; otherwise default home
+            if (role && String(role).toLowerCase() === "buyer") {
+              router.push("/buyer/home");
+            } else {
+              router.push("/");
+            }
+          } else {
+            router.push("/verify-otp");
+          }
+        } else {
+          // Fallback: respect earlier behaviour
+          router.push("/verify-otp");
+        }
       } else {
         setError(response.message || "Failed to send OTP. Please try again.");
       }
@@ -68,7 +107,7 @@ const Login = () => {
 
     try {
       // Send credential to backend
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/google/verify`, {
+      const res = await fetch(`${GOOGLE_API_URL}/auth/google/verify`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -87,15 +126,29 @@ const Login = () => {
         if (data.payload && data.payload.email) {
           localStorage.setItem("tempEmail", data.payload.email);
         }
-        
-        // Backend will send OTP and return /otp/verify as next_url
-        if (data.next_url === "/otp/verify") {
-          // Show success message
-          console.log("OTP sent to Google email, redirecting to verification...");
-          router.push("/verify-otp");
+
+        // If backend provided payload info prefer that for routing
+        if (data.payload && typeof data.payload.is_verified !== "undefined") {
+          const isVerified = data.payload.is_verified;
+          const role = data.payload.role;
+
+          if (isVerified) {
+            if (role && String(role).toLowerCase() === "buyer") {
+              router.push("/buyer/home");
+            } else {
+              router.push("/");
+            }
+          } else {
+            router.push("/verify-otp");
+          }
         } else {
-          // Fallback navigation
-          router.push(data.next_url || "/verify-otp");
+          // Fallback to next_url mapping when payload not present
+          if (data.next_url === "/otp/verify") {
+            console.log("OTP sent to Google email, redirecting to verification...");
+            router.push("/verify-otp");
+          } else {
+            router.push(data.next_url || "/verify-otp");
+          }
         }
       } else {
         setError(data.message || "Google sign-in failed");
@@ -127,9 +180,9 @@ const Login = () => {
         setGoogleLoaded(true);
         
         // Initialize Google Sign-In
-        if (window.google && process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) {
+        if (window.google && GOOGLE_CLIENT_ID) {
           window.google.accounts.id.initialize({
-            client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+            client_id: GOOGLE_CLIENT_ID,
             callback: handleGoogleResponse,
             auto_select: false,
             cancel_on_tap_outside: true,
@@ -165,7 +218,7 @@ const Login = () => {
       return;
     }
 
-    if (!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) {
+    if (!GOOGLE_CLIENT_ID) {
       setError('Google Sign-In is not configured');
       return;
     }
@@ -219,6 +272,19 @@ const Login = () => {
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary disabled:bg-gray-100"
               />
             </div>
+            <div>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                required
+                disabled={loading}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary disabled:bg-gray-100"
+              />
+            </div>
           </div>
           
           <div>
@@ -260,12 +326,22 @@ const Login = () => {
             </button>
           </div>
 
-          <div className="text-center">
+          <div className="space-y-4 text-center">
             <p className="text-gray-500 text-sm [word-spacing:0.1em]">
               By signing in you agree to Home Buddy{" "}
               <span className="text-black font-semibold">Terms of Use</span> and{" "}
               <span className="text-black font-semibold">Privacy Policy</span>
             </p>
+
+            <div className="mt-2">
+              <button
+                type="button"
+                onClick={() => router.push("/join/signup")}
+                className="w-full inline-flex justify-center items-center py-3 px-4 border-2 border-primary rounded-md text-sm font-semibold text-primary bg-white hover:bg-primary/5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+              >
+                New here? Create an account
+              </button>
+            </div>
           </div>
         </form>
       </div>

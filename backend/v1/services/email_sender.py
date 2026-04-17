@@ -37,15 +37,19 @@ class EmailSender:
         Args:
             email_address (str): the email address to send the code to 
         """
-
         code = get_otp_code()
 
-        # otp_code_obj = OtpCode(email_address, code)
-        # save_otp_response = storage.save_otp_code(otp_code_obj.to_dict())
-        # if not save_otp_response.status:
-        #     return function_response(False)
-        
-        # If email is not configured, print OTP to console
+        # check existing otp record for this email and enforce send limits
+        existing_resp = storage.get_otp_by_email(email_address)
+        if existing_resp.status:
+            existing = existing_resp.payload
+            if existing.get("count", 0) >= 3:
+                print(f"❌ OTP send limit reached for {email_address}. Please wait 30 minutes before retrying.")
+                return function_response(False)
+
+        otp_code_obj = OtpCode(email_address, code)
+
+        # If email is not configured, print OTP to console and save the otp record
         if not self.__credentials_configured:
             print("\n" + "="*60)
             print("📧 OTP CODE (Email not configured - showing in console)")
@@ -54,8 +58,12 @@ class EmailSender:
             print(f"   OTP Code: {otp_code_obj.code}")
             print(f"   Valid for: 10 minutes")
             print("="*60 + "\n")
+
+            save_otp_response = storage.save_otp_code(otp_code_obj.to_dict())
+            if not save_otp_response.status:
+                return function_response(False)
             return function_response(True)
-        
+
         # Create fresh SMTP connection for EACH email
         smtp_server = None
         try:
@@ -64,7 +72,7 @@ class EmailSender:
             smtp_server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
             smtp_server.login(self.__email, self.__password)
             print(f"✅ SMTP connected successfully")
-            
+
             # Create the email message
             msg = EmailMessage()
             msg["To"] = email_address
@@ -75,7 +83,7 @@ Your OTP code is {code}
 
 This code expires in 10 minutes
 """)
-            
+
             msg.add_alternative(f"""
 <body style="margin:0; padding:0; background-color:#f4f6f8; font-family: Arial, Helvetica, sans-serif;">
 
@@ -151,25 +159,28 @@ This code expires in 10 minutes
 
             # Send the email
             smtp_server.send_message(msg)
-            print(f"✅ OTP email sent successfully to {email_address}")
 
-            otp_code_obj = OtpCode(email_address, code)
+            # Save otp record after successful send
             save_otp_response = storage.save_otp_code(otp_code_obj.to_dict())
             if not save_otp_response.status:
-              return function_response(False)
-            
+                try:
+                    smtp_server.quit()
+                except:
+                    pass
+                return function_response(False)
+
             # Close connection properly
             smtp_server.quit()
             print(f"🔌 SMTP connection closed")
-            
+
             return function_response(True)
-            
+
         except smtplib.SMTPAuthenticationError as e:
             print(f"❌ Email authentication failed: {e}")
             print("   Check GOOGLE_ACCOUNT and GOOGLE_PASSWORD in .env")
             print("   Get app password from: https://myaccount.google.com/apppasswords")
-            
-            # Fallback to console
+
+            # Fallback to console and save record
             print("\n" + "="*60)
             print("📧 OTP CODE (Auth failed - showing in console)")
             print("="*60)
@@ -177,12 +188,16 @@ This code expires in 10 minutes
             print(f"   OTP Code: {otp_code_obj.code}")
             print(f"   Valid for: 10 minutes")
             print("="*60 + "\n")
+
+            save_otp_response = storage.save_otp_code(otp_code_obj.to_dict())
+            if not save_otp_response.status:
+                return function_response(False)
             return function_response(True)
-            
+
         except Exception as e:
             print(f"❌ Failed to send email: {e}")
-            
-            # Fallback to console
+
+            # Fallback to console and save record
             print("\n" + "="*60)
             print("📧 OTP CODE (Email send failed - showing in console)")
             print("="*60)
@@ -190,8 +205,12 @@ This code expires in 10 minutes
             print(f"   OTP Code: {otp_code_obj.code}")
             print(f"   Valid for: 10 minutes")
             print("="*60 + "\n")
+
+            save_otp_response = storage.save_otp_code(otp_code_obj.to_dict())
+            if not save_otp_response.status:
+                return function_response(False)
             return function_response(True)
-            
+
         finally:
             # Always close connection if it exists
             if smtp_server is not None:

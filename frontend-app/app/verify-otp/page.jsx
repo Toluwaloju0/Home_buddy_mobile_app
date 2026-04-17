@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useUser } from "@/app/context/UserContext";
+import { userAPI } from "@/lib/api";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { IoMdArrowRoundBack } from "react-icons/io";
@@ -9,6 +11,7 @@ import { authAPI } from "@/lib/api";
 
 const VerifyOTP = () => {
   const router = useRouter();
+  const { login } = useUser();
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState("pending"); // pending, error, expired, success
@@ -85,14 +88,40 @@ const VerifyOTP = () => {
       if (response.status) {
         setStatus("success");
         setErrorMessage("");
-        
+
+        // Refresh user context now that the user is verified (tokens present)
+        try {
+          const me = await userAPI.getMe();
+          if (me && me.status && me.payload) {
+            login(me.payload);
+          }
+        } catch (err) {
+          console.debug("Failed to refresh user after OTP:", err.message || err);
+        }
+
         // Navigate based on next_url in response
         setTimeout(() => {
-          if (response.next_url === "/select/roles") {
+          const next = response.next_url || "/";
+          const normalized = next.startsWith("/") ? next : `/${next}`;
+
+          // Map backend variants for select-roles to the frontend `role` page
+          if (
+            normalized === "/select/roles" ||
+            normalized === "/select-roles" ||
+            normalized === "/select_roles"
+          ) {
             router.push("/role");
-          } else {
-            router.push("/");
+            return;
           }
+
+          // Map backend home-page variants to root
+          if (normalized === "/home-page" || normalized === "/home" || normalized === "/") {
+            router.push("/");
+            return;
+          }
+
+          // Default: push the normalized next URL
+          router.push(normalized);
         }, 1000);
       } else {
         setStatus("error");

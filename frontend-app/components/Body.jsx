@@ -1,5 +1,6 @@
 
 import { Icon } from "lucide-react";
+import { resolveAssetPath } from "@/lib/asset";
 
 
 
@@ -48,14 +49,14 @@ const icons = [
 const Body = () => {
   return (
     <div>
-			<img src="/assets/home.png" className="w-full mb-10px"/>
+			<img src={resolveAssetPath("/assets/home.png")} className="w-full mb-10px"/>
 			
 			<div className="container mx-auto mb-10 py-10 border-2 border-blue-400">
 				<div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 pb-15">
 					{options.map((item, index) =>{
 						return (
 							<div key={index} className="bg-white rounded-xl shadow-md overflow-hidden hover:translate-y-1 transition-all duration-300">
-								<img src={item.image} alt={item.title} className="w-full h-48 object-cover"/>
+								<img src={resolveAssetPath(item.image)} alt={item.title} className="w-full h-48 object-cover"/>
 								<div className="p-6">
 										<h3 className="text-xl font-semibold mb-2">{item.title}</h3>
 										<p className="text-gray-600 text-sm mb-6">{item.description}</p>
@@ -73,7 +74,7 @@ const Body = () => {
 							return (
 								<div key={index} className="flex flex-col items-center justify-center gap-4 ">
 									<div className="h-14 w-14 rounded-full border-2 border-gren-300 bg-green-200 flex flex-col items-center justify-center">
-										<img src={icon.image} className="h-7 w-7"/>
+										<img src={resolveAssetPath(icon.image)} className="h-7 w-7"/>
 									</div>
 									<p className="text-gray-600 text-sm font-semibold">{icon.title}</p>
 								</div>

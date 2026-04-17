@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Button } from "./ui/button";
 import { FaStar } from "react-icons/fa";
+import { resolveAssetPath } from "@/lib/asset";
 
 const agents = [
 	{
@@ -47,7 +48,7 @@ const Verifiedagents = () => {
               {/* Agent Image */}
               <div className="flex justify-center sm:justify-start mb-4 sm:mb-0 sm:mr-4">
                 <div className="w-24 h-24 sm:w-28 sm:h-28">
-                  <img src={agent.image} className="w-full h-full object-cover rounded-full border-4 border-white shadow-md" />
+				  <img src={resolveAssetPath(agent.image)} className="w-full h-full object-cover rounded-full border-4 border-white shadow-md" />
                 </div>
               </div>
               
@@ -95,7 +96,7 @@ const Verifiedagents = () => {
 					<div className="flex flex-col sm:flex-row gap-3 md:gap-4 w-full md:w-auto">
 						{/* Google Play Store Button */}
 						<div className="border border-gray-200 rounded-xl md:rounded-none flex items-center gap-3 p-3 md:p-4 w-full md:w-60 hover:bg-gray-50 active:bg-gray-100 transition-colors cursor-pointer">
-							<img src="assets/Playstore.png" className="h-8 w-8 md:h-10 md:w-10 object-contain" />
+							<img src={resolveAssetPath("assets/Playstore.png")} className="h-8 w-8 md:h-10 md:w-10 object-contain" />
 							<div className="text-left">
 								<p className="text-xs md:text-sm uppercase text-gray-500">Get it on</p>
 								<p className="font-bold text-base md:text-xl">Google Play</p>
@@ -104,7 +105,7 @@ const Verifiedagents = () => {
 						
 						{/* Apple App Store Button */}
 						<div className="border border-gray-200 rounded-xl md:rounded-none flex items-center gap-3 p-3 md:p-4 w-full md:w-60 hover:bg-gray-50 active:bg-gray-100 transition-colors cursor-pointer">
-							<img src="assets/Apple.png" className="h-8 w-8 md:h-10 md:w-10 object-contain" />
+							<img src={resolveAssetPath("assets/Apple.png")} className="h-8 w-8 md:h-10 md:w-10 object-contain" />
 							<div className="text-left">
 								<p className="text-xs md:text-sm uppercase text-gray-500">Download on the</p>
 								<p className="font-bold text-base md:text-xl">App Store</p>
@@ -116,7 +117,7 @@ const Verifiedagents = () => {
 				{/* Section 2 - Phone Image */}
 				<div className="flex items-center justify-center mb-6 md:mb-0">
 					<img 
-						src="assets/phone.png" 
+						src={resolveAssetPath("assets/phone.png")} 
 						alt="Mobile App Preview" 
 						className="object-contain h-auto w-48 md:w-64 lg:h-[250px] lg:w-auto max-w-full"
 					/>

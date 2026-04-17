@@ -158,6 +158,8 @@ def update_me(payload: Dict[str, str], user_response = Depends(get_user_from_tok
     if payload.get("phone_number"):
         update_dict["phone_number"] = payload.get("phone_number")
         update_dict["phone_number_verified"] = False
+    if payload.get("image_url"):
+        update_dict["image_url"] = payload.get("image_url")
     
     if len(update_dict.keys()) < 1:
         content = api_response(True, "The neccessary data for the update was not found")
@@ -170,3 +172,6 @@ def update_me(payload: Dict[str, str], user_response = Depends(get_user_from_tok
         content = api_response(True, "The update has completed successfully", payload=update_response.payload, next_url="/homepage")
 
     return JSONResponse(content.to_dict())
+
+# @user.put("/me/update/roles")
+# def update_user_role()

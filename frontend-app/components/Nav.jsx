@@ -166,11 +166,12 @@ const Nav = () => {
                   <div className="font-medium">{getUserDisplayName()}</div>
                   <div className="text-xs text-gray-500">{getUserRoleDisplay()}</div>
                 </div>
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
                   <img 
-                    src={user.avatar || "assets/agent-1.png"} 
+                    src={user.image_url || user.avatar || "/assets/default-avatar.png"} 
                     className="rounded-full w-full h-full object-cover"
                     alt="User avatar"
+                    onError={(e) => { e.target.style.display = 'none'; }}
                   />
                 </div> 
                 <FaAngleDown className="text-xl text-gray-400"/>

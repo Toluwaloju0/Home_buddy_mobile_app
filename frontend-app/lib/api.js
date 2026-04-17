@@ -3,14 +3,13 @@
  * Place this file in: lib/api.js or services/api.js
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
 
 /**
  * Base fetch wrapper with error handling
  */
 async function fetchAPI(endpoint, options = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
-  
   const config = {
     ...options,
     headers: {
@@ -20,9 +19,50 @@ async function fetchAPI(endpoint, options = {}) {
     credentials: 'include', // CRITICAL: Include cookies in requests
   };
 
+  // preserve original body so we can retry requests after refresh
+  const originalBody = config.body;
+
+  // low-level refresh helper (avoid using fetchAPI to prevent recursion)
+  async function tryRefresh() {
+    try {
+      const refreshRes = await fetch(`${API_BASE_URL}/auth/token/refresh`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+      return { ok: refreshRes.ok, status: refreshRes.status };
+    } catch (err) {
+      return { ok: false, status: 0 };
+    }
+  }
+
   try {
-    const response = await fetch(url, config);
-    const data = await response.json();
+    let response = await fetch(url, config);
+
+    // If backend signals that access token is missing/needs refresh via 205
+    if (response.status === 205) {
+      const refreshed = await tryRefresh();
+      if (refreshed.ok) {
+        // retry the original request once (cookies should now be set)
+        const retryConfig = { ...config, body: originalBody };
+        response = await fetch(url, retryConfig);
+      } else {
+        // Refresh failed -> redirect user to the main dashboard page
+        if (typeof window !== 'undefined') {
+          window.location.href = '/dashboard';
+          throw new Error('Session expired, redirecting to dashboard');
+        }
+        throw new Error('Session expired');
+      }
+    }
+
+    // Parse response body safely (may be empty)
+    const text = await response.text();
+    let data = {};
+    try {
+      data = text ? JSON.parse(text) : {};
+    } catch (e) {
+      data = { raw: text };
+    }
 
     if (!response.ok) {
       throw new Error(data.message || 'API request failed');
@@ -42,12 +82,31 @@ export const authAPI = {
   /**
    * Passwordless Login - Send OTP to email
    * @param {string} email - User email
+   * @param {string} password - User password
    * @returns {Promise} API response
    */
-  async login(email) {
+  async login(email, password) {
     return fetchAPI('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ email, password }),
+    });
+  },
+
+  /**
+   * Signup - Create a new user and send OTP
+   * @param {Object} payload - Signup data
+   * @param {string} payload.email
+   * @param {string} payload.password
+   * @param {string} [payload.first_name]
+   * @param {string} [payload.last_name]
+   * @param {string} [payload.role] - 'buyer' or 'seller'
+   * @param {string} [payload.phone_number]
+   * @returns {Promise} API response
+   */
+   async signup(payload) {
+    return fetchAPI('/auth/signup', {
+      method: 'POST',
+      body: JSON.stringify(payload),
     });
   },
 
@@ -117,5 +176,18 @@ export const userAPI = {
     return fetchAPI('/user/me', {
       method: 'DELETE',
     });
+  },
+};
+
+/**
+ * Apartments API
+ */
+export const apartmentsAPI = {
+  async list() {
+    return fetchAPI('/apartments', { method: 'GET' });
+  },
+
+  async create(payload) {
+    return fetchAPI('/apartments', { method: 'POST', body: JSON.stringify(payload) });
   },
 };

@@ -7,6 +7,7 @@ import { TbRuler3 } from "react-icons/tb";
 import { IoBedOutline } from "react-icons/io5";
 import { MdOutlineShower } from "react-icons/md";
 import { CiLocationOn } from "react-icons/ci";
+import { resolveAssetPath } from "@/lib/asset";
 
 const categories = ["For Sale", "For Rent", "Short Lets", "Shops", "Lands"];
 
@@ -190,7 +191,7 @@ const FeaturedProperties = () => {
               <div key={propertyIndex} className="relative bg-white w-full rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.1)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.15)] transition-shadow duration-300 overflow-hidden">
                 {/* Image container */}
                 <div className="relative h-48 sm:h-56">
-                  <img src={property.image} className="w-full h-full object-cover" loading="lazy" />
+                  <img src={resolveAssetPath(property.image)} className="w-full h-full object-cover" loading="lazy" />
                 </div>
                 
                 {/* Property details */}

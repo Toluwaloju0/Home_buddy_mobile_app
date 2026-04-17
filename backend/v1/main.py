@@ -46,6 +46,7 @@ from routes.auth_route import auth
 from routes.user_route import user
 
 from routes.google_auth_route import google_auth
+from routes.apartment_route import apartment
    
 
 app = FastAPI(
@@ -79,6 +80,7 @@ def get_status():
 app.include_router(auth)
 app.include_router(user)
 app.include_router(google_auth)
+app.include_router(apartment)
 
 if __name__ == "__main__":
     port = int(getenv("BACKEND_PORT", 8000))

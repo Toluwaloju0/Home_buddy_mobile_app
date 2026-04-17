@@ -4,6 +4,7 @@ from typing import Dict
 from bson import ObjectId
 from argon2.exceptions import VerifyMismatchError
 from pymongo import MongoClient
+from datetime import datetime
 
 from utils.responses import function_response
 from utils.password import ph
@@ -20,7 +21,9 @@ class DBStorage:
         self.__refresh_token = self.__db["refresh_token"]
         self.__refresh_token.create_index([("created_at", 1)], expireAfterSeconds=300) # change this as soon as it is verified to work
         self.__otp_code = self.__db["otp_code"]
-        self.__otp_code.create_index([("created_at")], expireAfterSeconds=600) # expire after 10 minutes
+        self.__apartments = self.__db["apartments"]
+        # expire after 30 minutes
+        self.__otp_code.create_index([("created_at", 1)], expireAfterSeconds=1800)
 
     def save_user(self, **kwargs):
         """ a method to save the user into the database
@@ -47,11 +50,14 @@ class DBStorage:
         if not user:
             return function_response(False)
         # verify that the password passed is the correct one
-        try:
-            ph.verify(user.get("password"), password)
-            return function_response(True, user)
-        except VerifyMismatchError:
-            return function_response(False)
+        if password:
+            try:
+                ph.verify(user.get("password"), password)
+                return function_response(True, user)
+            except VerifyMismatchError:
+                return function_response(False)
+
+        return function_response(True)
 
     def get_user_by_id(self, user_id: str):
         """ a method to get the user by the user id
@@ -158,18 +164,29 @@ class DBStorage:
         previous_otp_dict = self.__otp_code.find_one({"email": otp_dict.get("email")})
 
         if previous_otp_dict:
-            if previous_otp_dict.get("count") == 3:
-                # the required request for otp validation is passed the user should wait for 10 minuites before requesting again
-
+            # If user has already requested OTP >= 3 times, disallow further sends until TTL expires
+            if previous_otp_dict.get("count", 0) >= 3:
                 return function_response(False)
 
             result = self.__otp_code.update_one(
                 {"email": otp_dict.get("email")},
-                {"$set": {"code": otp_dict.get("code"), "count": previous_otp_dict.get("count") + 1}}
+                {"$set": {
+                    "code": otp_dict.get("code"),
+                    "count": previous_otp_dict.get("count", 0) + 1,
+                    "created_at": datetime.now()
+                }}
             )
         else:
             result = self.__otp_code.insert_one(otp_dict)
         return function_response(True)
+
+    def get_otp_by_email(self, email: str):
+        """Get the OTP document for the provided email address."""
+
+        otp_dict = self.__otp_code.find_one({"email": email})
+        if otp_dict:
+            return function_response(True, otp_dict)
+        return function_response(False)
     
     def get_code_email(self, code: str):
         """ a method to get the email address associated with a code
@@ -191,6 +208,29 @@ class DBStorage:
         """
 
         self.__otp_code.delete_many({"email": email})
+
+    def save_apartment(self, **kwargs):
+        """Save a new apartment document to the database."""
+
+        result = self.__apartments.insert_one(kwargs)
+        if result.inserted_id:
+            return function_response(True, {"apartment_id": result.inserted_id})
+        return function_response(False)
+
+    def get_apartments(self, query: dict | None = None):
+        """Retrieve apartments. Returns a dict payload with key 'apartments'."""
+
+        docs = list(self.__apartments.find(query or {}))
+        sanitized = []
+        for d in docs:
+            # convert ObjectId to string for safe JSON responses
+            if d.get("_id"):
+                d["_id"] = str(d.get("_id"))
+            if d.get("created_at"):
+                del d["created_at"]
+            sanitized.append(d)
+
+        return function_response(True, {"apartments": sanitized})
     
 storage = DBStorage()
     
