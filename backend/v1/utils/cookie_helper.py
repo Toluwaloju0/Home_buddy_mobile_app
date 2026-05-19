@@ -2,7 +2,7 @@
 
 from fastapi.responses import JSONResponse
 
-def set_auth_cookies(response: JSONResponse, access_token: str, refresh_token: str):
+async def set_auth_cookies(response: JSONResponse, access_token: str, refresh_token: str):
     """
     Set authentication cookies with proper cross-origin configuration
     

@@ -2,7 +2,7 @@
 
 from utils.responses import function_response
 
-def email_domain_checker(email_address):
+async def email_domain_checker(email_address):
     """ a function to check the email if it is among the lists of approved domains
     Args:
         email_address (str): the email address to check

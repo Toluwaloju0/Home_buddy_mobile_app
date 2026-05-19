@@ -2,7 +2,7 @@
 
 from uuid import uuid4
 
-def get_otp_code():
+async def get_otp_code():
     """ a function to get a six length otp code for user validation
     Returns the otp code to secure the user with
     """

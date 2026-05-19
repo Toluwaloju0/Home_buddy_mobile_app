@@ -2,7 +2,7 @@
 
 from .responses import function_response
 
-def password_strength_checker(password: str):
+async def password_strength_checker(password: str):
     """ a function to check the strength of passwords passed to the API
     Args:
         password (str): the password to be checked
