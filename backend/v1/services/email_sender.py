@@ -1,17 +1,12 @@
 """ a module to define all the functions to send email to users of the application"""
 
+import smtplib
+from os import getenv
 from email.message import EmailMessage
-import logging
-
-import aiosmtplib
-
 from database.db_engine import storage
 from models.otp_code_model import OtpCode
 from utils.get_otp_code import get_otp_code
 from utils.responses import function_response
-from utils.settings import settings
-
-logger = logging.getLogger("home_buddy.email")
 
 
 class EmailSender:
@@ -19,8 +14,8 @@ class EmailSender:
 
     def __init__(self):
         """Initialize EmailSender - check credentials only, don't connect yet"""
-        self.__email = settings.google_account
-        self.__password = settings.google_password
+        self.__email = getenv("GOOGLE_ACCOUNT")
+        self.__password = getenv("GOOGLE_PASSWORD")
         
         # Check if credentials are configured
         self.__credentials_configured = (
@@ -37,18 +32,18 @@ class EmailSender:
         else:
             print(f"✅ Email service configured for: {self.__email}")
 
-    async def send_otp_mail(self, email_address: str):
+    def send_otp_mail(self, email_address: str):
         """ a method to send otp codes to the provided email address
         Args:
             email_address (str): the email address to send the code to 
         """
 
-        code = await get_otp_code()
+        code = get_otp_code()
 
-        otp_code_obj = OtpCode(email_address, code)
-        save_otp_response = await storage.save_otp_code(otp_code_obj.to_dict())
-        if not save_otp_response.status:
-            return function_response(False)
+        # otp_code_obj = OtpCode(email_address, code)
+        # save_otp_response = storage.save_otp_code(otp_code_obj.to_dict())
+        # if not save_otp_response.status:
+        #     return function_response(False)
         
         # If email is not configured, print OTP to console
         if not self.__credentials_configured:
@@ -64,9 +59,11 @@ class EmailSender:
         # Create fresh SMTP connection for EACH email
         smtp_server = None
         try:
-            smtp_server = aiosmtplib.SMTP(hostname="smtp.gmail.com", port=465, use_tls=True)
-            await smtp_server.connect()
-            await smtp_server.login(self.__email, self.__password)
+            # Connect to SMTP server (new connection every time)
+            print(f"🔌 Connecting to SMTP server for {email_address}...")
+            smtp_server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
+            smtp_server.login(self.__email, self.__password)
+            print(f"✅ SMTP connected successfully")
             
             # Create the email message
             msg = EmailMessage()
@@ -153,21 +150,22 @@ This code expires in 10 minutes
 """, subtype="html")
 
             # Send the email
-            await smtp_server.send_message(msg)
-            logger.info("OTP email sent successfully to %s", email_address)
+            smtp_server.send_message(msg)
+            print(f"✅ OTP email sent successfully to {email_address}")
 
             otp_code_obj = OtpCode(email_address, code)
-            save_otp_response = await storage.save_otp_code(otp_code_obj.to_dict())
+            save_otp_response = storage.save_otp_code(otp_code_obj.to_dict())
             if not save_otp_response.status:
               return function_response(False)
             
             # Close connection properly
-            await smtp_server.quit()
+            smtp_server.quit()
+            print(f"🔌 SMTP connection closed")
             
             return function_response(True)
             
-        except aiosmtplib.SMTPAuthenticationError as e:
-            logger.exception("Email authentication failed: %s", e)
+        except smtplib.SMTPAuthenticationError as e:
+            print(f"❌ Email authentication failed: {e}")
             print("   Check GOOGLE_ACCOUNT and GOOGLE_PASSWORD in .env")
             print("   Get app password from: https://myaccount.google.com/apppasswords")
             
@@ -182,7 +180,7 @@ This code expires in 10 minutes
             return function_response(True)
             
         except Exception as e:
-            logger.exception("Failed to send email: %s", e)
+            print(f"❌ Failed to send email: {e}")
             
             # Fallback to console
             print("\n" + "="*60)
@@ -197,10 +195,10 @@ This code expires in 10 minutes
         finally:
             # Always close connection if it exists
             if smtp_server is not None:
-              try:
-                await smtp_server.quit()
-              except Exception:
-                pass
+                try:
+                    smtp_server.quit()
+                except:
+                    pass
 
 
 email_sender = EmailSender()

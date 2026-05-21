@@ -6,7 +6,7 @@ from .responses import function_response
 
 ph = PasswordHasher(hash_len=50, salt_len=50)
 
-async def password_strength_checker(password: str):
+def password_strength_checker(password: str):
     """ a function to check the strength of passwords passed to the API
     Args:
         password (str): the password to be checked

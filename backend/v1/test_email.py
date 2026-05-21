@@ -6,18 +6,17 @@ Run this in your backend directory: python test_email.py
 from dotenv import load_dotenv
 load_dotenv()
 
+from os import getenv
 import sys
-
-from utils.settings import settings
 
 print("\n" + "="*60)
 print("  EMAIL CONFIGURATION TEST")
 print("="*60 + "\n")
 
 # Check environment variables
-google_account = settings.google_account
-google_password = settings.google_password
-google_address = settings.google_address
+google_account = getenv("GOOGLE_ACCOUNT")
+google_password = getenv("GOOGLE_PASSWORD")
+google_address = getenv("GOOGLE_ADDRESS")
 
 print("1. Checking .env configuration...")
 print(f"   GOOGLE_ACCOUNT: {google_account}")

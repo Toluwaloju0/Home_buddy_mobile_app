@@ -16,4 +16,4 @@ class OtpCode(Basemodel):
 
         self.email = email
         self.code = code
-        self.count = 0
+        self.count = 1

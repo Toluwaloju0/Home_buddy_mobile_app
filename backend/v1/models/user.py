@@ -14,27 +14,12 @@ class UserCreate(BaseModel):
     email: str
     password: str
 
-
-
-
 class UserRole(str, enum.Enum):
     """ a class to define the user roles accepted """
 
     SELLER = "seller"
     BUYER = "buyer"
-    BOTH = "both"
     ADMIN = "admin"
-
-
-class UserRegister(BaseModel):
-    """ the class to use when registering a new user """
-
-    email: str
-    password: str
-    first_name: str
-    last_name: str
-    role: UserRole = UserRole.BUYER
-    phone_number: str | None = None
 
 class User(Basemodel):
     """The base model class"""
@@ -45,9 +30,9 @@ class User(Basemodel):
     is_verified: bool = False
     role: UserRole = UserRole.BUYER
     password: str | None = None
+    email: str | None = None
     phone_number: str | None = None
     phone_number_verified: bool = False
-    image_url: str | None = None
 
     def __init__(self, **kwargs):
         """ the initializing class 
@@ -59,10 +44,10 @@ class User(Basemodel):
         for key, val in kwargs.items():
             setattr(self, key, val)
 
-    async def save(self):
+    def save(self):
         """ a method to save the class to the database"""
 
-        save_user_response = await storage.save_user(**self.to_dict())
+        save_user_response = storage.save_user(**self.to_dict())
 
         if not save_user_response.status:
             return function_response(False)

@@ -29,18 +29,10 @@ class APIResponse:
         my_dict = {}
         my_dict.update(self.__dict__)
 
-        # Remove next_url from response when not provided
-        if my_dict.get("next_url") is None:
-            my_dict.pop("next_url", None)
-
         if my_dict.get("payload"):
-            if isinstance(my_dict["payload"], dict):
-                if my_dict["payload"].get("created_at"):
-                    del my_dict["payload"]["created_at"]
-                if my_dict["payload"].get("_id"):
-                    my_dict["payload"]["_id"] = str(my_dict["payload"]["_id"])
+            if my_dict["payload"].get("created_at"):
+                del my_dict["payload"]["created_at"]
+            if my_dict["payload"].get("_id"):
+                my_dict["payload"]["_id"] = str(my_dict["payload"]["_id"])
 
         return my_dict
-
-    def __str__(self):
-        return f"{self.__dict__}"
