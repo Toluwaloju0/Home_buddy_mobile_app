@@ -104,7 +104,7 @@ function ListingDetailContent() {
   const renderHeader = () => (
     <header className="topbar seller-topbar">
       <div className="brand-lockup" aria-label="Home Buddy">
-        <span className="brand-mark" />
+        <img src="/home_buddy_logo.png" alt="Home Buddy" className="brand-logo" />
         <div>
           <div className="brand-name">Home Buddy</div>
           <div className="brand-tagline">Verified housing platform</div>
@@ -148,19 +148,43 @@ function ListingDetailContent() {
 
   const renderFooter = () => (
     <footer className="footer">
-      <div className="footer-brand">
-        <div className="brand-lockup brand-lockup--footer" aria-label="Home Buddy">
-          <span className="brand-mark" />
-          <div>
-            <div className="brand-name">Home Buddy</div>
-            <div className="brand-tagline">Verified housing platform</div>
+      <div className="footer-top">
+        <div className="footer-brand">
+          <div className="brand-lockup brand-lockup--footer" aria-label="Home Buddy">
+            <img src="/home_buddy_logo.png" alt="Home Buddy" className="brand-logo" />
+            <div>
+              <div className="brand-name">Home Buddy</div>
+              <div className="brand-tagline">Verified housing platform</div>
+            </div>
           </div>
+          <p>
+            A trusted real estate platform for verified property discovery, seller onboarding, and role-based
+            dashboards.
+          </p>
         </div>
-        <p>
-          Home Buddy is a trusted real estate platform that helps you sell verified properties with confidence.
-        </p>
+
+        <nav className="footer-links" aria-label="Footer navigation">
+          <ul className="footer-column">
+            <li><a href="/contact">Contact</a></li>
+            <li><a href="/about-us">About Us</a></li>
+            <li><a href="/services">Our Services</a></li>
+            <li><a href="/login">Login</a></li>
+            <li><a href="/signup">Register</a></li>
+            <li><a href="/support">Support</a></li>
+          </ul>
+          <ul className="footer-column">
+            <li><a href="/terms">Terms</a></li>
+            <li><a href="/privacy-policy">Privacy Policy</a></li>
+            <li><a href="/faq">FAQ</a></li>
+            <li><a href="/sitemap">Sitemap</a></li>
+            <li><a href="/careers">Careers</a></li>
+          </ul>
+        </nav>
       </div>
-      <div className="footer-copy">© 2026 Home Buddy. All rights reserved.</div>
+
+      <div className="footer-bottom">
+        <div className="footer-copy">© 2026 Home Buddy. All rights reserved.</div>
+      </div>
     </footer>
   );
 

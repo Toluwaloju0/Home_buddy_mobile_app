@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  mongo:
+    image: mongo:6.0
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: home_buddy
+
+  backend:
+    build:
+      context: ./backend/v1
+      dockerfile: Dockerfile
+    container_name: homebuddy-backend
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/v1/.env
+    environment:
+      - BACKEND_PORT=8000
+      - MONGO_URI=mongodb://mongo:27017/home_buddy
+    volumes:
+      - ./backend/v1/uploads:/app/uploads
+
+  frontend:
+    build:
+      context: ./frontend-next
+      dockerfile: Dockerfile
+    container_name: homebuddy-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NEXT_PUBLIC_API_URL=http://backend:8000
+
+volumes:
+  mongo_data:
+    name: homebuddy_mongo_data

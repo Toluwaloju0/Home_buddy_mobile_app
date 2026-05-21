@@ -4,26 +4,29 @@ const featureCards = [
     description: 'Featured homes, lands, and shops ready for verified buyers.',
     cta: 'Search listings',
     tone: 'light',
+    image: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=1600&q=80',
   },
   {
     title: 'Rent',
     description: 'Short lets and long stays with clear fees and upfront details.',
     cta: 'Browse rentals',
     tone: 'mint',
+    image: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=1600&q=80',
   },
   {
     title: 'Sell',
     description: 'List a property and move through verification before it goes live.',
     cta: 'Join as seller',
     tone: 'dark',
+    image: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1600&q=80',
   },
 ];
 
 const reasons = [
-  'Verified listings',
-  'Escrow payment',
-  'Lagos insights',
-  'Facility management',
+  { key: 'verified', label: 'Verified listings', icon: '/icons/verified.svg' },
+  { key: 'escrow', label: 'Escrow payment', icon: '/icons/escrow.svg' },
+  { key: 'insights', label: 'Lagos insights', icon: '/icons/insights.svg' },
+  { key: 'facility', label: 'Facility management', icon: '/icons/facility.svg' },
 ];
 
 const properties = [
@@ -31,21 +34,25 @@ const properties = [
     name: 'Lekki Luxury Apartment',
     price: 'N1,000,000',
     location: 'Lekki Phase 1, Lagos',
+    image: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=1600&q=80',
   },
   {
     name: 'Maitama Comfort Flat',
     price: 'N1,200,000',
     location: 'Yaba, Lagos',
+    image: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=1600&q=80',
   },
   {
     name: 'Island View Apartment',
     price: 'N900,000',
     location: 'Victoria Island, Lagos',
+    image: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1600&q=80',
   },
   {
     name: 'Epe Garden Land',
     price: 'N1,000,000',
     location: 'Epe, Lagos',
+    image: 'https://images.unsplash.com/photo-1505843513577-22bb7d21e455?auto=format&fit=crop&w=1600&q=80',
   },
 ];
 
@@ -54,16 +61,19 @@ const agents = [
     name: 'Chika Nwosu',
     role: 'Greenfield Realty',
     stats: '128 reviews · 42 properties listed',
+    image: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80',
   },
   {
     name: 'Kunle Adebayo',
     role: 'PrimeEdge Properties',
     stats: '94 reviews · 37 properties listed',
+    image: 'https://images.unsplash.com/photo-1502685104226-ee32379fefbe?auto=format&fit=crop&w=400&q=80',
   },
   {
     name: 'Sarah Johnson',
     role: 'LandLink Ltd.',
     stats: '77 reviews · 60 properties listed',
+    image: 'https://images.unsplash.com/photo-1554151228-14d9def656e4?auto=format&fit=crop&w=400&q=80',
   },
 ];
 
@@ -86,19 +96,11 @@ export default function HomePage() {
     <main className="page-shell">
       <header className="topbar">
         <div className="brand-lockup" aria-label="Home Buddy">
-          <span className="brand-mark" />
+          <img src="/home_buddy_logo.png" alt="Home Buddy" className="brand-logo" />
           <div>
             <div className="brand-name">Home Buddy</div>
             <div className="brand-tagline">Verified housing platform</div>
           </div>
-        </div>
-
-        <div className="topbar-tags" aria-hidden="true">
-          <span>Buy</span>
-          <span>Rent</span>
-          <span>Sell</span>
-          <span>Agents</span>
-          <span>Facility Mgt</span>
         </div>
 
         <a className="join-button" href="/login">
@@ -128,7 +130,9 @@ export default function HomePage() {
       <section className="cards-grid" aria-label="Primary property journeys">
         {featureCards.map((card) => (
           <article className={`info-card info-card--${card.tone}`} key={card.title}>
-            <div className="card-image" aria-hidden="true" />
+            <div className="card-image" aria-hidden="true">
+              <img src={card.image} alt={card.title} className="card-image-img" />
+            </div>
             <div className="card-body">
               <h2>{card.title}</h2>
               <p>{card.description}</p>
@@ -142,9 +146,11 @@ export default function HomePage() {
         <h2>Why Choose Home Buddy</h2>
         <div className="reason-row" aria-hidden="true">
           {reasons.map((reason) => (
-            <div className="reason-item" key={reason}>
-              <span className="reason-icon" />
-              <span>{reason}</span>
+            <div className="reason-item" key={reason.key}>
+              <div className="reason-icon" aria-hidden="true">
+                <img src={reason.icon} alt="" className="reason-icon-image" />
+              </div>
+              <span>{reason.label}</span>
             </div>
           ))}
         </div>
@@ -165,7 +171,9 @@ export default function HomePage() {
         <div className="property-strip" aria-label="Featured properties">
           {properties.map((property) => (
             <article className="property-card" key={property.name}>
-              <div className="property-photo" aria-hidden="true" />
+              <div className="property-photo" aria-hidden="true">
+                <img src={property.image} alt={property.name} className="property-photo-image" />
+              </div>
               <div className="property-copy">
                 <h3>{property.name}</h3>
                 <strong>{property.price}</strong>
@@ -185,7 +193,9 @@ export default function HomePage() {
         <div className="agents-grid">
           {agents.map((agent) => (
             <article className="agent-card" key={agent.name}>
-              <div className="agent-avatar" aria-hidden="true" />
+              <div className="agent-avatar" aria-hidden="false">
+                <img src={agent.image} alt={agent.name} className="agent-avatar-image" />
+              </div>
               <div>
                 <h3>{agent.name}</h3>
                 <p>{agent.role}</p>
@@ -225,20 +235,43 @@ export default function HomePage() {
       </section>
 
       <footer className="footer">
-        <div className="footer-brand">
-          <div className="brand-lockup brand-lockup--footer" aria-label="Home Buddy">
-            <span className="brand-mark" />
-            <div>
-              <div className="brand-name">Home Buddy</div>
-              <div className="brand-tagline">Verified housing platform</div>
+        <div className="footer-top">
+          <div className="footer-brand">
+            <div className="brand-lockup brand-lockup--footer" aria-label="Home Buddy">
+              <img src="/home_buddy_logo.png" alt="Home Buddy" className="brand-logo" />
+              <div>
+                <div className="brand-name">Home Buddy</div>
+                <div className="brand-tagline">Verified housing platform</div>
+              </div>
             </div>
+            <p>
+              A trusted real estate platform for verified property discovery, seller onboarding, and role-based
+              dashboards.
+            </p>
           </div>
-          <p>
-            A trusted real estate platform for verified property discovery, seller onboarding, and role-based
-            dashboards.
-          </p>
+
+          <nav className="footer-links" aria-label="Footer navigation">
+            <ul className="footer-column">
+              <li><a href="/contact">Contact</a></li>
+              <li><a href="/about-us">About Us</a></li>
+              <li><a href="/services">Our Services</a></li>
+              <li><a href="/login">Login</a></li>
+              <li><a href="/signup">Register</a></li>
+              <li><a href="/support">Support</a></li>
+            </ul>
+            <ul className="footer-column">
+              <li><a href="/terms">Terms</a></li>
+              <li><a href="/privacy-policy">Privacy Policy</a></li>
+              <li><a href="/faq">FAQ</a></li>
+              <li><a href="/sitemap">Sitemap</a></li>
+              <li><a href="/careers">Careers</a></li>
+            </ul>
+          </nav>
         </div>
-        <div className="footer-copy">© 2026 Home Buddy. All rights reserved.</div>
+
+        <div className="footer-bottom">
+          <div className="footer-copy">© 2026 Home Buddy. All rights reserved.</div>
+        </div>
       </footer>
     </main>
   );

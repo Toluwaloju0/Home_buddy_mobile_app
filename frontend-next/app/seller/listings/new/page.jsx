@@ -48,6 +48,36 @@ const apartmentImageGroups = [
   { key: 'gym_images', label: 'Gym / Shared Amenities', required: false, hint: 'Optional shared facility images' },
 ];
 
+const listingTypeSummaries = {
+  apartment: {
+    eyebrow: 'Apartment listing workflow',
+    title: 'Create a polished apartment listing',
+    description:
+      'Present the full property story with a clean headline, location details, documents, and room-by-room photos buyers can trust.',
+    highlights: ['Exterior and interior photos', 'Required title documents', 'Negotiable pricing support'],
+    bannerImage:
+      'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1600&q=80',
+  },
+  land: {
+    eyebrow: 'Land listing workflow',
+    title: 'Create a land listing with confidence',
+    description:
+      'Add location, ownership documents, and a concise description so buyers can evaluate the land quickly.',
+    highlights: ['Location-first layout', 'Ownership document upload', 'Professional listing plan options'],
+    bannerImage:
+      'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1600&q=80',
+  },
+  shop: {
+    eyebrow: 'Commercial listing workflow',
+    title: 'Create a shop listing that stands out',
+    description:
+      'Showcase your commercial property with clear pricing, address details, and sharp imagery for faster inquiries.',
+    highlights: ['Commercial-ready details', 'Pricing and address focus', 'Image-led presentation'],
+    bannerImage:
+      'https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=1600&q=80',
+  },
+};
+
 function createEmptyMediaState() {
   return documentFields.reduce((accumulator, field) => {
     accumulator[field.key] = [];
@@ -133,6 +163,7 @@ function NewListingContent() {
   }, [user]);
 
   const userImageUrl = user?.image_url || '';
+  const listingSummary = listingTypeSummaries[type] || listingTypeSummaries.apartment;
 
   const handleLogout = async () => {
     setDropdownOpen(false);
@@ -223,7 +254,7 @@ function NewListingContent() {
   const renderHeader = () => (
     <header className="topbar seller-topbar">
       <div className="brand-lockup" aria-label="Home Buddy">
-        <span className="brand-mark" />
+        <img src="/home_buddy_logo.png" alt="Home Buddy" className="brand-logo" />
         <div>
           <div className="brand-name">Home Buddy</div>
           <div className="brand-tagline">Verified housing platform</div>
@@ -268,19 +299,43 @@ function NewListingContent() {
 
   const renderFooter = () => (
     <footer className="footer">
-      <div className="footer-brand">
-        <div className="brand-lockup brand-lockup--footer" aria-label="Home Buddy">
-          <span className="brand-mark" />
-          <div>
-            <div className="brand-name">Home Buddy</div>
-            <div className="brand-tagline">Verified housing platform</div>
+      <div className="footer-top">
+        <div className="footer-brand">
+          <div className="brand-lockup brand-lockup--footer" aria-label="Home Buddy">
+            <img src="/home_buddy_logo.png" alt="Home Buddy" className="brand-logo" />
+            <div>
+              <div className="brand-name">Home Buddy</div>
+              <div className="brand-tagline">Verified housing platform</div>
+            </div>
           </div>
+          <p>
+            A trusted real estate platform for verified property discovery, seller onboarding, and role-based
+            dashboards.
+          </p>
         </div>
-        <p>
-          Home Buddy is a trusted real estate platform that helps you sell verified properties with confidence.
-        </p>
+
+        <nav className="footer-links" aria-label="Footer navigation">
+          <ul className="footer-column">
+            <li><a href="/contact">Contact</a></li>
+            <li><a href="/about-us">About Us</a></li>
+            <li><a href="/services">Our Services</a></li>
+            <li><a href="/login">Login</a></li>
+            <li><a href="/signup">Register</a></li>
+            <li><a href="/support">Support</a></li>
+          </ul>
+          <ul className="footer-column">
+            <li><a href="/terms">Terms</a></li>
+            <li><a href="/privacy-policy">Privacy Policy</a></li>
+            <li><a href="/faq">FAQ</a></li>
+            <li><a href="/sitemap">Sitemap</a></li>
+            <li><a href="/careers">Careers</a></li>
+          </ul>
+        </nav>
       </div>
-      <div className="footer-copy">© 2026 Home Buddy. All rights reserved.</div>
+
+      <div className="footer-bottom">
+        <div className="footer-copy">© 2026 Home Buddy. All rights reserved.</div>
+      </div>
     </footer>
   );
 
@@ -329,12 +384,26 @@ function NewListingContent() {
       {renderHeader()}
 
       <form className="listing-form" onSubmit={handleSubmit}>
-        <div className="form-header">
-          <button type="button" className="back-button" onClick={() => router.back()}>&larr; Back</button>
-          <h1>{type === 'apartment' ? 'List Your Apartment for Sale' : `List Your ${type.charAt(0).toUpperCase() + type.slice(1)}`}</h1>
-        </div>
-
-        <p className="form-subtitle">Upload the images and documents buyers need to review before they contact you.</p>
+        <section className="listing-hero-card">
+          <div className="listing-hero-copy">
+            <button type="button" className="back-button back-button--hero" onClick={() => router.back()}>&larr; Back</button>
+            <p className="settings-kicker">{listingSummary.eyebrow}</p>
+            <h1>{listingSummary.title}</h1>
+            <p className="form-subtitle">{listingSummary.description}</p>
+            <ul className="listing-highlights" aria-label="Listing highlights">
+              {listingSummary.highlights.map((highlight) => (
+                <li key={highlight}>{highlight}</li>
+              ))}
+            </ul>
+          </div>
+          <div className="listing-hero-visual" aria-hidden="true">
+            <img src={listingSummary.bannerImage} alt="" />
+            <div className="listing-hero-visual-overlay">
+              <strong>{type === 'apartment' ? 'Apartment' : type.charAt(0).toUpperCase() + type.slice(1)}</strong>
+              <span>Verified seller workflow</span>
+            </div>
+          </div>
+        </section>
 
 
         <section className="settings-card listing-section-card">

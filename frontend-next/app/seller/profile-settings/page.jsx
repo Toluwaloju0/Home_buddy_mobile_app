@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { API_BASE_URL, authFetch, redirectToLogin } from '../../../lib/api';
+import UserAvatar from '../../components/UserAvatar';
 
 const initialFormState = {
   fullName: '',
@@ -29,6 +30,9 @@ const initialFormState = {
 export default function SellerProfileSettingsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [userRole, setUserRole] = useState('seller');
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [hoverOpen, setHoverOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState(null);
   const [form, setForm] = useState(initialFormState);
@@ -63,6 +67,7 @@ export default function SellerProfileSettingsPage() {
       }
 
       const user = userData.payload;
+      setUserRole((user.role || 'seller').toLowerCase());
       const sellerPayload = sellerData?.payload || {};
       const fullName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
 
@@ -110,6 +115,26 @@ export default function SellerProfileSettingsPage() {
   const onImageChange = (setter) => (event) => {
     const file = event.target.files?.[0] || null;
     setter(file);
+  };
+
+  const handleLogout = async () => {
+    setDropdownOpen(false);
+    try {
+      const response = await authFetch(`${API_BASE_URL}/auth/logout`, {
+        method: 'POST',
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (response.status === 200) {
+        router.push('/login');
+      } else {
+        alert(data?.message || 'Logout failed. Please try again.');
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+      alert('Failed to logout. Please try again.');
+    }
   };
 
   const handleSubmit = async (nextMode) => {
@@ -198,22 +223,73 @@ export default function SellerProfileSettingsPage() {
     );
   }
 
+  const handleBrandClick = () => {
+    const dashboardRoutes = {
+      seller: '/seller',
+      buyer: '/buyer',
+      agent: '/agent',
+    };
+    const dashboardUrl = dashboardRoutes[userRole] || '/seller';
+    router.push(dashboardUrl);
+  };
+
   return (
     <main className="page-shell settings-page-shell">
       <header className="topbar settings-topbar">
-        <div className="brand-lockup" aria-label="Home Buddy">
-          <span className="brand-mark" />
+        <button
+          type="button"
+          className="brand-lockup brand-lockup--clickable"
+          onClick={handleBrandClick}
+          aria-label="Home Buddy dashboard"
+          disabled={loading}
+        >
+          <img src="/home_buddy_logo.png" alt="Home Buddy" className="brand-logo" />
           <div>
             <div className="brand-name">Home Buddy</div>
-            <div className="brand-tagline">Seller profile settings</div>
+            <div className="brand-tagline">Verified housing platform</div>
           </div>
+        </button>
+
+        <div className="topbar-tags" aria-hidden="true">
+          <span>Sell</span>
+          <span>Agents</span>
+          <span>Facility Mgt</span>
         </div>
 
-        <div className="seller-settings-user">
-          <span className="seller-settings-user-name">{displayName}</span>
-          <button type="button" className="settings-back-button" onClick={() => router.push('/seller')}>
-            Back
+        <div
+          className="seller-user-menu"
+          onMouseEnter={() => setHoverOpen(true)}
+          onMouseLeave={() => setHoverOpen(false)}
+          onFocus={() => setHoverOpen(true)}
+          onBlur={() => setHoverOpen(false)}
+        >
+          <button
+            type="button"
+            className="profile-trigger"
+            onClick={() => setDropdownOpen((prev) => !prev)}
+            aria-expanded={dropdownOpen || hoverOpen}
+            aria-haspopup="menu"
+          >
+            <UserAvatar src={form.imageUrl} name={displayName} size="sm" className="profile-avatar-shell" />
+            <span className="profile-name">{displayName}</span>
+            <span className="profile-caret" aria-hidden="true">▾</span>
           </button>
+
+          <div
+            className={`profile-dropdown ${dropdownOpen || hoverOpen ? 'profile-dropdown--open' : ''}`}
+            role="menu"
+            aria-hidden={!(dropdownOpen || hoverOpen)}
+          >
+            <div className="profile-dropdown-header">
+              <UserAvatar src={form.imageUrl} name={displayName} size="lg" className="profile-dropdown-avatar-shell" />
+              <strong>{displayName}</strong>
+            </div>
+            <button type="button" className="profile-dropdown-item" role="menuitem" onClick={() => router.push('/seller')}>Dashboard</button>
+            <button type="button" className="profile-dropdown-item" role="menuitem" onClick={() => router.push('/seller/messages')}>Messages</button>
+            <button type="button" className="profile-dropdown-item" role="menuitem" onClick={() => router.push('/seller/profile-settings')}>Profile Settings</button>
+            <button type="button" className="profile-dropdown-item" role="menuitem" onClick={() => router.push('/buyer')}>Switch to Buying Account</button>
+            <button type="button" className="profile-dropdown-item" role="menuitem" onClick={handleLogout}>Log out</button>
+          </div>
         </div>
       </header>
 
@@ -400,17 +476,43 @@ export default function SellerProfileSettingsPage() {
       </form>
 
       <footer className="footer">
-        <div className="footer-brand">
-          <div className="brand-lockup brand-lockup--footer" aria-label="Home Buddy">
-            <span className="brand-mark" />
-            <div>
-              <div className="brand-name">Home Buddy</div>
-              <div className="brand-tagline">Verified housing platform</div>
+        <div className="footer-top">
+          <div className="footer-brand">
+            <div className="brand-lockup brand-lockup--footer" aria-label="Home Buddy">
+              <img src="/home_buddy_logo.png" alt="Home Buddy" className="brand-logo" />
+              <div>
+                <div className="brand-name">Home Buddy</div>
+                <div className="brand-tagline">Verified housing platform</div>
+              </div>
             </div>
+            <p>
+              A trusted real estate platform for verified property discovery, seller onboarding, and role-based
+              dashboards.
+            </p>
           </div>
-          <p>Home Buddy helps sellers keep their verification and listing details up to date.</p>
+
+          <nav className="footer-links" aria-label="Footer navigation">
+            <ul className="footer-column">
+              <li><a href="/contact">Contact</a></li>
+              <li><a href="/about-us">About Us</a></li>
+              <li><a href="/services">Our Services</a></li>
+              <li><a href="/login">Login</a></li>
+              <li><a href="/signup">Register</a></li>
+              <li><a href="/support">Support</a></li>
+            </ul>
+            <ul className="footer-column">
+              <li><a href="/terms">Terms</a></li>
+              <li><a href="/privacy-policy">Privacy Policy</a></li>
+              <li><a href="/faq">FAQ</a></li>
+              <li><a href="/sitemap">Sitemap</a></li>
+              <li><a href="/careers">Careers</a></li>
+            </ul>
+          </nav>
         </div>
-        <div className="footer-copy">© 2026 Home Buddy. All rights reserved.</div>
+
+        <div className="footer-bottom">
+          <div className="footer-copy">© 2026 Home Buddy. All rights reserved.</div>
+        </div>
       </footer>
     </main>
   );
