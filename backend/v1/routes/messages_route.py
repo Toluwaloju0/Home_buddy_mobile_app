@@ -52,8 +52,8 @@ async def send_message(
         content = api_response(False, "receiver_id and message_text are required")
         return JSONResponse(content.to_dict(), 400)
 
-    # Determine sender role (buyer or seller)
-    sender_role = "seller"  # Default to seller; can be detected from context if needed
+    # Preserve the authenticated user's actual role for future buyer/seller flows.
+    sender_role = user.get("role", "seller")
 
     message_data = {
         "sender_id": sender_id,

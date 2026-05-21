@@ -41,3 +41,6 @@ class APIResponse:
                     my_dict["payload"]["_id"] = str(my_dict["payload"]["_id"])
 
         return my_dict
+
+    def __str__(self):
+        return f"{self.__dict__}"

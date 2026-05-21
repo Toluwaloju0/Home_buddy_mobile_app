@@ -11,6 +11,7 @@ from models.seller_model import Seller
 from utils.responses import function_response
 from utils.password import ph
 from utils.settings import settings
+from services.s3_uploader import uploader
 
 logger = logging.getLogger("home_buddy.db_engine")
 
@@ -353,6 +354,9 @@ class DBStorage:
         if not user:
             return function_response(False)
 
+        # if user.get("image_url"):
+        #     user["image_url"] = await uploader.resolve_accessible_s3_url(user.get("image_url"), user.get("image_key"))
+
         # If no password provided, return the user record for OTP flow
         if password is None:
             return function_response(True, user)
@@ -380,6 +384,8 @@ class DBStorage:
             return function_response(False)
         # do not expose password
         user.pop("password", None)
+        if user.get("image_url"):
+            user["image_url"] = await uploader.resolve_accessible_s3_url(user.get("image_url"), user.get("image_key"))
         return function_response(True, user)
 
     @safe_db_operation
@@ -395,6 +401,8 @@ class DBStorage:
         if not user:
             return function_response(False)
         del user["password"]
+        if user.get("image_url"):
+            user["image_url"] = await uploader.resolve_accessible_s3_url(user.get("image_url"), user.get("image_key"))
         return function_response(True, user)
         
     @safe_db_operation

@@ -43,10 +43,10 @@ class EmailSender:
             email_address (str): the email address to send the code to 
         """
 
-      code = await get_otp_code()
+        code = await get_otp_code()
 
-      otp_code_obj = OtpCode(email_address, code)
-      save_otp_response = await storage.save_otp_code(otp_code_obj.to_dict())
+        otp_code_obj = OtpCode(email_address, code)
+        save_otp_response = await storage.save_otp_code(otp_code_obj.to_dict())
         if not save_otp_response.status:
             return function_response(False)
         
@@ -64,9 +64,9 @@ class EmailSender:
         # Create fresh SMTP connection for EACH email
         smtp_server = None
         try:
-          smtp_server = aiosmtplib.SMTP(hostname="smtp.gmail.com", port=465, use_tls=True)
-          await smtp_server.connect()
-          await smtp_server.login(self.__email, self.__password)
+            smtp_server = aiosmtplib.SMTP(hostname="smtp.gmail.com", port=465, use_tls=True)
+            await smtp_server.connect()
+            await smtp_server.login(self.__email, self.__password)
             
             # Create the email message
             msg = EmailMessage()
@@ -182,7 +182,7 @@ This code expires in 10 minutes
             return function_response(True)
             
         except Exception as e:
-          logger.exception("Failed to send email: %s", e)
+            logger.exception("Failed to send email: %s", e)
             
             # Fallback to console
             print("\n" + "="*60)

@@ -12,6 +12,20 @@ from utils.responses import api_response
 from utils.password import ph, password_strength_checker
 from utils.email_checker import email_domain_checker
 from services.email_sender import email_sender
+from services.s3_uploader import uploader
+
+
+# async def enrich_user_image(user_payload):
+#     """Attach a browser-loadable avatar URL when the user stores an S3 object reference."""
+
+#     if not user_payload or not user_payload.get("image_url"):
+#         return user_payload
+
+#     user_payload["image_url"] = await uploader.resolve_accessible_s3_url(
+#         user_payload.get("image_url"),
+#         user_payload.get("image_key"),
+#     )
+#     return user_payload
 
 user = APIRouter(prefix="/user", tags=["Users"], dependencies=[Depends(get_user_from_token)])
 
@@ -28,6 +42,7 @@ async def get_me(user_response = Depends(get_user_from_token)):
         return JSONResponse(content.to_dict(), 205)
     
     user = user_response.payload
+    # user = await enrich_user_image(user)
 
     content = api_response(True, "The user has been retrieved successfully", user)
     return JSONResponse(content.to_dict())

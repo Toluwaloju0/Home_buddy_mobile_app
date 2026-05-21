@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 from database.db_engine import storage
 from middlewares.verify_user import get_user_from_token
 from utils.responses import api_response
-from services.s3_uploader import upload_file_to_s3
+from services.s3_uploader import uploader
 
 seller = APIRouter(prefix="/seller", tags=["Seller"], dependencies=[Depends(get_user_from_token)])
 
@@ -43,6 +43,11 @@ async def serialize_mongo_value(value):
     if isinstance(value, datetime):
         return value.isoformat()
     if isinstance(value, dict):
+        if "url" in value and ("key" in value or "image_type" in value or "image_number" in value):
+            resolved_url = await uploader.resolve_accessible_s3_url(value.get("url"), value.get("key"))
+            updated_value = dict(value)
+            updated_value["url"] = resolved_url
+            return {key: await serialize_mongo_value(item) for key, item in updated_value.items()}
         return {key: await serialize_mongo_value(item) for key, item in value.items()}
     if isinstance(value, list):
         return [await serialize_mongo_value(item) for item in value]
@@ -59,10 +64,12 @@ async def upload_grouped_files(user_id: str, submission_id: str, group_name: str
         if not uploaded_file:
             continue
 
-        file_response = await upload_file_to_s3(
+        file_response = await uploader.upload_house_image(
             uploaded_file,
-            f"listings/{user_id}/{submission_id}/{group_name}",
-            f"{group_name}_{index}",
+            user_id,
+            submission_id,
+            group_name,
+            index,
         )
         if not file_response.status:
             return None
@@ -159,9 +166,10 @@ async def update_my_seller_profile(
         user_updates["phone_number"] = phone_number.strip()
 
     if profile_image:
-        profile_image_response = await upload_file_to_s3(profile_image, f"seller-profiles/{user_id}", "profile")
+        profile_image_response = await uploader.upload_profile_image(profile_image, user_id)
         if profile_image_response.status:
             user_updates["image_url"] = profile_image_response.payload.get("url")
+            user_updates["image_key"] = profile_image_response.payload.get("key")
             print("An update happened to the profile image", profile_image_response.payload)
 
     if user_updates:
@@ -189,17 +197,17 @@ async def update_my_seller_profile(
     seller_updates = {key: value for key, value in seller_updates.items() if value not in (None, "")}
 
     if proof_of_address:
-        proof_response = await upload_file_to_s3(proof_of_address, f"seller-profiles/{user_id}", "proof-of-address")
+        proof_response = await uploader.upload_verification_image(proof_of_address, user_id, "proof-of-address")
         if proof_response.status:
             seller_updates["proof_of_address_url"] = proof_response.payload.get("url")
 
     if id_front:
-        id_front_response = await upload_file_to_s3(id_front, f"seller-profiles/{user_id}", "id-front")
+        id_front_response = await uploader.upload_verification_image(id_front, user_id, "id-front")
         if id_front_response.status:
             seller_updates["id_front_url"] = id_front_response.payload.get("url")
 
     if id_back:
-        id_back_response = await upload_file_to_s3(id_back, f"seller-profiles/{user_id}", "id-back")
+        id_back_response = await uploader.upload_verification_image(id_back, user_id, "id-back")
         if id_back_response.status:
             seller_updates["id_back_url"] = id_back_response.payload.get("url")
 

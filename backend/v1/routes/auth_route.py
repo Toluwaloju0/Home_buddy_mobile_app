@@ -143,6 +143,7 @@ async def login(user_data: UserCreate):
 
     # Successful password login — return sanitized user payload
     content = api_response(True, "Log in successful", saved_user)
+    print(content, "==" * 10)
     response = JSONResponse(content.to_dict())
     response.set_cookie("access_token", access_token_response.payload.get("access_token"))
     response.set_cookie("refresh_token", refresh_token_response.payload.get("refresh_token"))
