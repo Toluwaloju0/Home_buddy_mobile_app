@@ -22,8 +22,8 @@ from utils.settings import settings
 from database.db_engine import storage
    
 app = FastAPI(
-    title="PROPERTIX",
-    description="The Propertix API for all the frontend needs",
+    title="Home Buddy Connect Limited",
+    description="The Home Buddy Connect Limited API for all the frontend needs",
     version="1.0.0"
 )
 
@@ -48,7 +48,7 @@ app.mount("/uploads", StaticFiles(directory=str(uploads_dir)), name="uploads")
 
 @app.get("/")
 async def homepage():
-    return {"message": "Welcome to propertix api"}
+    return {"message": "Welcome to Home Buddy Connect Limited API"}
 
 @app.get("/status")
 async def get_status():

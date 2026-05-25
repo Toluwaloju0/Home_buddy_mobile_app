@@ -1,13 +1,14 @@
 """ a module to get the user route and the CRUD process attached to it """
 
 from typing import Dict
-from fastapi import APIRouter, Depends, Body
+from fastapi import APIRouter, Depends, Body, Form, File, UploadFile
 from fastapi.responses import JSONResponse
 from middlewares.verify_user import get_user_from_token
 from argon2.exceptions import VerifyMismatchError
 from pydantic import EmailStr
 
 from database.db_engine import storage
+from models.user import UserRole
 from utils.responses import api_response
 from utils.password import ph, password_strength_checker
 from utils.email_checker import email_domain_checker
@@ -119,21 +120,26 @@ async def update_email(payload: Dict[str, EmailStr] = Body(), user_response = De
         content = api_response(False, "The access token is expired, refresh and try again")
         return JSONResponse(content.to_dict(), 205)
 
+    old_email = payload.get("old_email")
     email = payload.get("new_email")
-    if not email:
-        content = api_response(False, "The new email address is not provided")
+    if not old_email or not email:
+        content = api_response(False, "The old and new email addresses are required")
+        return JSONResponse(content.to_dict(), 500)
+
+    user = user_response.payload
+
+    if old_email != user.get("email"):
+        content = api_response(False, "The old email address does not match the current email address")
+        return JSONResponse(content.to_dict(), 500)
+
+    if old_email == email:
+        content = api_response(False, "The new email address must be different from the old email address")
         return JSONResponse(content.to_dict(), 500)
 
     # confirm that the email address provided has a valid domain
     email_checker_response = await email_domain_checker(email)
     if not email_checker_response.status:
         content = api_response(False, "The email domain is not supported by our system")
-        return JSONResponse(content.to_dict(), 500)
-    
-    user = user_response.payload
-
-    if email == user.get("email"):
-        content = api_response(True, "The email is not changed")
         return JSONResponse(content.to_dict(), 500)
     
     #send the appopraite mail to the user
@@ -148,8 +154,65 @@ async def update_email(payload: Dict[str, EmailStr] = Body(), user_response = De
     content = api_response(True, "The email was reset successfully. Verify your email address to continue", payload=update_response.payload)
     return JSONResponse(content.to_dict())
 
+
+@user.post("/switch-role")
+async def switch_role(payload: Dict[str, str] = Body(...), user_response = Depends(get_user_from_token)):
+    """Switch the user's active dashboard role.
+
+    The backend will set the stored user role to `both`, ensure the
+    requested role's profile document exists, and return success so the
+    frontend can navigate to the requested dashboard.
+    """
+
+    if not user_response.status:
+        content = api_response(False, "The access token provided is not valid")
+        return JSONResponse(content.to_dict(), 401)
+
+    if not user_response.payload:
+        content = api_response(False, "The access token is expired, refresh and try again")
+        return JSONResponse(content.to_dict(), 205)
+
+    target_role = (payload or {}).get("role")
+    if target_role not in (UserRole.BUYER.value, UserRole.SELLER.value):
+        content = api_response(False, "Invalid role requested")
+        return JSONResponse(content.to_dict(), 400)
+
+    user_doc = user_response.payload
+    user_id = str(user_doc.get("_id"))
+
+    # Persist 'both' role for the user so they can act as both buyer and seller
+    update_resp = await storage.update_user_by_id(user_id, role=UserRole.BOTH.value)
+    if not update_resp.status:
+        content = api_response(False, "Failed to update user role")
+        return JSONResponse(content.to_dict(), 500)
+
+    # Ensure the requested profile document exists
+    if target_role == UserRole.SELLER.value:
+        seller_resp = await storage.get_seller_by_user_id(user_id)
+        if not seller_resp.status:
+            created = await storage.create_seller_profile(user_id)
+            if not created.status:
+                content = api_response(False, "Failed to create seller profile")
+                return JSONResponse(content.to_dict(), 500)
+    else:
+        buyer_resp = await storage.get_buyer_by_user_id(user_id)
+        if not buyer_resp.status:
+            created = await storage.create_buyer_profile(user_id)
+            if not created.status:
+                content = api_response(False, "Failed to create buyer profile")
+                return JSONResponse(content.to_dict(), 500)
+
+    content = api_response(True, "Role switch successful", payload={"role": target_role})
+    return JSONResponse(content.to_dict())
+
 @user.put("/me/update")
-async def update_me(payload: Dict[str, str], user_response = Depends(get_user_from_token)):
+async def update_me(
+    first_name: str | None = Form(None),
+    last_name: str | None = Form(None),
+    phone_number: str | None = Form(None),
+    profile_image: UploadFile | None = File(None),
+    user_response = Depends(get_user_from_token),
+):
     """ a method to update the user from the database
     Args:
         payload (Dict): the payload gotten from the request body definig what to change in the user instance
@@ -165,13 +228,28 @@ async def update_me(payload: Dict[str, str], user_response = Depends(get_user_fr
         return JSONResponse(content.to_dict(), 205)
     
     user, update_dict = user_response.payload, {}
-    if payload.get("first_name"):
-        update_dict["first_name"] = payload.get("first_name")
-    if payload.get("last_name"):
-        update_dict["last_name"] = payload.get("last_name")
-    if payload.get("phone_number"):
-        update_dict["phone_number"] = payload.get("phone_number")
+    if first_name:
+        update_dict["first_name"] = first_name.strip()
+    if last_name:
+        update_dict["last_name"] = last_name.strip()
+    if phone_number:
+        update_dict["phone_number"] = phone_number.strip()
         update_dict["phone_number_verified"] = False
+
+    if profile_image:
+        existing_profile_key = uploader.extract_s3_key_from_url(user.get("image_url")) or user.get("image_key")
+        profile_image_response = await uploader.replace_profile_image(profile_image, str(user.get("_id")), existing_profile_key)
+        if not profile_image_response.status:
+            payload = profile_image_response.payload or {}
+            if payload.get("error") == "file_too_large":
+                content = api_response(False, "Profile image must be smaller than 1 MB")
+                return JSONResponse(content.to_dict(), 400)
+
+            content = api_response(False, "The profile image could not be uploaded")
+            return JSONResponse(content.to_dict(), 500)
+
+        update_dict["image_url"] = profile_image_response.payload.get("url")
+        update_dict["image_key"] = profile_image_response.payload.get("key")
     
     if len(update_dict.keys()) < 1:
         content = api_response(True, "The neccessary data for the update was not found")

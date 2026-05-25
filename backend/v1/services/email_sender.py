@@ -71,8 +71,8 @@ class EmailSender:
             # Create the email message
             msg = EmailMessage()
             msg["To"] = email_address
-            msg["From"] = f"Home Buddy <{self.__email}>"
-            msg["Subject"] = "The OTP Code for Your Home Buddy account"
+            msg["From"] = f"Home Buddy Connect Limited <{self.__email}>"
+            msg["Subject"] = "The OTP Code for Your Home Buddy Connect Limited account"
             msg.set_content(f"""
 Your OTP code is {code}
 
@@ -91,7 +91,7 @@ This code expires in 10 minutes
         <!-- Header -->
         <tr>
           <td style="background:#1e88e5; padding:20px; text-align:center; color:#ffffff;">
-            <h1 style="margin:0; font-size:24px;">Home Buddy</h1>
+            <h1 style="margin:0; font-size:24px;">Home Buddy Connect Limited</h1>
           </td>
         </tr>
 
@@ -131,7 +131,7 @@ This code expires in 10 minutes
 
             <p style="margin-top:30px;">
               Thanks,<br />
-              <strong>Home Buddy Team</strong>
+              <strong>Home Buddy Connect Limited Team</strong>
             </p>
           </td>
         </tr>
@@ -139,7 +139,7 @@ This code expires in 10 minutes
         <!-- Footer -->
         <tr>
           <td style="background:#f4f6f8; padding:15px; text-align:center; font-size:12px; color:#777;">
-            © 2026 Home Buddy. All rights reserved.
+            © 2026 Home Buddy Connect Limited. All rights reserved.
           </td>
         </tr>
 

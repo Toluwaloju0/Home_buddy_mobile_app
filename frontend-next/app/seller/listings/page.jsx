@@ -130,12 +130,12 @@ function ListingsContent() {
         type="button"
         className="brand-lockup brand-lockup--clickable"
         onClick={handleBrandClick}
-        aria-label="Home Buddy dashboard"
+        aria-label="Home Buddy Connect Limited dashboard"
         disabled={!user || loadingUser}
       >
-        <img src="/home_buddy_logo.png" alt="Home Buddy" className="brand-logo" />
+        <img src="/home_buddy_logo.png" alt="Home Buddy Connect Limited" className="brand-logo" />
         <div>
-          <div className="brand-name">Home Buddy</div>
+          <div className="brand-name">Home Buddy Connect Limited</div>
           <div className="brand-tagline">Verified housing platform</div>
         </div>
       </button>
@@ -180,10 +180,10 @@ function ListingsContent() {
     <footer className="footer">
       <div className="footer-top">
         <div className="footer-brand">
-          <div className="brand-lockup brand-lockup--footer" aria-label="Home Buddy">
-            <img src="/home_buddy_logo.png" alt="Home Buddy" className="brand-logo" />
+          <div className="brand-lockup brand-lockup--footer" aria-label="Home Buddy Connect Limited">
+            <img src="/home_buddy_logo.png" alt="Home Buddy Connect Limited" className="brand-logo" />
             <div>
-              <div className="brand-name">Home Buddy</div>
+              <div className="brand-name">Home Buddy Connect Limited</div>
               <div className="brand-tagline">Verified housing platform</div>
             </div>
           </div>
@@ -213,7 +213,7 @@ function ListingsContent() {
       </div>
 
       <div className="footer-bottom">
-        <div className="footer-copy">© 2026 Home Buddy. All rights reserved.</div>
+        <div className="footer-copy">© 2026 Home Buddy Connect Limited. All rights reserved.</div>
       </div>
     </footer>
   );

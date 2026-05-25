@@ -4,7 +4,7 @@ export default function FAQPage() {
   return (
     <InfoPageLayout
       title="FAQ"
-      lead="Quick answers to common questions about listing, verification, and account management on Home Buddy."
+      lead="Quick answers to common questions about listing, verification, and account management on Home Buddy Connect Limited."
       highlights={['Getting Started', 'Seller Verification', 'Account Support']}
       sections={[
         {

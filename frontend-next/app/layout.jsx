@@ -1,7 +1,7 @@
 import './globals.css';
 
 export const metadata = {
-  title: 'Home Buddy',
+  title: 'Home Buddy Connect Limited',
   description: 'Verified housing platform for buyers, sellers, and admins.',
   icons: {
     icon: '/home_buddy_icon.ico',
