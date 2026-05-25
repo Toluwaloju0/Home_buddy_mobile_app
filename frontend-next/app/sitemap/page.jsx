@@ -4,7 +4,7 @@ export default function SitemapPage() {
   return (
     <InfoPageLayout
       title="Sitemap"
-      lead="Browse key sections of Home Buddy for quick navigation across buyer, seller, and support journeys."
+      lead="Browse key sections of Home Buddy Connect Limited for quick navigation across buyer, seller, and support journeys."
       highlights={['Public Pages', 'Seller Workspace', 'Support Pages']}
       sections={[
         {

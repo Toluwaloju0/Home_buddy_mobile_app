@@ -155,6 +155,14 @@ class DBStorage:
         return function_response(True, seller)
 
     @safe_db_operation
+    async def get_buyer_by_user_id(self, user_id: str):
+        """Get a buyer profile document by its linked user id."""
+        buyer = await self.__db["buyers"].find_one({"user_id": ObjectId(user_id)})
+        if not buyer:
+            return function_response(False)
+        return function_response(True, buyer)
+
+    @safe_db_operation
     async def update_seller_by_user_id(self, user_id: str, **kwargs):
         """Update seller profile fields and recompute level when needed."""
         sellers = self.__db["sellers"]

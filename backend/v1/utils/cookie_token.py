@@ -39,6 +39,9 @@ class Token:
         Return a response containing the user object from the database
         """
 
+        if access_token is None:
+            return function_response(False)
+
         try:
             payload = jwt.decode(access_token, self.__access_secret, algorithms="HS256")
             user_id = payload.get("user_id")
@@ -70,6 +73,9 @@ class Token:
             token (str): the token to be used to refresh the user status
         Return the user email as part of the response
         """
+
+        if token is None:
+            return function_response(False)
 
         user_id_response = await storage.get_refresh_token(token)
         return user_id_response

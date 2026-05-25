@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 const footerPrimaryLinks = [
   { label: 'Contact', href: '/contact' },
   { label: 'About Us', href: '/about-us' },
@@ -15,44 +17,32 @@ const footerSecondaryLinks = [
   { label: 'Careers', href: '/careers' },
 ];
 
-export default function InfoPageLayout({ title, lead, highlights = [], sections = [] }) {
+export default function BuyerProfileLayout({ title, lead, children }) {
   return (
-    <main className="page-shell info-page-shell">
-      <header className="topbar">
-        <a className="brand-lockup" aria-label="Home Buddy Connect Limited" href="/">
+    <main className="page-shell settings-page-shell buyer-profile-shell">
+      <header className="topbar settings-topbar buyer-profile-topbar">
+        <Link className="brand-lockup brand-lockup--clickable" href="/buyer" aria-label="Buyer dashboard">
           <img src="/home_buddy_logo.png" alt="Home Buddy Connect Limited" className="brand-logo" />
           <div>
             <div className="brand-name">Home Buddy Connect Limited</div>
-            <div className="brand-tagline">Verified housing platform</div>
+            <div className="brand-tagline">Buyer profile center</div>
           </div>
-        </a>
+        </Link>
 
-        <a className="join-button" href="/login">
-          Join / Sign in
-        </a>
+        <Link className="join-button" href="/buyer">
+          Buyer Dashboard
+        </Link>
       </header>
 
-      <section className="info-page-hero">
-        <p className="eyebrow">Home Buddy Connect Limited Information</p>
-        <h1>{title}</h1>
-        <p>{lead}</p>
-        {highlights.length > 0 && (
-          <div className="info-page-highlights" aria-hidden="true">
-            {highlights.map((item) => (
-              <span key={item}>{item}</span>
-            ))}
-          </div>
-        )}
+      <section className="settings-hero buyer-profile-hero">
+        <div>
+          <p className="settings-kicker">Account management</p>
+          <h1>{title}</h1>
+          <p>{lead}</p>
+        </div>
       </section>
 
-      <section className="info-page-content" aria-label={title}>
-        {sections.map((section) => (
-          <article className="info-page-card" key={section.title}>
-            <h2>{section.title}</h2>
-            <p>{section.text}</p>
-          </article>
-        ))}
-      </section>
+      {children}
 
       <footer className="footer">
         <div className="footer-top">
@@ -65,8 +55,7 @@ export default function InfoPageLayout({ title, lead, highlights = [], sections 
               </div>
             </div>
             <p>
-              A trusted real estate platform for verified property discovery, seller onboarding, and role-based
-              dashboards.
+              A trusted real estate platform for verified property discovery, buyer tools, and role-based dashboards.
             </p>
           </div>
 

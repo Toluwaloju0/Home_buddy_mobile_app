@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { API_BASE_URL, authFetch, redirectToLogin } from '../../lib/api';
 import UserAvatar from '../components/UserAvatar';
@@ -15,6 +15,9 @@ const reasons = [
 export default function SellerPage() {
   const router = useRouter();
   const [user, setUser] = useState(null);
+  const [switchingRole, setSwitchingRole] = useState(false);
+  const menuRef = useRef(null);
+  const pinnedRef = useRef(false);
   const [loadingUser, setLoadingUser] = useState(true);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [hoverOpen, setHoverOpen] = useState(false);
@@ -54,6 +57,45 @@ export default function SellerPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+
+    const handlePointerOver = (e) => {
+      if (!menuRef.current) return;
+      const inside = menuRef.current.contains(e.target);
+      if (inside) {
+        setDropdownOpen(true);
+      } else if (!pinnedRef.current) {
+        setDropdownOpen(false);
+      }
+    };
+
+    const handlePointerDown = (e) => {
+      if (!menuRef.current) return;
+      if (!menuRef.current.contains(e.target)) {
+        setDropdownOpen(false);
+        pinnedRef.current = false;
+      }
+    };
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setDropdownOpen(false);
+        pinnedRef.current = false;
+      }
+    };
+
+    document.addEventListener('pointerover', handlePointerOver);
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('pointerover', handlePointerOver);
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
   const handleLogout = async () => {
     setDropdownOpen(false);
     try {
@@ -74,6 +116,42 @@ export default function SellerPage() {
     } catch (error) {
       console.error('Logout error:', error);
       alert('Failed to logout. Please try again.');
+    }
+  };
+
+  const handleRoleSwitch = async () => {
+    if (!user) return;
+
+    const isOnSellerPage = typeof window !== 'undefined' && window.location.pathname.startsWith('/seller');
+    const targetRole = isOnSellerPage ? 'buyer' : 'seller';
+
+    setSwitchingRole(true);
+    setDropdownOpen(false);
+
+    try {
+      const response = await authFetch(`${API_BASE_URL}/user/switch-role`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: targetRole }),
+      });
+
+      setSwitchingRole(false);
+
+      if (!response) {
+        alert('Role switch failed. Please sign in again.');
+        return;
+      }
+
+      const data = await response.json().catch(() => null);
+      if (response.status === 200 && data?.status) {
+        router.push(targetRole === 'seller' ? '/seller' : '/buyer');
+      } else {
+        alert(data?.message || 'Role switch failed.');
+      }
+    } catch (err) {
+      setSwitchingRole(false);
+      console.error('Role switch error', err);
+      alert('Role switch failed. Please try again.');
     }
   };
 
@@ -146,12 +224,12 @@ export default function SellerPage() {
           type="button"
           className="brand-lockup brand-lockup--clickable"
           onClick={handleBrandClick}
-          aria-label="Home Buddy dashboard"
+          aria-label="Home Buddy Connect Limited dashboard"
           disabled={!user || loadingUser}
         >
-          <img src="/home_buddy_logo.png" alt="Home Buddy" className="brand-logo" />
+          <img src="/home_buddy_logo.png" alt="Home Buddy Connect Limited" className="brand-logo" />
           <div>
-            <div className="brand-name">Home Buddy</div>
+            <div className="brand-name">Home Buddy Connect Limited</div>
             <div className="brand-tagline">Verified housing platform</div>
           </div>
         </button>
@@ -162,18 +240,17 @@ export default function SellerPage() {
           <span>Facility Mgt</span>
         </div>
 
-        <div
-          className="seller-user-menu"
-          onMouseEnter={() => setHoverOpen(true)}
-          onMouseLeave={() => setHoverOpen(false)}
-          onFocus={() => setHoverOpen(true)}
-          onBlur={() => setHoverOpen(false)}
-        >
+        <div className="seller-user-menu" ref={menuRef}>
           <button
             type="button"
             className="profile-trigger"
-            onClick={() => setDropdownOpen((prev) => !prev)}
-            aria-expanded={dropdownOpen || hoverOpen}
+            onClick={() => {
+              const next = !dropdownOpen;
+              setDropdownOpen(next);
+              pinnedRef.current = next;
+            }}
+            onFocus={() => setDropdownOpen(true)}
+            aria-expanded={dropdownOpen}
             aria-haspopup="menu"
           >
             <UserAvatar src={userImageUrl} name={displayName} size="sm" className="profile-avatar-shell" />
@@ -182,13 +259,49 @@ export default function SellerPage() {
           </button>
 
           <div
-            className={`profile-dropdown ${dropdownOpen || hoverOpen ? 'profile-dropdown--open' : ''}`}
+            className={`profile-dropdown ${dropdownOpen ? 'profile-dropdown--open' : ''}`}
             role="menu"
-            aria-hidden={! (dropdownOpen || hoverOpen)}
+            aria-hidden={!dropdownOpen}
           >
             <div className="profile-dropdown-header">
               <UserAvatar src={userImageUrl} name={displayName} size="lg" className="profile-dropdown-avatar-shell" />
               <strong>{displayName}</strong>
+            </div>
+            <div className="profile-role-switch" style={{ padding: '8px 12px' }}>
+              {(() => {
+                const isSellerView = typeof window !== 'undefined' && window.location.pathname.startsWith('/seller');
+                return (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ fontWeight: 600, color: 'inherit' }}>Seller mode</div>
+                    <div
+                      role="switch"
+                      aria-checked={isSellerView}
+                      tabIndex={0}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (!switchingRole) handleRoleSwitch(); } }}
+                      onClick={() => { if (!switchingRole) handleRoleSwitch(); }}
+                      style={{
+                        width: 48,
+                        height: 28,
+                        borderRadius: 9999,
+                        background: isSellerView ? '#10b981' : '#374151',
+                        padding: 4,
+                        cursor: switchingRole ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <div style={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: 9999,
+                        background: '#fff',
+                        transform: isSellerView ? 'translateX(20px)' : 'translateX(0px)',
+                        transition: 'transform 150ms ease',
+                      }} />
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
             <button type="button" className="profile-dropdown-item" role="menuitem">Dashboard</button>
             <button type="button" className="profile-dropdown-item" role="menuitem">Messages</button>
@@ -200,7 +313,6 @@ export default function SellerPage() {
             >
               Profile Settings
             </button>
-            <button type="button" className="profile-dropdown-item" role="menuitem">Switch to Buying Account</button>
             <button
               type="button"
               className="profile-dropdown-item"
@@ -319,7 +431,7 @@ export default function SellerPage() {
       </section>
 
       <section className="why-section">
-        <h2>Why Choose Home Buddy</h2>
+        <h2>Why Choose Home Buddy Connect Limited</h2>
         <div className="reason-row" aria-hidden="true">
           {reasons.map((reason) => (
             <div className="reason-item" key={reason.key}>
@@ -336,10 +448,10 @@ export default function SellerPage() {
       <footer className="footer">
         <div className="footer-top">
           <div className="footer-brand">
-            <div className="brand-lockup brand-lockup--footer" aria-label="Home Buddy">
-              <img src="/home_buddy_logo.png" alt="Home Buddy" className="brand-logo" />
+            <div className="brand-lockup brand-lockup--footer" aria-label="Home Buddy Connect Limited">
+              <img src="/home_buddy_logo.png" alt="Home Buddy Connect Limited" className="brand-logo" />
               <div>
-                <div className="brand-name">Home Buddy</div>
+                <div className="brand-name">Home Buddy Connect Limited</div>
                 <div className="brand-tagline">Verified housing platform</div>
               </div>
             </div>
@@ -369,7 +481,7 @@ export default function SellerPage() {
         </div>
 
         <div className="footer-bottom">
-          <div className="footer-copy">© 2026 Home Buddy. All rights reserved.</div>
+          <div className="footer-copy">© 2026 Home Buddy Connect Limited. All rights reserved.</div>
         </div>
       </footer>
     </main>

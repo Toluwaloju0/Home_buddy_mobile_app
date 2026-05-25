@@ -4,7 +4,7 @@ export default function CareersPage() {
   return (
     <InfoPageLayout
       title="Careers"
-      lead="Join Home Buddy and help build the trusted infrastructure powering modern real estate experiences in Nigeria."
+      lead="Join Home Buddy Connect Limited and help build the trusted infrastructure powering modern real estate experiences in Nigeria."
       highlights={['Product & Engineering', 'Operations', 'Customer Success']}
       sections={[
         {

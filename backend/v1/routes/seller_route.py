@@ -166,7 +166,8 @@ async def update_my_seller_profile(
         user_updates["phone_number"] = phone_number.strip()
 
     if profile_image:
-        profile_image_response = await uploader.upload_profile_image(profile_image, user_id)
+        existing_profile_key = uploader.extract_s3_key_from_url(user.get("image_url")) or user.get("image_key")
+        profile_image_response = await uploader.replace_profile_image(profile_image, user_id, existing_profile_key)
         if profile_image_response.status:
             user_updates["image_url"] = profile_image_response.payload.get("url")
             user_updates["image_key"] = profile_image_response.payload.get("key")

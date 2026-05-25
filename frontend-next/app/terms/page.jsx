@@ -4,12 +4,12 @@ export default function TermsPage() {
   return (
     <InfoPageLayout
       title="Terms"
-      lead="These terms define acceptable use of Home Buddy services and responsibilities for all platform users."
+      lead="These terms define acceptable use of Home Buddy Connect Limited services and responsibilities for all platform users."
       highlights={['User Responsibilities', 'Listing Standards', 'Platform Use']}
       sections={[
         {
           title: 'Use of Platform',
-          text: 'Users agree to provide accurate information and use Home Buddy only for lawful property-related activities.',
+          text: 'Users agree to provide accurate information and use Home Buddy Connect Limited only for lawful property-related activities.',
         },
         {
           title: 'Listing Compliance',

@@ -63,7 +63,7 @@ export default function SignupPage() {
     <main className="login-page">
       <div className="login-card">
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
-          <img src="/logo.png" alt="Home Buddy logo" style={{ height: 56 }} />
+          <img src="/logo.png" alt="Home Buddy Connect Limited logo" style={{ height: 56 }} />
         </div>
         <h1>Create an Account</h1>
 

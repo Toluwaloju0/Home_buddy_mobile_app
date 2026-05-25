@@ -106,7 +106,7 @@ try:
         print("="*60)
         print("\n📧 CHECK YOUR INBOX!")
         print(f"   Email: {google_account}")
-        print("   Subject: The OTP Code for Your Home Buddy account")
+        print("   Subject: The OTP Code for Your Home Buddy Connect Limited account")
         print("\n   If you don't see it:")
         print("   - Check spam/junk folder")
         print("   - Wait 1-2 minutes")

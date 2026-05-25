@@ -27,6 +27,9 @@ ALLOWED_PROFILE_IMAGE_TYPES = {
     "application/pdf": ".pdf",
 }
 
+# Maximum allowed size for profile images (bytes)
+MAX_PROFILE_IMAGE_BYTES = 1 * 1024 * 1024  # 1 MB
+
 
 class S3Uploader:
     """Encapsulates S3 upload and URL helpers.
@@ -45,6 +48,11 @@ class S3Uploader:
     
         # expose allowed types on the instance (kept as module constant by default)
         self.allowed_profile_image_types = ALLOWED_PROFILE_IMAGE_TYPES
+
+    def get_profile_image_key(self, user_id: str) -> str:
+        """Return the fixed S3 key used for all profile images."""
+
+        return f"profile_image/{user_id}"
 
     async def _upload_object(self, uploaded_file: UploadFile, object_key: str):
         """Internal helper that uploads a file object to S3 by key."""
@@ -71,16 +79,61 @@ class S3Uploader:
             except Exception:
                 pass
 
-    async def upload_profile_image(self, uploaded_file: UploadFile, user_id: str, prefix: str = "profile"):
-        """Upload a user profile image to the `seller-profiles/{user_id}` folder."""
+    async def delete_object(self, object_key: str):
+        """Delete an S3 object by key."""
+
+        if not object_key:
+            return function_response(False)
+
+        try:
+            session = aioboto3.Session()
+            async with session.client(
+                "s3",
+                region_name=self.aws_region,
+                aws_access_key_id=self.access_key,
+                aws_secret_access_key=self.secret_key,
+            ) as client:
+                await client.delete_object(Bucket=self.bucket_name, Key=object_key)
+
+            return function_response(True, {"key": object_key})
+        except (BotoCoreError, ClientError, Exception) as e:
+            logger.exception("Failed to delete file from S3: %s", e)
+            return function_response(False)
+
+    async def upload_profile_image(self, uploaded_file: UploadFile, user_id: str):
+        """Upload a user profile image to the shared `profile_image/{user_id}` key."""
 
         file_extension = self.allowed_profile_image_types.get(uploaded_file.content_type)
         if not file_extension:
             return function_response(False)
 
-        safe_name = uploaded_file.filename or "profile"
-        object_key = f"seller-profiles/{user_id}/{prefix}_{uuid4().hex}_{safe_name}{file_extension if not safe_name.lower().endswith(file_extension) else ''}"
+        # Enforce maximum profile image size
+        file_obj = getattr(uploaded_file, "file", None)
+        size = None
+        if file_obj is not None:
+            try:
+                current_pos = file_obj.tell()
+                file_obj.seek(0, 2)  # seek to end
+                size = file_obj.tell()
+                file_obj.seek(0)
+            except Exception:
+                size = None
+
+        if size is not None and size >= MAX_PROFILE_IMAGE_BYTES:
+            return function_response(False, {"error": "file_too_large", "max_bytes": MAX_PROFILE_IMAGE_BYTES, "size": size})
+
+        object_key = self.get_profile_image_key(user_id)
         return await self._upload_object(uploaded_file, object_key)
+
+    async def replace_profile_image(self, uploaded_file: UploadFile, user_id: str, existing_object_key: str | None = None):
+        """Replace a profile image in S3 by deleting any existing object first."""
+
+        if existing_object_key:
+            delete_response = await self.delete_object(existing_object_key)
+            if not delete_response.status:
+                return delete_response
+
+        return await self.upload_profile_image(uploaded_file, user_id)
 
     async def upload_house_image(self, uploaded_file: UploadFile, user_id: str, submission_id: str, group_name: str, index: int):
         """Upload a listing/house image to the `listings/{user_id}/{submission_id}/{group_name}` folder."""

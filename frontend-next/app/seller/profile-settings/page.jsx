@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { API_BASE_URL, authFetch, redirectToLogin } from '../../../lib/api';
 import UserAvatar from '../../components/UserAvatar';
@@ -41,6 +41,7 @@ export default function SellerProfileSettingsPage() {
   const [idFrontFile, setIdFrontFile] = useState(null);
   const [idBackFile, setIdBackFile] = useState(null);
   const [saveMode, setSaveMode] = useState('draft');
+  const imageInputRef = useRef(null);
 
   useEffect(() => {
     let mounted = true;
@@ -115,6 +116,10 @@ export default function SellerProfileSettingsPage() {
   const onImageChange = (setter) => (event) => {
     const file = event.target.files?.[0] || null;
     setter(file);
+  };
+
+  const openImagePicker = () => {
+    imageInputRef.current?.click();
   };
 
   const handleLogout = async () => {
@@ -240,12 +245,12 @@ export default function SellerProfileSettingsPage() {
           type="button"
           className="brand-lockup brand-lockup--clickable"
           onClick={handleBrandClick}
-          aria-label="Home Buddy dashboard"
+          aria-label="Home Buddy Connect Limited dashboard"
           disabled={loading}
         >
-          <img src="/home_buddy_logo.png" alt="Home Buddy" className="brand-logo" />
+          <img src="/home_buddy_logo.png" alt="Home Buddy Connect Limited" className="brand-logo" />
           <div>
-            <div className="brand-name">Home Buddy</div>
+            <div className="brand-name">Home Buddy Connect Limited</div>
             <div className="brand-tagline">Verified housing platform</div>
           </div>
         </button>
@@ -303,21 +308,21 @@ export default function SellerProfileSettingsPage() {
         </div>
       </section>
 
-      <section className="settings-card settings-photo-card">
+      <section className="settings-card seller-avatar-card">
         <div className="settings-section-title">
-          <h2>Photo</h2>
-          <span>Upload your profile image</span>
+          <h2>Profile Image</h2>
+          <span>Click the circle to upload a new image</span>
         </div>
-        <div className="photo-upload-grid">
-          <div className="photo-preview">
-            {form.imageUrl ? <img src={form.imageUrl} alt="Profile preview" /> : <div className="photo-preview-placeholder">No photo uploaded</div>}
+        <div className="seller-avatar-row">
+          <button type="button" className="buyer-avatar-trigger seller-avatar-trigger" onClick={openImagePicker} aria-label="Change profile image">
+            <UserAvatar src={form.imageUrl} name={displayName} size="lg" className="buyer-summary-avatar seller-summary-avatar" />
+            <span className="buyer-avatar-trigger-text">Click to update</span>
+          </button>
+          <div className="seller-avatar-copy">
+            <p className="buyer-profile-note">PNG, JPG or WEBP. The selected image will be uploaded when you save your changes.</p>
           </div>
-          <label className="upload-dropzone">
-            <span>Upload profile photo</span>
-            <strong>PNG, JPG or WEBP</strong>
-            <input type="file" accept="image/*" onChange={onImageChange(setProfileImageFile)} />
-          </label>
         </div>
+        <input ref={imageInputRef} className="buyer-hidden-file-input" type="file" accept="image/*" onChange={onImageChange(setProfileImageFile)} />
       </section>
 
       <form
@@ -478,10 +483,10 @@ export default function SellerProfileSettingsPage() {
       <footer className="footer">
         <div className="footer-top">
           <div className="footer-brand">
-            <div className="brand-lockup brand-lockup--footer" aria-label="Home Buddy">
-              <img src="/home_buddy_logo.png" alt="Home Buddy" className="brand-logo" />
+            <div className="brand-lockup brand-lockup--footer" aria-label="Home Buddy Connect Limited">
+              <img src="/home_buddy_logo.png" alt="Home Buddy Connect Limited" className="brand-logo" />
               <div>
-                <div className="brand-name">Home Buddy</div>
+                <div className="brand-name">Home Buddy Connect Limited</div>
                 <div className="brand-tagline">Verified housing platform</div>
               </div>
             </div>
@@ -511,7 +516,7 @@ export default function SellerProfileSettingsPage() {
         </div>
 
         <div className="footer-bottom">
-          <div className="footer-copy">© 2026 Home Buddy. All rights reserved.</div>
+          <div className="footer-copy">© 2026 Home Buddy Connect Limited. All rights reserved.</div>
         </div>
       </footer>
     </main>

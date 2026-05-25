@@ -4,7 +4,7 @@ export default function ServicesPage() {
   return (
     <InfoPageLayout
       title="Our Services"
-      lead="Home Buddy offers integrated real estate workflows for discovery, listing, communication, and transaction readiness."
+      lead="Home Buddy Connect Limited offers integrated real estate workflows for discovery, listing, communication, and transaction readiness."
       highlights={['Property Discovery', 'Seller Listing Tools', 'Messaging & Workflow']}
       sections={[
         {

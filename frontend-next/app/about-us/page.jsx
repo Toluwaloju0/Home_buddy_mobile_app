@@ -4,12 +4,16 @@ export default function AboutUsPage() {
   return (
     <InfoPageLayout
       title="About Us"
-      lead="Home Buddy is built to make property transactions safer, clearer, and faster for buyers, renters, and sellers in Nigeria."
-      highlights={['Verified Listings', 'Role-Based Dashboards', 'Trust-First Process']}
+      lead="Home Buddy is a modern real estate platform helping people find verified homes easily, safely and stress-fre. We combine smart technology with trusted property solutions to simplify housing, reduce fraud, and improve the way people live."
+      highlights={['Verified Listings', 'Role-Based Dashboards', 'Trust-First Process', 'Trusted Living', 'Smart Real Estate']}
       sections={[
         {
           title: 'Our Mission',
-          text: 'We are committed to reducing fraud and improving trust in real estate through strong verification and transparent workflows.',
+          text: 'To simplify property search and management by providing verified listings, trusted connections and seamless digital solutions.',
+        },
+        {
+          title: 'Our Vision',
+          text: 'To become Nigeria\'s most trusted smart and real estate platform, transforming how people find and manage homes through technology, transperency and convenience.',
         },
         {
           title: 'What We Do',

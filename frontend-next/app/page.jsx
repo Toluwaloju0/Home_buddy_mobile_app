@@ -32,48 +32,38 @@ const reasons = [
 const properties = [
   {
     name: 'Lekki Luxury Apartment',
-    price: 'N1,000,000',
     location: 'Lekki Phase 1, Lagos',
     image: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=1600&q=80',
   },
   {
     name: 'Maitama Comfort Flat',
-    price: 'N1,200,000',
     location: 'Yaba, Lagos',
     image: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=1600&q=80',
   },
   {
     name: 'Island View Apartment',
-    price: 'N900,000',
     location: 'Victoria Island, Lagos',
     image: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1600&q=80',
   },
   {
     name: 'Epe Garden Land',
-    price: 'N1,000,000',
     location: 'Epe, Lagos',
     image: 'https://images.unsplash.com/photo-1505843513577-22bb7d21e455?auto=format&fit=crop&w=1600&q=80',
   },
 ];
 
-const agents = [
+const testimonials = [
   {
-    name: 'Chika Nwosu',
-    role: 'Greenfield Realty',
-    stats: '128 reviews · 42 properties listed',
-    image: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80',
+    text: 'Home Buddy helped me find a verified apartment quickly; the process was smooth and trustworthy.',
+    name: 'Aisha Bello',
   },
   {
-    name: 'Kunle Adebayo',
-    role: 'PrimeEdge Properties',
-    stats: '94 reviews · 37 properties listed',
-    image: 'https://images.unsplash.com/photo-1502685104226-ee32379fefbe?auto=format&fit=crop&w=400&q=80',
+    text: 'I sold my shop without headaches. The escrow feature gave me peace of mind throughout the sale.',
+    name: 'Chukwu Emeka',
   },
   {
-    name: 'Sarah Johnson',
-    role: 'LandLink Ltd.',
-    stats: '77 reviews · 60 properties listed',
-    image: 'https://images.unsplash.com/photo-1554151228-14d9def656e4?auto=format&fit=crop&w=400&q=80',
+    text: 'Their team handled everything professionally — highly recommended to anyone looking for verified listings.',
+    name: 'Ngozi Okafor',
   },
 ];
 
@@ -95,10 +85,10 @@ export default function HomePage() {
   return (
     <main className="page-shell">
       <header className="topbar">
-        <div className="brand-lockup" aria-label="Home Buddy">
-          <img src="/home_buddy_logo.png" alt="Home Buddy" className="brand-logo" />
+        <div className="brand-lockup" aria-label="Home Buddy Connect Limited">
+          <img src="/home_buddy_logo.png" alt="Home Buddy Connect Limited" className="brand-logo" />
           <div>
-            <div className="brand-name">Home Buddy</div>
+            <div className="brand-name">Home Buddy Connect Limited</div>
             <div className="brand-tagline">Verified housing platform</div>
           </div>
         </div>
@@ -114,8 +104,8 @@ export default function HomePage() {
           <p className="eyebrow">Trusted real estate, built for Nigeria</p>
           <h1>Find Your Perfect Home In Lagos Faster, Easier, and Safer</h1>
           <p>
-            Browse verified properties, compare total move-in cost, and enter the platform through a single secure
-            login path.
+            Home Buddy Connect Limited Provides Real Estate And Property services Including Renting, Leasing, Buying, And Selling Of Verified Residential And 
+            Commercial Properties, Along With Facility Management And Integrated Waste Management Solutions To Ensure Safe, Clean And Well-maintained Environments
           </p>
 
           <div className="search-bar" aria-hidden="true">
@@ -143,7 +133,7 @@ export default function HomePage() {
       </section>
 
       <section className="why-section">
-        <h2>Why Choose Home Buddy</h2>
+        <h2>Why Choose Home Buddy Connect Limited</h2>
         <div className="reason-row" aria-hidden="true">
           {reasons.map((reason) => (
             <div className="reason-item" key={reason.key}>
@@ -153,6 +143,35 @@ export default function HomePage() {
               <span>{reason.label}</span>
             </div>
           ))}
+        </div>
+      </section>
+
+      <section className="about-section">
+        <h2>About Us</h2>
+        <div className="about-body">
+          <p>
+            Home Buddy is a modern real estate platform helping people find verified homes easily, safely and
+            stress-free. We combine smart technology with trusted property solutions to simplify housing, reduce
+            fraud, and improve the way people live.
+          </p>
+
+          <div className="mission-vision">
+            <article className="mission">
+              <h3>Our Mission</h3>
+              <p>
+                To simplify property search and management by providing verified listings, trusted connections and
+                seamless digital solutions.
+              </p>
+            </article>
+
+            <article className="vision">
+              <h3>Our Vision</h3>
+              <p>
+                To become Nigeria's most trusted smart and real estate platform, transforming how people find and
+                manage homes through technology, transparency and convenience.
+              </p>
+            </article>
+          </div>
         </div>
       </section>
 
@@ -176,30 +195,7 @@ export default function HomePage() {
               </div>
               <div className="property-copy">
                 <h3>{property.name}</h3>
-                <strong>{property.price}</strong>
                 <p>{property.location}</p>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="agents-section">
-        <div className="section-heading agents-header">
-          <h2>Meet Verified Agents Near You</h2>
-          <span aria-hidden="true">View All Agents</span>
-        </div>
-
-        <div className="agents-grid">
-          {agents.map((agent) => (
-            <article className="agent-card" key={agent.name}>
-              <div className="agent-avatar" aria-hidden="false">
-                <img src={agent.image} alt={agent.name} className="agent-avatar-image" />
-              </div>
-              <div>
-                <h3>{agent.name}</h3>
-                <p>{agent.role}</p>
-                <span>{agent.stats}</span>
               </div>
             </article>
           ))}
@@ -210,7 +206,7 @@ export default function HomePage() {
         <div>
           <h2>Coming Soon on Mobile</h2>
           <p>
-            Experience Home Buddy on the go. Buy, rent, sell, or manage properties from your phone.
+            Experience Home Buddy Connect Limited on the go. Buy, rent, sell, or manage properties from your phone.
           </p>
           <div className="store-badges" aria-hidden="true">
             <div className="store-badge">Google Play</div>
@@ -220,7 +216,7 @@ export default function HomePage() {
         <div className="phone-mock" aria-hidden="true">
           <div className="phone-screen">
             <div className="phone-logo" />
-            <div className="phone-title">Home Buddy</div>
+            <div className="phone-title">Home Buddy Connect Limited</div>
             <div className="phone-subtitle">Your trusted companion for better living</div>
           </div>
         </div>
@@ -234,13 +230,27 @@ export default function HomePage() {
         </a>
       </section>
 
+      <section className="testimonials-section">
+        <h2>Why Users Trust Home Buddy</h2>
+        <div className="testimonial-grid" aria-label="User testimonials">
+          {testimonials.map((t) => (
+            <article className="testimonial-card" key={t.name}>
+              <blockquote className="testimonial-quote">
+                <p>“{t.text}”</p>
+              </blockquote>
+              <div className="testimonial-author">— {t.name}</div>
+            </article>
+          ))}
+        </div>
+      </section>
+
       <footer className="footer">
         <div className="footer-top">
           <div className="footer-brand">
-            <div className="brand-lockup brand-lockup--footer" aria-label="Home Buddy">
-              <img src="/home_buddy_logo.png" alt="Home Buddy" className="brand-logo" />
+            <div className="brand-lockup brand-lockup--footer" aria-label="Home Buddy Connect Limited">
+              <img src="/home_buddy_logo.png" alt="Home Buddy Connect Limited" className="brand-logo" />
               <div>
-                <div className="brand-name">Home Buddy</div>
+                <div className="brand-name">Home Buddy Connect Limited</div>
                 <div className="brand-tagline">Verified housing platform</div>
               </div>
             </div>
@@ -270,7 +280,7 @@ export default function HomePage() {
         </div>
 
         <div className="footer-bottom">
-          <div className="footer-copy">© 2026 Home Buddy. All rights reserved.</div>
+          <div className="footer-copy">© 2026 Home Buddy Connect Limited. All rights reserved.</div>
         </div>
       </footer>
     </main>
