@@ -67,19 +67,9 @@ const testimonials = [
   },
 ];
 
-function StaticActionButton({ children, tone = 'dark' }) {
-  return (
-    <button
-      type="button"
-      disabled
-      className={`static-action static-action--${tone}`}
-      aria-hidden="true"
-      tabIndex={-1}
-    >
-      {children}
-    </button>
-  );
-}
+import SearchBar from './components/SearchBar';
+import SearchPopout from './components/SearchPopout';
+import FeaturedProperties from './components/FeaturedProperties';
 
 export default function HomePage() {
   return (
@@ -108,12 +98,7 @@ export default function HomePage() {
             Commercial Properties, Along With Facility Management And Integrated Waste Management Solutions To Ensure Safe, Clean And Well-maintained Environments
           </p>
 
-          <div className="search-bar" aria-hidden="true">
-            <span className="search-pill">Buy</span>
-            <span className="search-divider" />
-            <span className="search-placeholder">Current location</span>
-            <span className="search-icon">⌕</span>
-          </div>
+          <SearchBar />
         </div>
       </section>
 
@@ -126,7 +111,13 @@ export default function HomePage() {
             <div className="card-body">
               <h2>{card.title}</h2>
               <p>{card.description}</p>
-              <StaticActionButton tone={card.tone === 'dark' ? 'dark' : 'light'}>{card.cta}</StaticActionButton>
+              {card.title === 'Buy' ? (
+                <SearchPopout tone={card.tone === 'dark' ? 'dark' : 'light'}>{card.cta}</SearchPopout>
+              ) : card.title === 'Rent' ? (
+                <a className={`static-action static-action--${card.tone === 'dark' ? 'dark' : 'light'}`} href="/rentals">{card.cta}</a>
+              ) : (
+                <a className={`static-action static-action--${card.tone === 'dark' ? 'dark' : 'light'}`} href="/signup?role=seller">{card.cta}</a>
+              )}
             </div>
           </article>
         ))}
@@ -175,32 +166,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="featured-section">
-        <div className="section-heading">
-          <h2>Featured Properties</h2>
-          <div className="filter-tabs" aria-hidden="true">
-            <span className="active">For Sale</span>
-            <span>For Rent</span>
-            <span>Short Lets</span>
-            <span>Shops</span>
-            <span>Lands</span>
-          </div>
-        </div>
-
-        <div className="property-strip" aria-label="Featured properties">
-          {properties.map((property) => (
-            <article className="property-card" key={property.name}>
-              <div className="property-photo" aria-hidden="true">
-                <img src={property.image} alt={property.name} className="property-photo-image" />
-              </div>
-              <div className="property-copy">
-                <h3>{property.name}</h3>
-                <p>{property.location}</p>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
+      <FeaturedProperties />
 
       <section className="mobile-banner">
         <div>

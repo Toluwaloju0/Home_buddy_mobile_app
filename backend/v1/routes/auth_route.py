@@ -143,7 +143,6 @@ async def login(user_data: UserCreate):
 
     # Successful password login — return sanitized user payload
     content = api_response(True, "Log in successful", saved_user)
-    print(content, "==" * 10)
     response = JSONResponse(content.to_dict())
     response.set_cookie("access_token", access_token_response.payload.get("access_token"))
     response.set_cookie("refresh_token", refresh_token_response.payload.get("refresh_token"))
@@ -246,6 +245,64 @@ async def resend_otp_code(user_response=Depends(get_user_from_token)):
     print(f"✅ OTP resent to: {user.get('email')}")
     content = api_response(True, "New OTP sent to your email")
     return JSONResponse(content.to_dict())
+
+
+@auth.post("/admin/login")
+async def admin_login(user_data: UserCreate):
+    """
+    Admin login using email and password. Only users with role 'admin' are allowed.
+    """
+
+    email = user_data.email
+    password = user_data.password
+
+    get_admin_response = await storage.get_admin_by_email(email, password)
+    if not get_admin_response.status:
+        content = api_response(False, "Incorrect email or password.")
+        return JSONResponse(content.to_dict(), 403)
+
+    saved_user = get_admin_response.payload
+
+    # Ensure the user has admin role
+    if saved_user.get("role") != UserRole.ADMIN.value:
+        content = api_response(False, "Unauthorized: not an admin")
+        return JSONResponse(content.to_dict(), 403)
+
+    # Create tokens for the admin
+    access_token_response = await token_manager.create_access_token(saved_user.get("_id"))
+    refresh_token_response = await token_manager.create_refresh_token(saved_user.get("_id"))
+
+    content = api_response(True, "Admin login successful", saved_user)
+    response = JSONResponse(content.to_dict())
+    response.set_cookie("access_token", access_token_response.payload.get("access_token"))
+    response.set_cookie("refresh_token", refresh_token_response.payload.get("refresh_token"))
+    return response
+
+
+@auth.post("/admin/logout")
+async def admin_logout(request: Request):
+    """Logout endpoint for admin users — clears cookies and deletes refresh token."""
+
+    refresh_token = request.cookies.get("refresh_token")
+
+    # try to get the user id from the refresh token if present
+    if refresh_token:
+        get_id_response = await token_manager.verify_refresh_token(refresh_token)
+        if get_id_response.status and get_id_response.payload:
+            user_id = get_id_response.payload.get("user_id")
+            try:
+                # delete any refresh tokens for this user
+                await storage.delete_refresh_token(user_id)
+            except Exception:
+                # continue even if deletion fails
+                pass
+
+    # Always clear cookies on logout response
+    content = api_response(True, "Logged out successfully")
+    response = JSONResponse(content.to_dict())
+    response.delete_cookie("access_token")
+    response.delete_cookie("refresh_token")
+    return response
 
 
 @auth.post("/logout")

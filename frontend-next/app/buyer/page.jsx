@@ -6,13 +6,6 @@ import Link from 'next/link';
 import { API_BASE_URL, authFetch, redirectToLogin } from '../../lib/api';
 import UserAvatar from '../components/UserAvatar';
 
-const quickStats = [
-  { label: 'Saved homes', value: '12', detail: '3 new matches today' },
-  { label: 'Inspections', value: '4', detail: '2 confirmed this week' },
-  { label: 'Messages', value: '9', detail: '1 urgent reply pending' },
-  { label: 'Escrow', value: '2', detail: 'Funds waiting to clear' },
-];
-
 const propertyFilters = [
   { key: 'all', label: 'All types' },
   { key: 'buy', label: 'Buy' },
@@ -20,92 +13,6 @@ const propertyFilters = [
   { key: 'shortlet', label: 'Short let' },
 ];
 
-const featuredHomes = [
-  {
-    id: 1,
-    title: 'Lekki Lagoon Residence',
-    location: 'Lekki Phase 1, Lagos',
-    price: '₦1,000,000',
-    category: 'buy',
-    match: '97% match',
-    image:
-      'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80',
-  },
-  {
-    id: 2,
-    title: 'Island View Apartment',
-    location: 'Victoria Island, Lagos',
-    price: '₦900,000',
-    category: 'rent',
-    match: '94% match',
-    image:
-      'https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1200&q=80',
-  },
-  {
-    id: 3,
-    title: 'Mansion Creek Duplex',
-    location: 'Ikoyi, Lagos',
-    price: '₦2,300,000',
-    category: 'shortlet',
-    match: '92% match',
-    image:
-      'https://images.unsplash.com/photo-1568605114967-8130f3a36994?auto=format&fit=crop&w=1200&q=80',
-  },
-];
-
-const savedHomes = [
-  {
-    id: 'saved-1',
-    title: 'Eko Garden Loft',
-    location: 'Epe, Lagos',
-    price: '₦1,000,000',
-    note: 'Landlord replied 10 minutes ago',
-  },
-  {
-    id: 'saved-2',
-    title: 'Mainland Comfort Flat',
-    location: 'Yaba, Lagos',
-    price: '₦1,100,000',
-    note: 'Open inspection tomorrow at 11:00',
-  },
-  {
-    id: 'saved-3',
-    title: 'Island Studio Suite',
-    location: 'Oniru, Lagos',
-    price: '₦850,000',
-    note: 'Newly added to your shortlist',
-  },
-];
-
-const inspectionRequests = [
-  {
-    id: 'inspect-1',
-    property: 'Island View Apartment',
-    status: 'Confirmed',
-    time: 'Thursday, 10:00 AM',
-  },
-  {
-    id: 'inspect-2',
-    property: 'Lekki Lagoon Residence',
-    status: 'Pending',
-    time: 'Friday, 1:30 PM',
-  },
-];
-
-const recentMessages = [
-  {
-    id: 'msg-1',
-    sender: 'Prime Edge Properties',
-    excerpt: 'Your viewing request for the Lekki unit has been approved.',
-    time: '12m ago',
-  },
-  {
-    id: 'msg-2',
-    sender: 'Home Buddy Connect Limited Support',
-    excerpt: 'We confirmed your profile and escrow preferences.',
-    time: 'Yesterday',
-  },
-];
 
 export default function BuyerPage() {
   const router = useRouter();
@@ -119,6 +26,17 @@ export default function BuyerPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [propertyType, setPropertyType] = useState('all');
   const [budget, setBudget] = useState('all');
+
+  const [recommendedHomes, setRecommendedHomes] = useState([]);
+  const [savedHomes, setSavedHomes] = useState([]);
+  const [inspectionRequests, setInspectionRequests] = useState([]);
+  const [recentMessages, setRecentMessages] = useState([]);
+  const [quickStats, setQuickStats] = useState([
+    { label: 'Saved homes', value: '0', detail: '' },
+    { label: 'Inspections', value: '0', detail: '' },
+    { label: 'Messages', value: '0', detail: '' },
+    { label: 'Escrow', value: '0', detail: '' },
+  ]);
 
   useEffect(() => {
     let mounted = true;
@@ -216,15 +134,101 @@ export default function BuyerPage() {
   const visibleHomes = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
 
-    return featuredHomes.filter((home) => {
-      const matchesType = propertyType === 'all' || home.category === propertyType;
-      const matchesBudget = budget === 'all' || home.price.includes(budget);
-      const matchesQuery = !query
-        || [home.title, home.location, home.price, home.category].join(' ').toLowerCase().includes(query);
+    return recommendedHomes.filter((home) => {
+      const category = home.category || home.property_type || '';
+      const priceStr = home.price || home.price_display || '';
+      const matchesType = propertyType === 'all' || category === propertyType;
+      const matchesBudget = budget === 'all' || (priceStr && priceStr.includes(budget));
+      const matchesQuery = !query || [home.title || '', home.location || home.full_address || '', priceStr, category]
+        .join(' ').toLowerCase().includes(query);
 
       return matchesType && matchesBudget && matchesQuery;
     });
-  }, [budget, propertyType, searchQuery]);
+  }, [recommendedHomes, budget, propertyType, searchQuery]);
+
+  // Fetch public recommended listings once
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadRecommended() {
+      try {
+        const res = await fetch(`${API_BASE_URL}/properties/recommended?per_page=12`);
+        const data = await res.json().catch(() => null);
+        if (mounted && res.ok && data?.payload?.listings) {
+          setRecommendedHomes(data.payload.listings);
+        }
+      } catch (err) {
+        // ignore for now
+        // console.error('Failed to load recommended listings', err);
+      }
+    }
+
+    loadRecommended();
+    return () => { mounted = false; };
+  }, []);
+
+  // Fetch user-specific data after the user is loaded
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadUserData() {
+      if (!user) return;
+
+      try {
+        const [savedRes, inspRes, msgRes] = await Promise.all([
+          authFetch(`${API_BASE_URL}/user/saved`, { method: 'GET' }),
+          authFetch(`${API_BASE_URL}/inspections/my-requests`, { method: 'GET' }),
+          authFetch(`${API_BASE_URL}/messages/buyer`, { method: 'GET' }),
+        ]);
+
+        let savedJson = null;
+        let inspJson = null;
+        let msgJson = null;
+
+        if (savedRes) {
+          savedJson = await savedRes.json().catch(() => null);
+          if (mounted && savedRes.status === 200 && savedJson?.payload) setSavedHomes(savedJson.payload);
+        }
+
+        if (inspRes) {
+          inspJson = await inspRes.json().catch(() => null);
+          if (mounted && inspRes.status === 200 && inspJson?.payload) setInspectionRequests(inspJson.payload);
+        }
+
+        if (msgRes) {
+          msgJson = await msgRes.json().catch(() => null);
+          if (mounted && msgRes.status === 200 && msgJson?.payload) {
+            const mapped = msgJson.payload.map((c) => {
+              const id = (c._id && typeof c._id === 'object') ? JSON.stringify(c._id) : String(c._id || Math.random().toString(36).slice(2));
+              const sender = c.sender_name || c.listing_title || 'Conversation';
+              const excerpt = c.last_message || '';
+              const time = c.last_message_at ? new Date(c.last_message_at).toLocaleString() : '';
+              return { id, sender, excerpt, time };
+            });
+            setRecentMessages(mapped);
+          }
+        }
+
+        const savedCount = savedJson?.payload?.length ?? 0;
+        const inspCount = inspJson?.payload?.length ?? 0;
+        const msgCount = msgJson?.payload?.length ?? 0;
+
+        if (mounted) {
+          setQuickStats([
+            { label: 'Saved homes', value: String(savedCount), detail: '' },
+            { label: 'Inspections', value: String(inspCount), detail: '' },
+            { label: 'Messages', value: String(msgCount), detail: '' },
+            { label: 'Escrow', value: '0', detail: '' },
+          ]);
+        }
+      } catch (err) {
+        // console.error('Failed to load user dashboard data', err);
+      }
+    }
+
+    if (!loadingUser) loadUserData();
+    return () => { mounted = false; };
+  }, [loadingUser, user]);
 
   const handleBrandClick = () => {
     if (!user) return;
@@ -421,7 +425,7 @@ export default function BuyerPage() {
             </p>
 
             <div className="buyer-hero-actions">
-              <button type="button" className="buyer-primary-button" onClick={() => router.push('/')}>
+              <button type="button" className="buyer-primary-button" onClick={() => router.push('/listings')}>
                 Browse properties
               </button>
               <button type="button" className="buyer-secondary-button" onClick={() => router.push('/contact')}>
@@ -498,23 +502,30 @@ export default function BuyerPage() {
           </div>
 
           <div className="property-grid">
-            {visibleHomes.map((home) => (
-              <article className="buyer-property-card" key={home.id}>
-                <img src={home.image} alt={home.title} className="buyer-property-image" />
-                <div className="buyer-property-body">
-                  <div className="buyer-property-topline">
-                    <span>{home.category === 'shortlet' ? 'Short let' : home.category === 'rent' ? 'For rent' : 'For sale'}</span>
-                    <strong>{home.match}</strong>
+            {visibleHomes.map((home) => {
+              const key = home._id || home.id;
+              const img = home.image || (home.images && home.images[0]) || (home.media && home.media.images && home.media.images[0]) || '/home_buddy_logo.png';
+              const category = home.category || home.property_type || '';
+              const price = home.price || home.price_display || home.rent || '';
+
+              return (
+                <article className="buyer-property-card" key={key}>
+                  <img src={img} alt={home.title || 'Property'} className="buyer-property-image" />
+                  <div className="buyer-property-body">
+                    <div className="buyer-property-topline">
+                      <span>{category === 'shortlet' ? 'Short let' : category === 'rent' ? 'For rent' : 'For sale'}</span>
+                      <strong>{home.match || ''}</strong>
+                    </div>
+                    <h3>{home.title}</h3>
+                    <p>{home.location || home.full_address}</p>
+                    <div className="buyer-property-footer">
+                      <strong>{price}</strong>
+                      <button type="button" className="buyer-text-button">View details</button>
+                    </div>
                   </div>
-                  <h3>{home.title}</h3>
-                  <p>{home.location}</p>
-                  <div className="buyer-property-footer">
-                    <strong>{home.price}</strong>
-                    <button type="button" className="buyer-text-button">View details</button>
-                  </div>
-                </div>
-              </article>
-            ))}
+                </article>
+              );
+            })}
           </div>
         </section>
 
@@ -530,13 +541,13 @@ export default function BuyerPage() {
 
             <div className="compact-list">
               {savedHomes.map((home) => (
-                <article className="compact-list-item" key={home.id}>
+                <article className="compact-list-item" key={home._id || home.id}>
                   <div>
                     <h3>{home.title}</h3>
-                    <p>{home.location}</p>
-                    <span>{home.note}</span>
+                    <p>{home.location || home.full_address}</p>
+                    <span>{home.note || ''}</span>
                   </div>
-                  <strong>{home.price}</strong>
+                  <strong>{home.price || home.rent || ''}</strong>
                 </article>
               ))}
             </div>
@@ -552,12 +563,12 @@ export default function BuyerPage() {
 
             <div className="compact-list">
               {inspectionRequests.map((request) => (
-                <article className="compact-list-item compact-list-item--stacked" key={request.id}>
+                <article className="compact-list-item compact-list-item--stacked" key={request._id || request.id}>
                   <div>
-                    <h3>{request.property}</h3>
-                    <p>{request.time}</p>
+                    <h3>{request.property || request.property_id}</h3>
+                    <p>{request.preferred_time || request.time || ''}</p>
                   </div>
-                  <span className={`status-pill status-pill--${request.status.toLowerCase()}`}>{request.status}</span>
+                  <span className={`status-pill status-pill--${(request.status || '').toLowerCase()}`}>{request.status || ''}</span>
                 </article>
               ))}
             </div>
@@ -592,7 +603,7 @@ export default function BuyerPage() {
             <p>Browse more verified listings or reach support if a property needs review.</p>
           </div>
           <div className="buyer-cta-actions">
-            <button type="button" className="buyer-primary-button" onClick={() => router.push('/')}>
+            <button type="button" className="buyer-primary-button" onClick={() => router.push('/listings')}>
               Explore more homes
             </button>
             <Link href="/support" className="buyer-secondary-button">
