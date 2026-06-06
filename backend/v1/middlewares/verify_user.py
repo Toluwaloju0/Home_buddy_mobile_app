@@ -2,6 +2,7 @@
 
 from fastapi import Request
 
+from database.db_engine import storage
 from utils.cookie_token import token_manager
 from utils.responses import function_response
 
@@ -12,3 +13,12 @@ async def get_user_from_token(request: Request):
 
     user_response = await token_manager.verify_access_token(access_token)
     return user_response
+
+
+async def get_admin_from_token(request: Request):
+    """Get the authenticated admin document from the access token."""
+
+    access_token = request.cookies.get("access_token")
+    token_response = await token_manager.verify_access_token(access_token, False)
+
+    return token_response

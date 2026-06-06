@@ -104,6 +104,33 @@ async def get_conversations(user_response=Depends(get_user_from_token)):
     return JSONResponse(content.to_dict())
 
 
+@messages.get("/buyer")
+async def get_buyer_conversations(user_response=Depends(get_user_from_token)):
+    """Get all conversations for the authenticated buyer."""
+
+    if not user_response.status:
+        content = api_response(False, "The access token provided is not valid")
+        return JSONResponse(content.to_dict(), 205)
+
+    if not user_response.payload:
+        content = api_response(False, "The access token is expired, refresh and try again")
+        return JSONResponse(content.to_dict(), 401)
+
+    user = user_response.payload
+    user_id = str(user.get("_id"))
+
+    buyer_conversations_response = await storage.get_buyer_conversations(user_id)
+    if not buyer_conversations_response.status:
+        content = api_response(False, "Failed to retrieve conversations")
+        return JSONResponse(content.to_dict(), 500)
+
+    conversations = buyer_conversations_response.payload
+    serialized_conversations = [await serialize_mongo_value(conv) for conv in conversations]
+
+    content = api_response(True, "Buyer conversations retrieved successfully", serialized_conversations)
+    return JSONResponse(content.to_dict())
+
+
 @messages.get("/{buyer_id}/{listing_id}")
 async def get_conversation_thread(
     buyer_id: str,

@@ -37,6 +37,8 @@ const documentFields = [
   { key: 'utility_bill', label: 'Utility Bill', required: false },
 ];
 
+const MAX_FILE_BYTES = 5 * 1024 * 1024; // 5 MB
+
 const apartmentImageGroups = [
   { key: 'exterior_images', label: 'Exterior Photos', required: true, hint: 'Front, back and side views of the property' },
   { key: 'sitting_room_images', label: 'Sitting Room', required: true, hint: 'At least one sitting room image' },
@@ -118,6 +120,77 @@ function NewListingContent() {
   const [media, setMedia] = useState(createEmptyMediaState);
   const [submitting, setSubmitting] = useState(false);
 
+    const isDocumentField = (key) => documentFields.some((f) => f.key === key);
+
+    const updateMediaGroup = (groupKey, files) => {
+      const fileList = Array.from(files || []);
+
+      setMedia((previous) => {
+        // Revoke any previous previews for this group to avoid memory leaks
+        const prevItems = previous[groupKey] || [];
+        prevItems.forEach((it) => it?.preview && URL.revokeObjectURL(it.preview));
+
+        const items = fileList
+          .map((file) => {
+            if (!file) return null;
+
+            if (file.size > MAX_FILE_BYTES) {
+              alert(`${file.name} exceeds 5MB and was not added.`);
+              return null;
+            }
+
+            if (isDocumentField(groupKey)) {
+              // allow images and pdf for document fields
+              if (!(file.type.startsWith('image') || file.type === 'application/pdf')) {
+                alert(`${file.name} is not a supported document type.`);
+                return null;
+              }
+            } else {
+              // image groups: only images allowed
+              if (!file.type.startsWith('image')) {
+                alert(`${file.name} is not an image and was not added.`);
+                return null;
+              }
+            }
+
+            return {
+              file,
+              preview: file.type.startsWith('image') ? URL.createObjectURL(file) : null,
+            };
+          })
+          .filter(Boolean);
+
+        // Document fields should only keep a single file (use the first)
+        const finalItems = isDocumentField(groupKey) ? items.slice(0, 1) : items;
+
+        return {
+          ...previous,
+          [groupKey]: finalItems,
+        };
+      });
+    };
+
+    const removeMediaItem = (groupKey, index) => {
+      setMedia((previous) => {
+        const items = previous[groupKey] ? [...previous[groupKey]] : [];
+        const removed = items.splice(index, 1)[0];
+        if (removed?.preview) URL.revokeObjectURL(removed.preview);
+        return {
+          ...previous,
+          [groupKey]: items,
+        };
+      });
+    };
+
+    // Cleanup previews on unmount
+    useEffect(() => {
+      return () => {
+        Object.values(media).flat().forEach((it) => it?.preview && URL.revokeObjectURL(it.preview));
+      };
+      // Intentionally empty deps: we only want to run on unmount
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, []);
+
   useEffect(() => {
     let mounted = true;
 
@@ -185,12 +258,7 @@ function NewListingContent() {
     }
   };
 
-  const updateMediaGroup = (groupKey, files) => {
-    setMedia((previous) => ({
-      ...previous,
-      [groupKey]: Array.from(files || []),
-    }));
-  };
+  // Note: media handling, previews and cleanup is implemented above
 
   const selectType = (selectedType) => {
     setType(selectedType);
@@ -221,14 +289,33 @@ function NewListingContent() {
       form.append('size_square_meters', sizeSquareMeters || '');
       form.append('full_address', fullAddress || '');
       form.append('listing_plan', listingPlan || 'Basic');
-      form.append('save_mode', 'draft');
-      form.append('is_negotiable', isNegotiable ? 'true' : 'false');
 
-      Object.entries(media).forEach(([groupKey, files]) => {
-        files.forEach((file) => {
-          form.append(groupKey, file);
+      // Append media files grouped by backend field names (use the real File object)
+      Object.entries(media).forEach(([groupKey, items]) => {
+        (items || []).forEach((it) => {
+          const fileToAppend = it?.file ?? it;
+          if (fileToAppend) form.append(groupKey, fileToAppend);
         });
       });
+
+      // Frontend validation: ensure required apartment assets are present
+      if (type === 'apartment') {
+        const requiredKeys = [
+          'title_document',
+          'proof_of_ownership',
+          'exterior_images',
+          'sitting_room_images',
+          'bedroom_images',
+          'kitchen_images',
+          'bathroom_images',
+        ];
+        const missing = requiredKeys.filter((k) => !(media[k] && media[k].length));
+        if (missing.length) {
+          alert(`Please upload required assets: ${missing.join(', ')}`);
+          setSubmitting(false);
+          return;
+        }
+      }
 
       const response = await authFetch(`${API_BASE_URL}/seller/listings/submit`, {
         method: 'POST',
@@ -405,7 +492,6 @@ function NewListingContent() {
           </div>
         </section>
 
-
         <section className="settings-card listing-section-card">
           <div className="settings-section-title">
             <h2>Property Information</h2>
@@ -543,23 +629,37 @@ function NewListingContent() {
               </div>
 
               <div className="document-grid">
-                {documentFields.map((field) => (
-                  <label key={field.key} className="document-upload-card">
-                    <span className="media-upload-title">
-                      {field.label}
-                      {field.required ? <em>Required</em> : <small>Optional</small>}
-                    </span>
-                    <input
-                      type="file"
-                      accept="image/*,application/pdf"
-                      onChange={(event) => updateMediaGroup(field.key, event.target.files)}
-                    />
-                    <span className="media-upload-count">
-                      {media[field.key]?.length ? `${media[field.key].length} file(s) selected` : 'Choose file'}
-                    </span>
-                  </label>
-                ))}
-              </div>
+                  {documentFields.map((field) => (
+                    <label key={field.key} className="document-upload-card">
+                      <span className="media-upload-title">
+                        {field.label}
+                        {field.required ? <em>Required</em> : <small>Optional</small>}
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*,application/pdf"
+                        onChange={(event) => updateMediaGroup(field.key, event.target.files)}
+                      />
+
+                      <div className="media-preview-grid document-previews">
+                        {(media[field.key] || []).map((item, idx) => (
+                          <div key={`${field.key}-${idx}`} className="media-preview-item">
+                            {item.preview ? (
+                              <img src={item.preview} alt={field.label} />
+                            ) : (
+                              <div className="media-file-placeholder">{item.file?.name}</div>
+                            )}
+                            <button type="button" className="media-remove-btn" onClick={() => removeMediaItem(field.key, idx)}>Remove</button>
+                          </div>
+                        ))}
+                      </div>
+
+                      <span className="media-upload-count">
+                        {media[field.key]?.length ? `${media[field.key].length} file(s) selected` : 'Choose file'}
+                      </span>
+                    </label>
+                  ))}
+                </div>
             </section>
           </>
         )}
@@ -568,117 +668,46 @@ function NewListingContent() {
           <section className="settings-card listing-section-card">
             <div className="settings-section-title">
               <h2>Property Photos</h2>
-              <span>Upload the main images for this listing</span>
+              <span>Upload images for each property feature below</span>
             </div>
-            <label className="file-drop listing-dropzone">
-              <input type="file" multiple accept="image/*" onChange={(event) => updateMediaGroup('exterior_images', event.target.files)} />
-              <div className="file-drop-inner">
-                <strong>Drag & drop photos here</strong>
-                <span>or click to choose listing images</span>
-              </div>
-            </label>
+
+            <div className="media-grid">
+              {apartmentImageGroups.map((group) => (
+                <label key={`na-${group.key}`} className="media-upload-card">
+                  <div className="media-upload-head">
+                    <span className="media-upload-title">{group.label} <small>Optional</small></span>
+                    <span className="media-upload-hint">{group.hint}</span>
+                  </div>
+
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={(event) => updateMediaGroup(group.key, event.target.files)}
+                  />
+
+                  <div className="media-preview-grid">
+                    {(media[group.key] || []).map((item, idx) => (
+                      <div key={`${group.key}-na-${idx}`} className="media-preview-item">
+                        {item.preview ? (
+                          <img src={item.preview} alt={group.label} />
+                        ) : (
+                          <div className="media-file-placeholder">{item.file?.name}</div>
+                        )}
+                        <button type="button" className="media-remove-btn" onClick={() => removeMediaItem(group.key, idx)}>Remove</button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <span className="media-upload-count">
+                    {media[group.key]?.length ? `${media[group.key].length} file(s) selected` : 'Choose files'}
+                  </span>
+                </label>
+              ))}
+            </div>
           </section>
         )}
 
-        <section className="settings-card listing-section-card">
-          <div className="settings-section-title">
-            <h2>Property Information</h2>
-            <span>Tell buyers what they are looking at</span>
-          </div>
-
-          <div className="listing-form-grid">
-            <label className="field-item">
-              <span>Property Type</span>
-              <select value={propertyType} onChange={(event) => setPropertyType(event.target.value)}>
-                <option>Flat</option>
-                <option>Mini Flat</option>
-                <option>Duplex</option>
-                <option>Penthouse</option>
-                <option>Bungalow</option>
-                <option>Shop</option>
-                <option>Land</option>
-              </select>
-            </label>
-
-            <label className="field-item">
-              <span>Year Built</span>
-              <input value={yearBuilt} onChange={(event) => setYearBuilt(event.target.value)} placeholder="e.g. 2019" />
-            </label>
-
-            <label className="field-item">
-              <span>Number of Bedrooms</span>
-              <select value={bedrooms} onChange={(event) => setBedrooms(event.target.value)}>
-                <option value="">Select</option>
-                <option>1</option>
-                <option>2</option>
-                <option>3</option>
-                <option>4</option>
-                <option>5+</option>
-              </select>
-            </label>
-
-            <label className="field-item">
-              <span>Number of Bathrooms</span>
-              <select value={bathrooms} onChange={(event) => setBathrooms(event.target.value)}>
-                <option value="">Select</option>
-                <option>1</option>
-                <option>2</option>
-                <option>3</option>
-                <option>4+</option>
-              </select>
-            </label>
-
-            <label className="field-item">
-              <span>Size (Square Meters)</span>
-              <input value={sizeSquareMeters} onChange={(event) => setSizeSquareMeters(event.target.value)} placeholder="e.g. 1634" />
-            </label>
-
-            <label className="field-item">
-              <span>Selling Price (N)</span>
-              <input value={price} onChange={(event) => setPrice(event.target.value)} placeholder="e.g. 1000000" />
-              <small className="field-note">
-                <input type="checkbox" checked={isNegotiable} onChange={(event) => setIsNegotiable(event.target.checked)} />
-                Price is negotiable
-              </small>
-            </label>
-
-            <label className="field-item field-item--wide">
-              <span>Location</span>
-              <select value={location} onChange={(event) => setLocation(event.target.value)}>
-                <option value="">Select</option>
-                <option>Ajah</option>
-                <option>Lekki</option>
-                <option>Ikeja</option>
-                <option>Ikoyi</option>
-                <option>Victoria Island</option>
-              </select>
-            </label>
-
-            <label className="field-item field-item--wide">
-              <span>Full Address</span>
-              <input value={fullAddress} onChange={(event) => setFullAddress(event.target.value)} placeholder="Street address, landmark, city" />
-            </label>
-
-            <label className="field-item field-item--wide">
-              <span>Detailed Description</span>
-              <textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={6} placeholder="Describe the property, nearby landmarks, and what makes it special" />
-            </label>
-
-            <label className="field-item">
-              <span>Listing Plan</span>
-              <select value={listingPlan} onChange={(event) => setListingPlan(event.target.value)}>
-                <option>Basic</option>
-                <option>Standard</option>
-                <option>Premium</option>
-              </select>
-            </label>
-
-            <label className="field-item">
-              <span>Title</span>
-              <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Listing headline" />
-            </label>
-          </div>
-        </section>
 
         <div className="form-actions listing-form-actions">
           <button type="button" className="btn-secondary" onClick={() => setType('')}>Back to Types</button>

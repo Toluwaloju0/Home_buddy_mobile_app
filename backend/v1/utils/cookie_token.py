@@ -31,7 +31,7 @@ class Token:
 
         return function_response(True, {"access_token": token})
     
-    async def verify_access_token(self, access_token):
+    async def verify_access_token(self, access_token, is_user=True):
         """
         a method to verify the access token
         Args:
@@ -45,7 +45,7 @@ class Token:
         try:
             payload = jwt.decode(access_token, self.__access_secret, algorithms="HS256")
             user_id = payload.get("user_id")
-            get_user_response = await storage.get_user_by_id(user_id)
+            get_user_response = await storage.get_user_by_id(user_id) if is_user else await storage.get_admin_by_id(user_id)
             return get_user_response
         except jwt.ExpiredSignatureError:
             return function_response(True)

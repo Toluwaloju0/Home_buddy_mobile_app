@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 export default function SignupPage() {
@@ -58,6 +58,12 @@ export default function SignupPage() {
       setLoading(false);
     }
   };
+
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const pre = searchParams.get('role');
+    if (pre === 'seller' || pre === 'buyer') setRole(pre);
+  }, [searchParams]);
 
   return (
     <main className="login-page">

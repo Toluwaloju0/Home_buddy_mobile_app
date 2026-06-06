@@ -135,16 +135,41 @@ class S3Uploader:
 
         return await self.upload_profile_image(uploaded_file, user_id)
 
-    async def upload_house_image(self, uploaded_file: UploadFile, user_id: str, submission_id: str, group_name: str, index: int):
-        """Upload a listing/house image to the `listings/{user_id}/{submission_id}/{group_name}` folder."""
+    async def upload_house_image(self, uploaded_file: UploadFile, listing_id: str, group_name: str, index: int, filename_override: str | None = None):
+        """Upload a listing/house image to the `listings/{listing_id}/` folder.
+
+        The caller may pass `filename_override` (without extension) to force the
+        stored object name (e.g. `bathroom_1`). If not provided the original
+        uploaded filename is used.
+        """
 
         file_extension = self.allowed_profile_image_types.get(uploaded_file.content_type)
         if not file_extension:
             return function_response(False)
 
-        safe_name = uploaded_file.filename or f"{group_name}_{index}"
-        object_key = f"listings/{user_id}/{submission_id}/{group_name}/{group_name}_{index}_{uuid4().hex}_{safe_name}{file_extension if not safe_name.lower().endswith(file_extension) else ''}"
+        # Choose a base name: prefer explicit override, otherwise the
+        # uploaded filename, otherwise a fallback based on group and index.
+        if filename_override:
+            safe_base = filename_override
+        else:
+            safe_base = uploaded_file.filename or f"{group_name}_{index}"
+
+        # Ensure the filename ends with the correct extension (avoid double-extension)
+        if safe_base.lower().endswith(file_extension):
+            filename = safe_base
+        else:
+            filename = f"{safe_base}{file_extension}"
+
+        object_key = f"listings/{listing_id}/{filename}"
         return await self._upload_object(uploaded_file, object_key)
+
+    def get_listing_folder_url(self, listing_id: str) -> str:
+        """Return a public URL pointing to the listing folder prefix.
+
+        Note: S3 does not have real folders; this returns the prefix URL that
+        can be used as a base for stored objects.
+        """
+        return f"https://{self.bucket_name}.s3.{self.aws_region}.amazonaws.com/listings/{listing_id}/"
 
     async def upload_verification_image(self, uploaded_file: UploadFile, user_id: str, kind: str):
         """Upload verification documents/images to `seller-profiles/{user_id}`.

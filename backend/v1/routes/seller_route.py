@@ -12,7 +12,7 @@ from middlewares.verify_user import get_user_from_token
 from utils.responses import api_response
 from services.s3_uploader import uploader
 
-seller = APIRouter(prefix="/seller", tags=["Seller"], dependencies=[Depends(get_user_from_token)])
+seller = APIRouter(prefix="/seller", tags=["Seller"])
 
 # Mapping of form field names to friendly display names
 IMAGE_GROUP_DISPLAY_NAMES = {
@@ -54,22 +54,33 @@ async def serialize_mongo_value(value):
     return value
 
 
-async def upload_grouped_files(user_id: str, submission_id: str, group_name: str, files: list[UploadFile]):
-    """Upload a list of files to S3 and keep a group label for display with metadata."""
+async def upload_grouped_files(listing_id: str, group_name: str, files: list[UploadFile]):
+    """Upload a list of files to the listing folder and return metadata list.
+
+    Files are named using the convention `groupname_{n}` when multiple files
+    are present and `groupname` when only a single file exists for that group.
+    """
 
     uploaded_files = []
     image_type = IMAGE_GROUP_DISPLAY_NAMES.get(group_name, group_name)
-    
+    total = len(files) if files is not None else 0
+
     for index, uploaded_file in enumerate(files, start=1):
         if not uploaded_file:
             continue
 
+        # Name files according to the requested convention
+        if total == 1:
+            filename_override = group_name
+        else:
+            filename_override = f"{group_name}_{index}"
+
         file_response = await uploader.upload_house_image(
             uploaded_file,
-            user_id,
-            submission_id,
+            listing_id,
             group_name,
             index,
+            filename_override=filename_override,
         )
         if not file_response.status:
             return None
@@ -286,11 +297,11 @@ async def submit_listing(
 
     if not user_response.status:
         content = api_response(False, "The access token provided is not valid")
-        return JSONResponse(content.to_dict())
+        return JSONResponse(content.to_dict(), status_code=401)
 
     if not user_response.payload:
         content = api_response(False, "The access token is expired, refresh and try again")
-        return JSONResponse(content.to_dict())
+        return JSONResponse(content.to_dict(), status_code=401)
 
     user = user_response.payload
     seller_id = str(user.get("_id"))
@@ -310,7 +321,33 @@ async def submit_listing(
             content = api_response(False, f"Missing required apartment assets: {', '.join(missing_required)}")
             return JSONResponse(content.to_dict(), 400)
 
-    submission_id = datetime.now().strftime("%Y%m%d%H%M%S")
+    # Create initial listing record to reserve a listing id / folder
+    listing_document = {
+        "seller_id": seller_id,
+        "title": title,
+        "category": category,
+        "price": price,
+        "location": location,
+        "description": description,
+        "year_built": year_built,
+        "property_type": property_type,
+        "number_of_bedrooms": number_of_bedrooms,
+        "number_of_bathrooms": number_of_bathrooms,
+        "size_square_meters": size_square_meters,
+        "full_address": full_address,
+        "listing_plan": listing_plan,
+        "media": {},
+        "status": "pending_approval",
+        "created_at": datetime.now(),
+        "updated_at": datetime.now(),
+    }
+
+    listing_result = await storage.create_listing_submission(listing_document)
+    if not listing_result.status:
+        content = api_response(False, "Failed to save listing submission")
+        return JSONResponse(content.to_dict(), 500)
+
+    listing_id = str(listing_result.payload.get("listing_id"))
 
     media_groups = {
         "title_document": [title_document] if title_document else [],
@@ -336,45 +373,21 @@ async def submit_listing(
         if not group_files:
             continue
 
-        uploaded_group = await upload_grouped_files(seller_id, submission_id, group_name, group_files)
+        uploaded_group = await upload_grouped_files(listing_id, group_name, group_files)
         if uploaded_group is None:
             content = api_response(False, f"Failed to upload {group_name}")
             return JSONResponse(content.to_dict(), 500)
 
         uploaded_media[group_name] = uploaded_group
 
-    listing_document = {
-        "submission_id": submission_id,
-        "seller_id": seller_id,
-        "title": title,
-        "category": category,
-        "price": price,
-        "location": location,
-        "description": description,
-        "year_built": year_built,
-        "property_type": property_type,
-        "number_of_bedrooms": number_of_bedrooms,
-        "number_of_bathrooms": number_of_bathrooms,
-        "size_square_meters": size_square_meters,
-        "full_address": full_address,
-        "listing_plan": listing_plan,
-        "media": uploaded_media,
-        "status": "pending_approval",
-        "created_at": datetime.now(),
-        "updated_at": datetime.now(),
-    }
+    # Save media metadata and folder URL to the listing record
+    folder_url = uploader.get_listing_folder_url(listing_id)
+    await storage.update_listing_by_id(listing_id, media=uploaded_media, s3_folder_url=folder_url, updated_at=datetime.now())
 
-    listing_result = await storage.create_listing_submission(listing_document)
-    if not listing_result.status:
-        content = api_response(False, "Failed to save listing submission")
-        return JSONResponse(content.to_dict(), 500)
+    # Retrieve the updated listing for the response
+    updated_listing = await storage.get_listing_by_id(listing_id)
+    payload = await serialize_mongo_value(updated_listing.payload if updated_listing.status else {**listing_document, "listing_id": listing_id})
 
-    payload = await serialize_mongo_value(
-        {
-            **listing_document,
-            "listing_id": listing_result.payload.get("listing_id"),
-        }
-    )
     content = api_response(True, "Listing submitted successfully and is pending admin approval", payload)
     return JSONResponse(content.to_dict())
 

@@ -54,6 +54,7 @@ class DBStorage:
 
         self.__db = self.__client.get_database("Home_Buddy")
         self.__user = self.__db["users"]
+        self.__admin = self.__db["admin"]
         self.__refresh_token = self.__db["refresh_token"]
         self.__otp_code = self.__db["otp_code"]
 
@@ -190,6 +191,24 @@ class DBStorage:
         return function_response(False)
 
     @safe_db_operation
+    async def update_listing_by_id(self, listing_id: str, **kwargs):
+        """Update a listing document by its ObjectId string.
+
+        kwargs will be applied with a $set operation. Returns a
+        FunctionResponse indicating success or failure.
+        """
+        listings = self.__db["listings"]
+        try:
+            oid = ObjectId(listing_id) if isinstance(listing_id, str) and ObjectId.is_valid(listing_id) else listing_id
+        except Exception:
+            oid = listing_id
+
+        result = await listings.update_one({"_id": oid}, {"$set": kwargs})
+        if not result.acknowledged:
+            return function_response(False)
+        return function_response(True)
+
+    @safe_db_operation
     async def get_seller_listings(self, seller_id: str):
         """Fetch all listings for a seller.
         
@@ -232,6 +251,83 @@ class DBStorage:
 
         search_filter = {"$and": [{"$or": text_filters}, {"$or": identity_filters}]}
         results = await listings.find(search_filter).limit(20).to_list(length=20)
+        if results:
+            return function_response(True, results)
+        return function_response(True, [])
+
+    @safe_db_operation
+    async def get_listings_by_location(self, location: str, page: int = 1, per_page: int = 10):
+        """Search and return paginated listings matching a location string.
+
+        Args:
+            location: Partial or full location text to match (case-insensitive).
+            page: 1-based page number.
+            per_page: number of items per page.
+        Returns:
+            FunctionResponse with payload: {"results": [...], "total": <int>}.
+        """
+        listings = self.__db["listings"]
+        query_filter = {"location": {"$regex": location, "$options": "i"}}
+
+        total = await listings.count_documents(query_filter)
+        skip = max(0, (int(page) - 1)) * int(per_page)
+        cursor = listings.find(query_filter).sort("created_at", -1).skip(skip).limit(int(per_page))
+        results = await cursor.to_list(length=int(per_page))
+
+        return function_response(True, {"results": results, "total": total})
+
+    @safe_db_operation
+    async def get_rental_listings(self, page: int = 1, per_page: int = 10):
+        """Return paginated listings that are rentals and not sold.
+
+        The filter attempts to match common rental indicators such as a
+        `category` containing "rent"/"rental", a `rent` field, or text
+        mentions in `title`/`description`. It also excludes listings marked
+        as sold.
+        """
+        listings = self.__db["listings"]
+
+        rental_filters = [
+            {"category": {"$regex": "rent", "$options": "i"}},
+            {"category": {"$regex": "rental", "$options": "i"}},
+            {"title": {"$regex": "rent", "$options": "i"}},
+            {"description": {"$regex": "rent", "$options": "i"}},
+            {"rent": {"$exists": True}},
+        ]
+
+        not_sold_filter = {
+            "$or": [
+                {"is_sold": False},
+                {"is_sold": {"$exists": False}},
+                {"status": {"$nin": ["sold", "completed", "closed"]}},
+            ]
+        }
+
+        query_filter = {"$and": [{"$or": rental_filters}, not_sold_filter]}
+
+        total = await listings.count_documents(query_filter)
+        skip = max(0, (int(page) - 1)) * int(per_page)
+        cursor = listings.find(query_filter).sort("created_at", -1).skip(skip).limit(int(per_page))
+        results = await cursor.to_list(length=int(per_page))
+
+        return function_response(True, {"results": results, "total": total})
+
+    @safe_db_operation
+    async def get_recommended_listings(self, page: int = 1, per_page: int = 10):
+        """Return latest listings for recommendations."""
+        listings = self.__db["listings"]
+        total = await listings.count_documents({})
+        skip = max(0, (int(page) - 1)) * int(per_page)
+        cursor = listings.find({}).sort("created_at", -1).skip(skip).limit(int(per_page))
+        results = await cursor.to_list(length=int(per_page))
+        return function_response(True, {"results": results, "total": total})
+
+    @safe_db_operation
+    async def get_inspections_by_requester(self, requester_id: str):
+        """Return inspection requests made by a buyer (requester)."""
+        inspections = self.__db["inspections"]
+        query = {"requester_id": requester_id}
+        results = await inspections.find(query).sort("created_at", -1).to_list(length=100)
         if results:
             return function_response(True, results)
         return function_response(True, [])
@@ -349,6 +445,90 @@ class DBStorage:
                 "verified_deals": verified_deals,
             },
         )
+
+    @safe_db_operation
+    async def get_admin_dashboard_stats(self):
+        """Return platform-wide counts for the admin dashboard."""
+
+        users_col = self.__db["users"]
+        listings_col = self.__db["listings"]
+        disputes_col = self.__db["disputes"]
+
+        total_users = await users_col.count_documents({})
+        email_verified_users = await users_col.count_documents({"is_verified": True})
+        email_non_verified_users = await users_col.count_documents(
+            {
+                "$or": [
+                    {"is_verified": False},
+                    {"is_verified": {"$exists": False}},
+                ]
+            }
+        )
+
+        total_properties = await listings_col.count_documents({})
+        available_properties = await listings_col.count_documents(
+            {
+                "$or": [
+                    {"is_sold": False},
+                    {"is_sold": {"$exists": False}},
+                    {"status": {"$nin": ["sold", "completed", "closed"]}},
+                ]
+            }
+        )
+        occupied_properties = await listings_col.count_documents(
+            {
+                "$or": [
+                    {"is_sold": True},
+                    {"status": {"$in": ["sold", "completed", "closed"]}},
+                ]
+            }
+        )
+        approved_property_listings = await listings_col.count_documents({"status": "approved"})
+        pending_property_listings = await listings_col.count_documents({"status": "pending_approval"})
+        support_tickets = await disputes_col.count_documents({})
+
+        return function_response(
+            True,
+            {
+                "total_users": total_users,
+                "email_verified_users": email_verified_users,
+                "email_non_verified_users": email_non_verified_users,
+                "total_properties": total_properties,
+                "available_properties": available_properties,
+                "occupied_properties": occupied_properties,
+                "approved_property_listings": approved_property_listings,
+                "pending_property_listings": pending_property_listings,
+                "support_tickets": support_tickets,
+            },
+        )
+
+    @safe_db_operation
+    async def get_admin_by_email(self, email: str, password: str):
+        """Get an admin document by email, optionally verifying password."""
+
+        admin = await self.__admin.find_one({"email": email})
+        if not admin:
+            return function_response(False)
+
+
+        stored_password = admin.get("password")
+        if not stored_password:
+            return function_response(False)
+
+        try:
+            ph.verify(stored_password, password)
+            return function_response(True, admin)
+        except VerifyMismatchError:
+            return function_response(False)
+
+    @safe_db_operation
+    async def get_admin_by_id(self, admin_id: str):
+        """Get an admin document by its id from the admins collection."""
+        admin = await self.__admin.find_one({"_id": ObjectId(admin_id)})
+        if not admin:
+            return function_response(False)
+
+        return function_response(True, admin)
     
     @safe_db_operation
     async def get_user_by_email(self, email: str, password: str|None = None):

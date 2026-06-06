@@ -49,6 +49,43 @@ async def get_me(user_response = Depends(get_user_from_token)):
     return JSONResponse(content.to_dict())
 
 
+@user.get("/saved")
+async def get_saved_listings(user_response = Depends(get_user_from_token)):
+    """Return saved listings (shortlist) for the authenticated user.
+
+    This implementation expects an optional `saved_listings` field on the
+    user document which is a list of listing IDs. If none exists an empty
+    list is returned.
+    """
+    if not user_response.status:
+        content = api_response(False, "The access token provided is not valid")
+        return JSONResponse(content.to_dict(), 400)
+
+    if not user_response.payload:
+        content = api_response(False, "The access token is expired, refresh and try again")
+        return JSONResponse(content.to_dict(), 205)
+
+    user = user_response.payload
+    saved_ids = user.get("saved_listings") or []
+
+    results = []
+    for lid in saved_ids:
+        listing_resp = await storage.get_listing_by_id(lid)
+        if listing_resp.status and listing_resp.payload:
+            listing = listing_resp.payload
+            if listing.get("_id"):
+                listing["_id"] = str(listing["_id"])
+            if listing.get("seller_id"):
+                try:
+                    listing["seller_id"] = str(listing["seller_id"])
+                except Exception:
+                    pass
+            results.append(listing)
+
+    content = api_response(True, "Saved listings retrieved", results)
+    return JSONResponse(content.to_dict())
+
+
 @user.delete("/me")
 async def delete_me(user_response = Depends(get_user_from_token)):
     """ a function to delete the user from the database totally
