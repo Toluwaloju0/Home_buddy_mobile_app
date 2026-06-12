@@ -1,10 +1,10 @@
 "use client"
 
 import { useSearchParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import SearchBar from "../components/SearchBar";
 
-export default function RentalsPage() {
+function RentalsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pageParam = parseInt(searchParams.get("page") || "1", 10) || 1;
@@ -99,5 +99,13 @@ export default function RentalsPage() {
         </div>
       )}
     </main>
+  );
+}
+
+export default function RentalsPage() {
+  return (
+    <Suspense fallback={<main className="search-results-page"><div className="search-loading">Loading...</div></main>}>
+      <RentalsContent />
+    </Suspense>
   );
 }

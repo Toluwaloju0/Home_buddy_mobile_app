@@ -1,9 +1,9 @@
 "use client"
 
 import { useSearchParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 
-export default function SearchResultsPage() {
+function SearchResultsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const location = searchParams.get("location") || "";
@@ -100,5 +100,13 @@ export default function SearchResultsPage() {
         </div>
       )}
     </main>
+  );
+}
+
+export default function SearchResultsPage() {
+  return (
+    <Suspense fallback={<main className="search-results-page"><div className="search-loading">Loading...</div></main>}>
+      <SearchResultsContent />
+    </Suspense>
   );
 }
