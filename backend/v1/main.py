@@ -34,10 +34,7 @@ uploads_dir.mkdir(parents=True, exist_ok=True)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3000",  # Next.js default dev server
-        "http://127.0.0.1:3000",
-        "http://localhost:8000",
-        # Add your production domain here later
+        "*"
     ],
     allow_credentials=True,  # IMPORTANT: Required for cookies
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
