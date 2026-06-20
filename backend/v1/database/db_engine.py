@@ -16,6 +16,65 @@ from services.s3_uploader import uploader
 logger = logging.getLogger("home_buddy.db_engine")
 
 
+def _serialize_user_document(user: dict | None) -> dict | None:
+    """Return a JSON-safe user document without sensitive fields."""
+
+    if not user:
+        return None
+
+    sanitized = dict(user)
+    sanitized.pop("password", None)
+    sanitized.pop("image_key", None)
+
+    for key, value in list(sanitized.items()):
+        if isinstance(value, ObjectId):
+            sanitized[key] = str(value)
+        elif isinstance(value, datetime):
+            sanitized[key] = value.isoformat()
+
+    return sanitized
+
+
+async def _serialize_listing_document(listing: dict | None) -> dict | None:
+    """Return a JSON-safe listing document with accessible media URLs."""
+
+    if not listing:
+        return None
+
+    serialized = {}
+    for key, value in listing.items():
+        if isinstance(value, ObjectId):
+            serialized[key] = str(value)
+        elif isinstance(value, datetime):
+            serialized[key] = value.isoformat()
+        elif isinstance(value, dict):
+            serialized[key] = await _serialize_listing_document(value)
+        elif isinstance(value, list):
+            serialized[key] = [
+                await _serialize_listing_document(item) if isinstance(item, dict) else item
+                for item in value
+            ]
+        else:
+            serialized[key] = value
+
+    media = serialized.get("media")
+    if isinstance(media, dict):
+        for files in media.values():
+            if not isinstance(files, list):
+                continue
+
+            for file_data in files:
+                if not isinstance(file_data, dict) or not file_data.get("url"):
+                    continue
+
+                file_data["url"] = await uploader.resolve_accessible_s3_url(
+                    file_data.get("url"),
+                    file_data.get("key"),
+                )
+
+    return serialized
+
+
 def safe_db_operation(fn):
     """Decorator to wrap DB operations: logs exceptions and returns a
     sanitized FunctionResponse(False) so callers get a consistent failure
@@ -468,10 +527,14 @@ class DBStorage:
         total_properties = await listings_col.count_documents({})
         available_properties = await listings_col.count_documents(
             {
-                "$or": [
-                    {"is_sold": False},
-                    {"is_sold": {"$exists": False}},
-                    {"status": {"$nin": ["sold", "completed", "closed"]}},
+                "$and": [
+                    {"status": {"$in": ["pending_approval", "approved"]}},
+                    {
+                        "$or": [
+                            {"is_sold": False},
+                            {"is_sold": {"$exists": False}},
+                        ]
+                    },
                 ]
             }
         )
@@ -502,6 +565,128 @@ class DBStorage:
             },
         )
 
+    @safe_db_operation
+    async def get_admin_users(self, page: int = 1, per_page: int = 20, filter_query: dict | None = None):
+        """Return a paginated list of users for the admin area."""
+
+        page = max(int(page or 1), 1)
+        per_page = min(max(int(per_page or 20), 1), 100)
+        skip = (page - 1) * per_page
+        query = filter_query or {}
+
+        total = await self.__user.count_documents(query)
+        cursor = self.__user.find(query).sort("created_at", -1).skip(skip).limit(per_page)
+        users = [_serialize_user_document(user) async for user in cursor]
+
+        return function_response(
+            True,
+            {
+                "users": users,
+                "meta": {
+                    "page": page,
+                    "per_page": per_page,
+                    "total": total,
+                    "total_pages": (total + per_page - 1) // per_page if total else 0,
+                },
+            },
+        )
+
+    async def get_admin_unverified_users(self, page: int = 1, per_page: int = 20):
+        """Return users whose email verification is missing or false."""
+
+        return await self.get_admin_users(
+            page,
+            per_page,
+            {
+                "$or": [
+                    {"is_verified": False},
+                    {"is_verified": {"$exists": False}},
+                ]
+            },
+        )
+
+    @safe_db_operation
+    async def get_admin_user_by_id(self, user_id: str):
+        """Return one sanitized user document for the admin area."""
+
+        if not ObjectId.is_valid(user_id):
+            return function_response(False)
+
+        user = await self.__user.find_one({"_id": ObjectId(user_id)})
+        if not user:
+            return function_response(False)
+
+        if user.get("image_url"):
+            user["image_url"] = await uploader.resolve_accessible_s3_url(user.get("image_url"), user.get("image_key"))
+
+        return function_response(True, _serialize_user_document(user))
+
+    @safe_db_operation
+    async def get_admin_pending_listings(self, page: int = 1, per_page: int = 20):
+        """Return paginated listings awaiting admin approval."""
+
+        page = max(int(page or 1), 1)
+        per_page = min(max(int(per_page or 20), 1), 100)
+        skip = (page - 1) * per_page
+        query = {"status": "pending_approval"}
+        listings = self.__db["listings"]
+
+        total = await listings.count_documents(query)
+        cursor = listings.find(query).sort("created_at", -1).skip(skip).limit(per_page)
+        results = [await _serialize_listing_document(listing) async for listing in cursor]
+
+        return function_response(
+            True,
+            {
+                "properties": results,
+                "meta": {
+                    "page": page,
+                    "per_page": per_page,
+                    "total": total,
+                    "total_pages": (total + per_page - 1) // per_page if total else 0,
+                },
+            },
+        )
+
+    @safe_db_operation
+    async def get_admin_listing_by_id(self, listing_id: str):
+        """Return a single listing for admin review."""
+
+        if not ObjectId.is_valid(listing_id):
+            return function_response(False)
+
+        listing = await self.__db["listings"].find_one({"_id": ObjectId(listing_id)})
+        if not listing:
+            return function_response(False)
+
+        return function_response(True, await _serialize_listing_document(listing))
+
+    @safe_db_operation
+    async def update_admin_listing_status(self, listing_id: str, status: str, admin_id: str | None = None):
+        """Approve or decline a listing from the admin review flow."""
+
+        if status not in {"approved", "declined"} or not ObjectId.is_valid(listing_id):
+            return function_response(False)
+
+        listings = self.__db["listings"]
+        update_data = {
+            "status": status,
+            "reviewed_at": datetime.now(),
+        }
+
+        if admin_id:
+            update_data["reviewed_by"] = str(admin_id)
+
+        result = await listings.update_one({"_id": ObjectId(listing_id)}, {"$set": update_data})
+        if not result.acknowledged:
+            return function_response(False)
+
+        listing = await listings.find_one({"_id": ObjectId(listing_id)})
+        if not listing:
+            return function_response(False)
+
+        return function_response(True, await _serialize_listing_document(listing))
+    
     @safe_db_operation
     async def get_admin_by_email(self, email: str, password: str):
         """Get an admin document by email, optionally verifying password."""

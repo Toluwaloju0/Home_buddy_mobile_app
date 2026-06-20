@@ -78,12 +78,12 @@ export default function AdminDashboard() {
       description: 'All registered accounts in the system.',
       href: '/admin/users',
     },
-    {
-      label: 'Email verified users',
-      value: stats.email_verified_users ?? 0,
-      description: 'Accounts that completed email verification.',
-      href: '/admin/users/verified',
-    },
+    // {
+    //   label: 'Email verified users',
+    //   value: stats.email_verified_users ?? 0,
+    //   description: 'Accounts that completed email verification.',
+    //   href: '/admin/users/verified',
+    // },
     {
       label: 'Email non verified users',
       value: stats.email_non_verified_users ?? 0,
