@@ -527,10 +527,14 @@ class DBStorage:
         total_properties = await listings_col.count_documents({})
         available_properties = await listings_col.count_documents(
             {
-                "$or": [
-                    {"is_sold": False},
-                    {"is_sold": {"$exists": False}},
-                    {"status": {"$nin": ["sold", "completed", "closed"]}},
+                "$and": [
+                    {"status": {"$in": ["pending_approval", "approved"]}},
+                    {
+                        "$or": [
+                            {"is_sold": False},
+                            {"is_sold": {"$exists": False}},
+                        ]
+                    },
                 ]
             }
         )
@@ -652,6 +656,32 @@ class DBStorage:
             return function_response(False)
 
         listing = await self.__db["listings"].find_one({"_id": ObjectId(listing_id)})
+        if not listing:
+            return function_response(False)
+
+        return function_response(True, await _serialize_listing_document(listing))
+
+    @safe_db_operation
+    async def update_admin_listing_status(self, listing_id: str, status: str, admin_id: str | None = None):
+        """Approve or decline a listing from the admin review flow."""
+
+        if status not in {"approved", "declined"} or not ObjectId.is_valid(listing_id):
+            return function_response(False)
+
+        listings = self.__db["listings"]
+        update_data = {
+            "status": status,
+            "reviewed_at": datetime.now(),
+        }
+
+        if admin_id:
+            update_data["reviewed_by"] = str(admin_id)
+
+        result = await listings.update_one({"_id": ObjectId(listing_id)}, {"$set": update_data})
+        if not result.acknowledged:
+            return function_response(False)
+
+        listing = await listings.find_one({"_id": ObjectId(listing_id)})
         if not listing:
             return function_response(False)
 

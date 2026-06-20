@@ -110,6 +110,8 @@ export default function AdminPendingPropertyDetailPage() {
 
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [reviewAction, setReviewAction] = useState('');
+  const [reviewMessage, setReviewMessage] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -162,6 +164,43 @@ export default function AdminPendingPropertyDetailPage() {
   }, [propertyId, router]);
 
   const { imageGroups, documents } = useMemo(() => collectMedia(property?.media), [property]);
+  const isReviewing = Boolean(reviewAction);
+  const canReview = property?.status === 'pending_approval';
+
+  const handleReviewAction = async (action) => {
+    if (!propertyId || isReviewing) {
+      return;
+    }
+
+    setReviewAction(action);
+    setReviewMessage('');
+    setError('');
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/admin/properties/${propertyId}/${action}`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (response.status === 401 || response.status === 205) {
+        router.replace('/admin/login');
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(data?.message || `Failed to ${action} property listing`);
+      }
+
+      setProperty(data?.payload || property);
+      setReviewMessage(data?.message || `Property listing ${action === 'approve' ? 'approved' : 'declined'} successfully`);
+    } catch (err) {
+      setError(err.message || `Failed to ${action} property listing`);
+    } finally {
+      setReviewAction('');
+    }
+  };
 
   return (
     <main className="dashboard-page admin-dashboard-page">
@@ -185,10 +224,30 @@ export default function AdminPendingPropertyDetailPage() {
             <p className="eyebrow">Pending listing</p>
             <h1>{loading ? 'Loading property' : property?.title || 'Property listing'}</h1>
           </div>
-          {property ? <div className="admin-pill admin-pill--muted">{displayValue(property.status).replace('_', ' ')}</div> : null}
+          {property ? (
+            <div className="admin-review-actions" aria-label="Property review actions">
+              <button
+                type="button"
+                className="admin-review-button admin-review-button--approve"
+                onClick={() => handleReviewAction('approve')}
+                disabled={isReviewing || !canReview}
+              >
+                {reviewAction === 'approve' ? 'Approving...' : 'Approve listing'}
+              </button>
+              <button
+                type="button"
+                className="admin-review-button admin-review-button--deny"
+                onClick={() => handleReviewAction('decline')}
+                disabled={isReviewing || !canReview}
+              >
+                {reviewAction === 'decline' ? 'Denying...' : 'Deny listing'}
+              </button>
+            </div>
+          ) : null}
         </section>
 
         {error ? <div className="admin-error-banner">{error}</div> : null}
+        {reviewMessage ? <div className="admin-success-banner">{reviewMessage}</div> : null}
 
         {loading ? (
           <div className="admin-loading-card">

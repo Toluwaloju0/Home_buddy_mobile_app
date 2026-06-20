@@ -123,6 +123,44 @@ async def admin_pending_properties(
     return JSONResponse(content.to_dict())
 
 
+@admin.post("/properties/{property_id}/approve", summary="Approve property listing")
+async def admin_approve_property(property_id: str, user_response=Depends(get_admin_from_token)):
+    access_error = _admin_access_error(user_response)
+    if access_error:
+        return access_error
+
+    listing_response = await storage.update_admin_listing_status(
+        property_id,
+        "approved",
+        str(user_response.payload.get("_id")),
+    )
+    if not listing_response.status:
+        content = api_response(False, "Failed to approve property listing")
+        return JSONResponse(content.to_dict(), 400)
+
+    content = api_response(True, "Property listing approved successfully", listing_response.payload)
+    return JSONResponse(content.to_dict())
+
+
+@admin.post("/properties/{property_id}/decline", summary="Decline property listing")
+async def admin_decline_property(property_id: str, user_response=Depends(get_admin_from_token)):
+    access_error = _admin_access_error(user_response)
+    if access_error:
+        return access_error
+
+    listing_response = await storage.update_admin_listing_status(
+        property_id,
+        "declined",
+        str(user_response.payload.get("_id")),
+    )
+    if not listing_response.status:
+        content = api_response(False, "Failed to decline property listing")
+        return JSONResponse(content.to_dict(), 400)
+
+    content = api_response(True, "Property listing declined successfully", listing_response.payload)
+    return JSONResponse(content.to_dict())
+
+
 @admin.get("/properties/{property_id}", summary="Admin property detail")
 async def admin_property_detail(property_id: str, user_response=Depends(get_admin_from_token)):
     access_error = _admin_access_error(user_response)

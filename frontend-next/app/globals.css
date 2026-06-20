@@ -3283,6 +3283,16 @@ a {
   background: #fff2f2;
 }
 
+.admin-success-banner {
+  margin-bottom: 1rem;
+  padding: 0.95rem 1rem;
+  border: 1px solid rgba(23, 165, 107, 0.18);
+  border-radius: 1.2rem;
+  background: rgba(23, 165, 107, 0.1);
+  color: #0c6d48;
+  font-weight: 800;
+}
+
 .admin-stats-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -3403,6 +3413,42 @@ a {
   color: var(--muted);
   font-weight: 700;
   white-space: nowrap;
+}
+
+.admin-review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.7rem;
+}
+
+.admin-review-button {
+  min-height: 2.7rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 0.75rem 1rem;
+  color: #fff;
+  font-weight: 900;
+  cursor: pointer;
+  transition: transform 160ms ease, opacity 160ms ease, box-shadow 160ms ease;
+}
+
+.admin-review-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 30px rgba(13, 31, 35, 0.12);
+}
+
+.admin-review-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.admin-review-button--approve {
+  background: #0c7a51;
+}
+
+.admin-review-button--deny {
+  background: #9a2f2f;
 }
 
 .admin-table-shell {
@@ -3733,6 +3779,11 @@ a {
   .admin-list-header {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .admin-review-actions {
+    width: 100%;
+    justify-content: flex-start;
   }
 
   .admin-table-shell {
