@@ -1,3 +1,5 @@
+import RoleAwareHeader from './RoleAwareHeader';
+
 const footerPrimaryLinks = [
   { label: 'Contact', href: '/contact' },
   { label: 'About Us', href: '/about-us' },
@@ -18,19 +20,7 @@ const footerSecondaryLinks = [
 export default function InfoPageLayout({ title, lead, highlights = [], sections = [] }) {
   return (
     <main className="page-shell info-page-shell">
-      <header className="topbar">
-        <a className="brand-lockup" aria-label="Home Buddy Connect Limited" href="/">
-          <img src="/home_buddy_logo.png" alt="Home Buddy Connect Limited" className="brand-logo" />
-          <div>
-            <div className="brand-name">Home Buddy Connect Limited</div>
-            <div className="brand-tagline">Verified housing platform</div>
-          </div>
-        </a>
-
-        <a className="join-button" href="/login">
-          Join / Sign in
-        </a>
-      </header>
+      <RoleAwareHeader />
 
       <section className="info-page-hero">
         <p className="eyebrow">Home Buddy Connect Limited Information</p>

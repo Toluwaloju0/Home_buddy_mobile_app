@@ -326,12 +326,17 @@ class DBStorage:
             FunctionResponse with payload: {"results": [...], "total": <int>}.
         """
         listings = self.__db["listings"]
-        query_filter = {"location": {"$regex": location, "$options": "i"}}
+        query_filter = {"location": {"$regex": location, "$options": "i"}, "status": "approved"}
 
         total = await listings.count_documents(query_filter)
         skip = max(0, (int(page) - 1)) * int(per_page)
-        cursor = listings.find(query_filter).sort("created_at", -1).skip(skip).limit(int(per_page))
+        cursor = listings.find(query_filter, {"_id": 1, "title": 1, "description": 1, "location": 1, "media": 1}).sort("created_at", -1).skip(skip).limit(int(per_page))
         results = await cursor.to_list(length=int(per_page))
+
+        for result in results:
+            exterior_data = result.get("media", {}).get("exterior_images", [])
+            del result["media"]
+            result["exterior_images"] = exterior_data
 
         return function_response(True, {"results": results, "total": total})
 
@@ -403,6 +408,12 @@ class DBStorage:
         """
         listings = self.__db["listings"]
         listing = await listings.find_one({"_id": ObjectId(listing_id)})
+        if listing.get("media", {}).get("proof_of_ownership"):
+            del listing["media"]["proof_of_ownership"]
+        if listing.get("media", {}).get("title_document"):
+            del listing["media"]["title_document"]
+        if listing.get("media", {}).get("tax_clearance_certificate"):
+            del listing["media"]["tax_clearance_certificate"]
         if listing:
             return function_response(True, listing)
         return function_response(False, payload=None)

@@ -1,12 +1,10 @@
 'use client';
 
 import { Suspense, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { API_BASE_URL, authFetch, redirectToLogin } from '../../../lib/api';
-import UserAvatar from '../../components/UserAvatar';
+import SellerHeader from '../../components/SellerHeader';
 
 function MessagesContent() {
-  const router = useRouter();
   const [user, setUser] = useState(null);
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
@@ -17,7 +15,6 @@ function MessagesContent() {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   // Load user
   useEffect(() => {
@@ -122,27 +119,6 @@ function MessagesContent() {
     };
   }, [selectedConversation]);
 
-  const displayName = user?.first_name
-    ? `${user.first_name} ${user.last_name || ''}`.trim()
-    : user?.email?.split('@')[0] || 'User';
-
-  const userImageUrl = user?.image_url || '';
-
-  const handleLogout = async () => {
-    setDropdownOpen(false);
-    try {
-      const response = await authFetch(`${API_BASE_URL}/auth/logout`, {
-        method: 'POST',
-      });
-
-      if (response.status === 200) {
-        router.push('/login');
-      }
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-  };
-
   const handleSendMessage = async () => {
     if (!messageInput.trim() || !selectedConversation) return;
 
@@ -193,63 +169,6 @@ function MessagesContent() {
     return senderName.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
-  const handleBrandClick = () => {
-    if (!user) return;
-    const role = user.role || 'seller';
-    const dashboardRoutes = {
-      seller: '/seller',
-      buyer: '/buyer',
-      agent: '/agent',
-    };
-    const dashboardUrl = dashboardRoutes[role.toLowerCase()] || '/seller';
-    router.push(dashboardUrl);
-  };
-
-  const renderHeader = () => (
-    <header className="topbar seller-topbar">
-      <div className="brand-lockup" aria-label="Home Buddy Connect Limited">
-        <img src="/home_buddy_logo.png" alt="Home Buddy Connect Limited" className="brand-logo" />
-        <div>
-          <div className="brand-name">Home Buddy Connect Limited</div>
-          <div className="brand-tagline">Verified housing platform</div>
-        </div>
-      </div>
-
-      <div className="topbar-tags" aria-hidden="true">
-        <span>Sell</span>
-        <span>Agents</span>
-        <span>Facility Mgt</span>
-      </div>
-
-      <div className="seller-user-menu">
-        <button
-          type="button"
-          className="profile-trigger"
-          onClick={() => setDropdownOpen((previous) => !previous)}
-          aria-expanded={dropdownOpen}
-          aria-haspopup="menu"
-        >
-          <UserAvatar src={userImageUrl} name={displayName} size="sm" className="profile-avatar-shell" />
-          <span className="profile-name">{loadingUser ? 'Loading...' : displayName}</span>
-          <span className="profile-caret" aria-hidden="true">▾</span>
-        </button>
-
-        {dropdownOpen && (
-          <div className="profile-dropdown" role="menu">
-            <div className="profile-dropdown-header">
-              <UserAvatar src={userImageUrl} name={displayName} size="lg" className="profile-dropdown-avatar-shell" />
-              <strong>{displayName}</strong>
-            </div>
-            <button type="button" className="profile-dropdown-item" role="menuitem" onClick={() => router.push('/seller')}>Dashboard</button>
-            <button type="button" className="profile-dropdown-item" role="menuitem" onClick={() => router.push('/seller/listings')}>My Listings</button>
-            <button type="button" className="profile-dropdown-item" role="menuitem" onClick={() => router.push('/seller/profile-settings')}>Profile Settings</button>
-            <button type="button" className="profile-dropdown-item" role="menuitem" onClick={handleLogout}>Log out</button>
-          </div>
-        )}
-      </div>
-    </header>
-  );
-
   const renderFooter = () => (
     <footer className="footer">
       <div className="footer-top">
@@ -294,7 +213,7 @@ function MessagesContent() {
 
   return (
     <main className="page-shell seller-page-shell messages-page">
-      {renderHeader()}
+      <SellerHeader user={user} loadingUser={loadingUser} />
 
       <div className="messages-container">
         {/* Conversations Sidebar */}

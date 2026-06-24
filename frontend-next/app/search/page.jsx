@@ -2,6 +2,13 @@
 
 import { useSearchParams, useRouter } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { API_BASE_URL } from "../../lib/api";
+import RoleAwareHeader from "../components/RoleAwareHeader";
+
+function getExteriorImage(listing) {
+  const exteriorImage = Array.isArray(listing.exterior_images) ? listing.exterior_images[0] : null;
+  return exteriorImage?.url || "";
+}
 
 function SearchResultsContent() {
   const searchParams = useSearchParams();
@@ -20,7 +27,7 @@ function SearchResultsContent() {
     setError(null);
     const controller = new AbortController();
 
-    fetch(`http://localhost:8000/properties/browse?location=${encodeURIComponent(location)}&page=${pageParam}`, {
+    fetch(`${API_BASE_URL}/properties/browse?location=${encodeURIComponent(location)}&page=${pageParam}`, {
       credentials: "include",
       signal: controller.signal,
     })
@@ -50,7 +57,7 @@ function SearchResultsContent() {
 
   async function handleListingAction(listingId) {
     try {
-      const res = await fetch(`http://localhost:8000/properties/${listingId}`, { credentials: "include" });
+      const res = await fetch(`${API_BASE_URL}/properties/${listingId}`, { credentials: "include" });
       const data = await res.json().catch(() => null);
       // API may return a 2xx status but with { status: false } for auth errors
       if (!res.ok || (data && data.status === false)) {
@@ -65,6 +72,7 @@ function SearchResultsContent() {
 
   return (
     <main className="search-results-page">
+      <RoleAwareHeader />
       <div className="results-header">
         <h1>Listings for “{location}”</h1>
         {meta && <div className="results-meta">Page {meta.page} — {meta.total} results</div>}
@@ -76,20 +84,29 @@ function SearchResultsContent() {
       {!loading && listings && listings.length === 0 && <div className="no-results">No listings found</div>}
 
       <ul className="results-list">
-        {listings.map((l) => (
-          <li key={l._id} className="result-item">
-            <div className="result-image" aria-hidden>
-              {l.image ? <img src={l.image} alt={l.title || l.name || "listing"} /> : <div className="thumb-placeholder" />}
-            </div>
-            <div className="result-copy">
-              <div className="result-title">{l.title || l.name}</div>
-              <div className="result-location">{l.location}</div>
-            </div>
-            <div className="result-actions">
-              <button onClick={() => handleListingAction(l._id)}>View</button>
-            </div>
-          </li>
-        ))}
+        {listings.map((l) => {
+          const exteriorImageUrl = getExteriorImage(l);
+
+          return (
+            <li key={l._id} className="result-item">
+              <div className="result-image" aria-hidden>
+                {exteriorImageUrl ? (
+                  <img src={exteriorImageUrl} alt="" />
+                ) : (
+                  <div className="thumb-placeholder" />
+                )}
+              </div>
+              <div className="result-copy">
+                <div className="result-title">{l.title || "Untitled listing"}</div>
+                <p className="result-description">{l.description || "No description provided."}</p>
+                <div className="result-location">{l.location}</div>
+              </div>
+              <div className="result-actions">
+                <button onClick={() => handleListingAction(l._id)}>View</button>
+              </div>
+            </li>
+          );
+        })}
       </ul>
 
       {meta && (
@@ -105,7 +122,7 @@ function SearchResultsContent() {
 
 export default function SearchResultsPage() {
   return (
-    <Suspense fallback={<main className="search-results-page"><div className="search-loading">Loading...</div></main>}>
+    <Suspense fallback={<main className="search-results-page"><RoleAwareHeader /><div className="search-loading">Loading...</div></main>}>
       <SearchResultsContent />
     </Suspense>
   );

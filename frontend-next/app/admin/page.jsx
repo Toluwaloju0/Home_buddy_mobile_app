@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import AdminHeader from '../components/AdminHeader';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -57,19 +58,6 @@ export default function AdminDashboard() {
       isMounted = false;
     };
   }, [router]);
-
-  const handleLogout = async () => {
-    try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/auth/admin/logout`, {
-        method: 'POST',
-        credentials: 'include',
-      });
-    } catch (e) {
-      // ignore errors
-    } finally {
-      router.push('/');
-    }
-  };
 
   const dashboardItems = [
     {
@@ -142,25 +130,7 @@ export default function AdminDashboard() {
 
   return (
     <main className="dashboard-page admin-dashboard-page">
-      <header className="topbar admin-topbar">
-        <Link className="brand-lockup brand-lockup--clickable" href="/" aria-label="Home Buddy Connect Limited home">
-          <img src="/home_buddy_logo.png" alt="Home Buddy Connect Limited" className="brand-logo" />
-          <div>
-            <div className="brand-name">Home Buddy Connect Limited</div>
-            <div className="brand-tagline">Admin dashboard</div>
-          </div>
-        </Link>
-
-        <div className="topbar-tags admin-topbar-tags" aria-label="Admin quick links">
-          <span>Moderation</span>
-          <span>Verification</span>
-          <span>Support</span>
-        </div>
-
-        <button type="button" onClick={handleLogout} className="primary-button admin-logout-button">
-          Logout
-        </button>
-      </header>
+      <AdminHeader tagline="Admin dashboard" backHref="/admin" showQuickLinks showLogout />
 
       <div className="dashboard-container admin-dashboard-container">
         <section className="admin-hero">

@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import BuyerHeader from '../../components/BuyerHeader';
 
 const footerPrimaryLinks = [
   { label: 'Contact', href: '/contact' },
@@ -20,19 +20,7 @@ const footerSecondaryLinks = [
 export default function BuyerProfileLayout({ title, lead, children }) {
   return (
     <main className="page-shell settings-page-shell buyer-profile-shell">
-      <header className="topbar settings-topbar buyer-profile-topbar">
-        <Link className="brand-lockup brand-lockup--clickable" href="/buyer" aria-label="Buyer dashboard">
-          <img src="/home_buddy_logo.png" alt="Home Buddy Connect Limited" className="brand-logo" />
-          <div>
-            <div className="brand-name">Home Buddy Connect Limited</div>
-            <div className="brand-tagline">Buyer profile center</div>
-          </div>
-        </Link>
-
-        <Link className="join-button" href="/buyer">
-          Buyer Dashboard
-        </Link>
-      </header>
+      <BuyerHeader tagline="Buyer profile center" />
 
       <section className="settings-hero buyer-profile-hero">
         <div>

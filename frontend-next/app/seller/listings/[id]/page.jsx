@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { API_BASE_URL, authFetch, redirectToLogin } from '../../../../lib/api';
-import UserAvatar from '../../../components/UserAvatar';
+import SellerHeader from '../../../components/SellerHeader';
 
 function ListingDetailContent() {
   const router = useRouter();
@@ -14,7 +14,6 @@ function ListingDetailContent() {
   const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [allImages, setAllImages] = useState([]);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
   const [user, setUser] = useState(null);
 
   useEffect(() => {
@@ -84,68 +83,6 @@ function ListingDetailContent() {
     };
   }, [listingId]);
 
-  const handleLogout = async () => {
-    setDropdownOpen(false);
-    try {
-      const response = await authFetch(`${API_BASE_URL}/auth/logout`, {
-        method: 'POST',
-      });
-
-      if (response.status === 200) {
-        router.push('/login');
-      }
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-  };
-
-  const userImageUrl = user?.image_url || '';
-
-  const renderHeader = () => (
-    <header className="topbar seller-topbar">
-      <div className="brand-lockup" aria-label="Home Buddy Connect Limited">
-        <img src="/home_buddy_logo.png" alt="Home Buddy Connect Limited" className="brand-logo" />
-        <div>
-          <div className="brand-name">Home Buddy Connect Limited</div>
-          <div className="brand-tagline">Verified housing platform</div>
-        </div>
-      </div>
-
-      <div className="topbar-tags" aria-hidden="true">
-        <span>Sell</span>
-        <span>Agents</span>
-        <span>Facility Mgt</span>
-      </div>
-
-      <div className="seller-user-menu">
-        <button
-          type="button"
-          className="profile-trigger"
-          onClick={() => setDropdownOpen((previous) => !previous)}
-          aria-expanded={dropdownOpen}
-          aria-haspopup="menu"
-        >
-          <UserAvatar src={userImageUrl} name={user?.first_name || 'User'} size="sm" className="profile-avatar-shell" />
-          <span className="profile-name">{user?.first_name || 'User'}</span>
-          <span className="profile-caret" aria-hidden="true">▾</span>
-        </button>
-
-        {dropdownOpen && (
-          <div className="profile-dropdown" role="menu">
-            <div className="profile-dropdown-header">
-              <UserAvatar src={userImageUrl} name={user?.first_name || 'User'} size="lg" className="profile-dropdown-avatar-shell" />
-              <strong>{user?.first_name || 'User'}</strong>
-            </div>
-            <button type="button" className="profile-dropdown-item" role="menuitem" onClick={() => router.push('/seller')}>Dashboard</button>
-            <button type="button" className="profile-dropdown-item" role="menuitem" onClick={() => router.push('/seller/listings')}>My Listings</button>
-            <button type="button" className="profile-dropdown-item" role="menuitem" onClick={() => router.push('/seller/listings/new')}>Add Listing</button>
-            <button type="button" className="profile-dropdown-item" role="menuitem" onClick={handleLogout}>Log out</button>
-          </div>
-        )}
-      </div>
-    </header>
-  );
-
   const renderFooter = () => (
     <footer className="footer">
       <div className="footer-top">
@@ -191,7 +128,7 @@ function ListingDetailContent() {
   if (loading) {
     return (
       <main className="page-shell">
-        {renderHeader()}
+        <SellerHeader user={user} loadingUser={!user} />
         <div className="listing-detail-loading">Loading listing details...</div>
         {renderFooter()}
       </main>
@@ -201,7 +138,7 @@ function ListingDetailContent() {
   if (!listing) {
     return (
       <main className="page-shell">
-        {renderHeader()}
+        <SellerHeader user={user} loadingUser={!user} />
         <div className="listing-detail-error">
           <p>Listing not found or you don't have access to it.</p>
           <button onClick={() => router.back()} className="btn-primary">Go Back</button>
@@ -217,7 +154,7 @@ function ListingDetailContent() {
 
   return (
     <main className="page-shell listing-detail-page">
-      {renderHeader()}
+      <SellerHeader user={user} loadingUser={!user} />
 
       <div className="listing-detail-container">
         <button

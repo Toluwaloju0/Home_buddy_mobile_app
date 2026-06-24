@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { API_BASE_URL } from '../../../../lib/api';
+import AdminHeader from '../../../components/AdminHeader';
 
 function formatDateTime(value) {
   if (!value) {
@@ -104,19 +105,7 @@ export default function AdminUserDetailPage() {
 
   return (
     <main className="dashboard-page admin-dashboard-page">
-      <header className="topbar admin-topbar">
-        <Link className="brand-lockup brand-lockup--clickable" href="/admin/users" aria-label="Back to users">
-          <img src="/home_buddy_logo.png" alt="Home Buddy Connect Limited" className="brand-logo" />
-          <div>
-            <div className="brand-name">Home Buddy Connect Limited</div>
-            <div className="brand-tagline">User details</div>
-          </div>
-        </Link>
-
-        <Link href="/admin/users" className="admin-page-button admin-back-button">
-          Users
-        </Link>
-      </header>
+      <AdminHeader tagline="User details" backHref="/admin/users" backLabel="Users" />
 
       <div className="dashboard-container admin-dashboard-container">
         <section className="admin-list-header">

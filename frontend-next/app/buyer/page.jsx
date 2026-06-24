@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useState, useRef } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { API_BASE_URL, authFetch, redirectToLogin } from '../../lib/api';
-import UserAvatar from '../components/UserAvatar';
+import BuyerHeader from '../components/BuyerHeader';
 
 const propertyFilters = [
   { key: 'all', label: 'All types' },
@@ -17,12 +17,7 @@ const propertyFilters = [
 export default function BuyerPage() {
   const router = useRouter();
   const [user, setUser] = useState(null);
-  const [switchingRole, setSwitchingRole] = useState(false);
   const [loadingUser, setLoadingUser] = useState(true);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [hoverOpen, setHoverOpen] = useState(false);
-  const menuRef = useRef(null);
-  const pinnedRef = useRef(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [propertyType, setPropertyType] = useState('all');
   const [budget, setBudget] = useState('all');
@@ -78,45 +73,6 @@ export default function BuyerPage() {
     };
   }, [router]);
 
-  useEffect(() => {
-    if (typeof document === 'undefined') return;
-
-    const handlePointerOver = (e) => {
-      if (!menuRef.current) return;
-      const inside = menuRef.current.contains(e.target);
-      if (inside) {
-        setDropdownOpen(true);
-      } else if (!pinnedRef.current) {
-        setDropdownOpen(false);
-      }
-    };
-
-    const handlePointerDown = (e) => {
-      if (!menuRef.current) return;
-      if (!menuRef.current.contains(e.target)) {
-        setDropdownOpen(false);
-        pinnedRef.current = false;
-      }
-    };
-
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        setDropdownOpen(false);
-        pinnedRef.current = false;
-      }
-    };
-
-    document.addEventListener('pointerover', handlePointerOver);
-    document.addEventListener('pointerdown', handlePointerDown);
-    document.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      document.removeEventListener('pointerover', handlePointerOver);
-      document.removeEventListener('pointerdown', handlePointerDown);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, []);
-
   const displayName = useMemo(() => {
     if (!user) return 'Loading';
 
@@ -128,8 +84,6 @@ export default function BuyerPage() {
     if (user.email) return user.email.split('@')[0];
     return 'Buyer';
   }, [user]);
-
-  const userImageUrl = user?.image_url || '';
 
   const visibleHomes = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -230,78 +184,6 @@ export default function BuyerPage() {
     return () => { mounted = false; };
   }, [loadingUser, user]);
 
-  const handleBrandClick = () => {
-    if (!user) return;
-
-    const role = (user.role || 'buyer').toLowerCase();
-    const dashboardRoutes = {
-      seller: '/seller',
-      buyer: '/buyer',
-      both: '/buyer',
-    };
-
-    router.push(dashboardRoutes[role] || '/buyer');
-  };
-
-  const handleLogout = async () => {
-    setDropdownOpen(false);
-
-    try {
-      const response = await authFetch(`${API_BASE_URL}/auth/logout`, {
-        method: 'POST',
-      });
-
-      const data = await response.json().catch(() => null);
-
-      if (response.status === 200) {
-        router.push('/login');
-      } else {
-        alert(data?.message || 'Logout failed. Please try again.');
-      }
-    } catch (error) {
-      console.error('Logout error:', error);
-      alert('Failed to logout. Please try again.');
-    }
-  };
-
-  const handleRoleSwitch = async () => {
-    if (!user) return;
-
-    // Determine the target role based on current path; if on buyer pages, switch to seller.
-    const isOnBuyerPage = typeof window !== 'undefined' && window.location.pathname.startsWith('/buyer');
-    const targetRole = isOnBuyerPage ? 'seller' : 'buyer';
-
-    setSwitchingRole(true);
-    setDropdownOpen(false);
-
-    try {
-      const response = await authFetch(`${API_BASE_URL}/user/switch-role`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: targetRole }),
-      });
-
-      setSwitchingRole(false);
-
-      if (!response) {
-        alert('Role switch failed. Please sign in again.');
-        return;
-      }
-
-      const data = await response.json().catch(() => null);
-      if (response.status === 200 && data?.status) {
-        // navigate to corresponding dashboard
-        router.push(targetRole === 'seller' ? '/seller' : '/buyer');
-      } else {
-        alert(data?.message || 'Role switch failed.');
-      }
-    } catch (err) {
-      setSwitchingRole(false);
-      console.error('Role switch error', err);
-      alert('Role switch failed. Please try again.');
-    }
-  };
-
   if (loadingUser) {
     return (
       <main className="dashboard-page buyer-dashboard-page buyer-dashboard-page--loading">
@@ -316,103 +198,7 @@ export default function BuyerPage() {
 
   return (
     <main className="dashboard-page buyer-dashboard-page">
-      <header className="topbar buyer-topbar">
-        <button
-          type="button"
-          className="brand-lockup brand-lockup--clickable"
-          onClick={handleBrandClick}
-          aria-label="Home Buddy Connect Limited dashboard"
-          disabled={!user}
-        >
-          <img src="/home_buddy_logo.png" alt="Home Buddy Connect Limited" className="brand-logo" />
-          <div>
-            <div className="brand-name">Home Buddy Connect Limited</div>
-            <div className="brand-tagline">Buyer dashboard</div>
-          </div>
-        </button>
-
-        <div className="topbar-tags buyer-topbar-tags" aria-label="Buyer quick links">
-          <a href="#recommendations">Recommendations</a>
-          <a href="#saved-homes">Saved Homes</a>
-          <a href="#requests">Inspections</a>
-          <a href="#messages">Messages</a>
-        </div>
-
-        <div className="seller-user-menu" ref={menuRef}>
-          <button
-            type="button"
-            className="profile-trigger"
-            onClick={() => {
-              const next = !dropdownOpen;
-              setDropdownOpen(next);
-              pinnedRef.current = next;
-            }}
-            onFocus={() => setDropdownOpen(true)}
-            aria-expanded={dropdownOpen}
-            aria-haspopup="menu"
-          >
-            <UserAvatar src={userImageUrl} name={displayName} size="sm" className="profile-avatar-shell" />
-            <span className="profile-name">{displayName}</span>
-            <span className="profile-caret" aria-hidden="true">▾</span>
-          </button>
-
-          <div
-            className={`profile-dropdown ${dropdownOpen ? 'profile-dropdown--open' : ''}`}
-            role="menu"
-            aria-hidden={!dropdownOpen}
-          >
-            <div className="profile-dropdown-header">
-              <UserAvatar src={userImageUrl} name={displayName} size="lg" className="profile-dropdown-avatar-shell" />
-              <div>
-                <strong>{displayName}</strong>
-                <span>{user?.email || 'Verified buyer'}</span>
-              </div>
-            </div>
-            <div className="profile-role-switch" style={{ padding: '8px 12px' }}>
-              {(() => {
-                const isSellerView = typeof window !== 'undefined' && window.location.pathname.startsWith('/seller');
-                return (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ fontWeight: 600, color: 'inherit' }}>Seller mode</div>
-                    <div
-                      role="switch"
-                      aria-checked={isSellerView}
-                      tabIndex={0}
-                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (!switchingRole) handleRoleSwitch(); } }}
-                      onClick={() => { if (!switchingRole) handleRoleSwitch(); }}
-                      style={{
-                        width: 48,
-                        height: 28,
-                        borderRadius: 9999,
-                        background: isSellerView ? '#10b981' : '#374151',
-                        padding: 4,
-                        cursor: switchingRole ? 'not-allowed' : 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                      }}
-                    >
-                      <div style={{
-                        width: 20,
-                        height: 20,
-                        borderRadius: 9999,
-                        background: '#fff',
-                        transform: isSellerView ? 'translateX(20px)' : 'translateX(0px)',
-                        transition: 'transform 150ms ease',
-                      }} />
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-            <button type="button" className="profile-dropdown-item" role="menuitem" onClick={() => router.push('/buyer')}>Dashboard</button>
-            <button type="button" className="profile-dropdown-item" role="menuitem" onClick={() => router.push('/buyer/profile-settings')}>Update Profile</button>
-            <button type="button" className="profile-dropdown-item" role="menuitem" onClick={() => document.getElementById('saved-homes')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>Saved Homes</button>
-            <button type="button" className="profile-dropdown-item" role="menuitem" onClick={() => document.getElementById('requests')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>Inspection Requests</button>
-            <button type="button" className="profile-dropdown-item" role="menuitem" onClick={() => document.getElementById('messages')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>Messages</button>
-            <button type="button" className="profile-dropdown-item" role="menuitem" onClick={handleLogout}>Log out</button>
-          </div>
-        </div>
-      </header>
+      <BuyerHeader user={user} loadingUser={loadingUser} tagline="Buyer dashboard" />
 
       <div className="dashboard-container buyer-dashboard-container">
         <section className="buyer-hero">
