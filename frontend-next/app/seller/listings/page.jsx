@@ -1,18 +1,15 @@
 'use client';
 
-import { Suspense, useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { API_BASE_URL, authFetch, redirectToLogin } from '../../../lib/api';
-import UserAvatar from '../../components/UserAvatar';
+import SellerHeader from '../../components/SellerHeader';
 
 function ListingsContent() {
-  const router = useRouter();
   const [user, setUser] = useState(null);
   const [listings, setListings] = useState([]);
   const [loadingUser, setLoadingUser] = useState(true);
   const [loadingListings, setLoadingListings] = useState(true);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -77,104 +74,6 @@ function ListingsContent() {
       mounted = false;
     };
   }, []);
-
-  const displayName = useMemo(() => {
-    if (!user) return 'Loading';
-
-    const first = user.first_name || '';
-    const last = user.last_name || '';
-    const full = `${first} ${last}`.trim();
-
-    if (full) return full;
-    if (user.email) return user.email.split('@')[0];
-    return 'User';
-  }, [user]);
-
-  const userImageUrl = user?.image_url || '';
-
-  const handleLogout = async () => {
-    setDropdownOpen(false);
-    try {
-      const response = await authFetch(`${API_BASE_URL}/auth/logout`, {
-        method: 'POST',
-      });
-
-      const data = await response.json().catch(() => null);
-
-      if (response.status === 200) {
-        router.push('/login');
-      } else {
-        alert(data?.message || 'Logout failed. Please try again.');
-      }
-    } catch (error) {
-      console.error('Logout error:', error);
-      alert('Failed to logout. Please try again.');
-    }
-  };
-
-  const handleBrandClick = () => {
-    if (!user) return;
-    const role = user.role || 'seller';
-    const dashboardRoutes = {
-      seller: '/seller',
-      buyer: '/buyer',
-      agent: '/agent',
-    };
-    const dashboardUrl = dashboardRoutes[role.toLowerCase()] || '/seller';
-    router.push(dashboardUrl);
-  };
-
-  const renderHeader = () => (
-    <header className="topbar seller-topbar">
-      <button
-        type="button"
-        className="brand-lockup brand-lockup--clickable"
-        onClick={handleBrandClick}
-        aria-label="Home Buddy Connect Limited dashboard"
-        disabled={!user || loadingUser}
-      >
-        <img src="/home_buddy_logo.png" alt="Home Buddy Connect Limited" className="brand-logo" />
-        <div>
-          <div className="brand-name">Home Buddy Connect Limited</div>
-          <div className="brand-tagline">Verified housing platform</div>
-        </div>
-      </button>
-
-      <div className="topbar-tags" aria-hidden="true">
-        <span>Sell</span>
-        <span>Agents</span>
-        <span>Facility Mgt</span>
-      </div>
-
-      <div className="seller-user-menu">
-        <button
-          type="button"
-          className="profile-trigger"
-          onClick={() => setDropdownOpen((previous) => !previous)}
-          aria-expanded={dropdownOpen}
-          aria-haspopup="menu"
-        >
-          <UserAvatar src={userImageUrl} name={displayName} size="sm" className="profile-avatar-shell" />
-          <span className="profile-name">{loadingUser ? 'Loading...' : displayName}</span>
-          <span className="profile-caret" aria-hidden="true">▾</span>
-        </button>
-
-        {dropdownOpen && (
-          <div className="profile-dropdown" role="menu">
-            <div className="profile-dropdown-header">
-              <UserAvatar src={userImageUrl} name={displayName} size="lg" className="profile-dropdown-avatar-shell" />
-              <strong>{displayName}</strong>
-            </div>
-            <button type="button" className="profile-dropdown-item" role="menuitem" onClick={() => router.push('/seller')}>Dashboard</button>
-            <button type="button" className="profile-dropdown-item" role="menuitem" onClick={() => router.push('/seller/messages')}>Messages</button>
-            <button type="button" className="profile-dropdown-item" role="menuitem" onClick={() => router.push('/seller/profile-settings')}>Profile Settings</button>
-            <button type="button" className="profile-dropdown-item" role="menuitem" onClick={() => router.push('/seller/listings/new')}>Add Listing</button>
-            <button type="button" className="profile-dropdown-item" role="menuitem" onClick={handleLogout}>Log out</button>
-          </div>
-        )}
-      </div>
-    </header>
-  );
 
   const renderFooter = () => (
     <footer className="footer">
@@ -264,7 +163,7 @@ function ListingsContent() {
 
   return (
     <main className="page-shell seller-page-shell">
-      {renderHeader()}
+      <SellerHeader user={user} loadingUser={loadingUser} />
 
       <section className="listings-container">
         <div className="listings-header">

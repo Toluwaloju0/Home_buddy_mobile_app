@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { API_BASE_URL } from '../../../../lib/api';
+import AdminHeader from '../../../components/AdminHeader';
 
 function formatDate(value) {
   if (!value) {
@@ -106,19 +107,7 @@ function AdminPendingPropertiesContent() {
 
   return (
     <main className="dashboard-page admin-dashboard-page">
-      <header className="topbar admin-topbar">
-        <Link className="brand-lockup brand-lockup--clickable" href="/admin" aria-label="Back to admin dashboard">
-          <img src="/home_buddy_logo.png" alt="Home Buddy Connect Limited" className="brand-logo" />
-          <div>
-            <div className="brand-name">Home Buddy Connect Limited</div>
-            <div className="brand-tagline">Pending property listings</div>
-          </div>
-        </Link>
-
-        <Link href="/admin" className="admin-page-button admin-back-button">
-          Dashboard
-        </Link>
-      </header>
+      <AdminHeader tagline="Pending property listings" backHref="/admin" backLabel="Dashboard" />
 
       <div className="dashboard-container admin-dashboard-container">
         <section className="admin-list-header">

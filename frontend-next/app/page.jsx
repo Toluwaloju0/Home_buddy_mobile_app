@@ -70,23 +70,12 @@ const testimonials = [
 import SearchBar from './components/SearchBar';
 import SearchPopout from './components/SearchPopout';
 import FeaturedProperties from './components/FeaturedProperties';
+import LandingHeader from './components/LandingHeader';
 
 export default function HomePage() {
   return (
     <main className="page-shell">
-      <header className="topbar">
-        <div className="brand-lockup" aria-label="Home Buddy Connect Limited">
-          <img src="/home_buddy_logo.png" alt="Home Buddy Connect Limited" className="brand-logo" />
-          <div>
-            <div className="brand-name">Home Buddy Connect Limited</div>
-            <div className="brand-tagline">Verified housing platform</div>
-          </div>
-        </div>
-
-        <a className="join-button" href="/login">
-          Join / Sign in
-        </a>
-      </header>
+      <LandingHeader />
 
       <section className="hero">
         <div className="hero-overlay" />
@@ -191,9 +180,14 @@ export default function HomePage() {
       <section className="cta-band">
         <h2>Start your next move today</h2>
         <p>Buy, Rent, or Sell with Confidence</p>
-        <a className="join-button join-button--center" href="/login">
-          Join / Sign in
-        </a>
+        <div className="auth-action-group auth-action-group--center" aria-label="Account actions">
+          <a className="join-button join-button--center" href="/signup">
+            Join
+          </a>
+          <a className="join-button join-button--center join-button--secondary" href="/login">
+            Sign in
+          </a>
+        </div>
       </section>
 
       <section className="testimonials-section">

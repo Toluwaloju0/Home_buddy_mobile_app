@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { API_BASE_URL } from '../../../../lib/api';
+import AdminHeader from '../../../components/AdminHeader';
 
 function formatDate(value) {
   if (!value) {
@@ -98,19 +99,7 @@ function AdminUnverifiedUsersContent() {
 
   return (
     <main className="dashboard-page admin-dashboard-page">
-      <header className="topbar admin-topbar">
-        <Link className="brand-lockup brand-lockup--clickable" href="/admin" aria-label="Back to admin dashboard">
-          <img src="/home_buddy_logo.png" alt="Home Buddy Connect Limited" className="brand-logo" />
-          <div>
-            <div className="brand-name">Home Buddy Connect Limited</div>
-            <div className="brand-tagline">Unverified users</div>
-          </div>
-        </Link>
-
-        <Link href="/admin/users" className="admin-page-button admin-back-button">
-          All users
-        </Link>
-      </header>
+      <AdminHeader tagline="Unverified users" backHref="/admin/users" backLabel="All users" />
 
       <div className="dashboard-container admin-dashboard-container">
         <section className="admin-list-header">

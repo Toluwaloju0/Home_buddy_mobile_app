@@ -2,6 +2,8 @@
 
 import { useSearchParams, useRouter } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { API_BASE_URL } from "../../lib/api";
+import RoleAwareHeader from "../components/RoleAwareHeader";
 import SearchBar from "../components/SearchBar";
 
 function RentalsContent() {
@@ -19,7 +21,7 @@ function RentalsContent() {
     setError(null);
     const controller = new AbortController();
 
-    fetch(`http://localhost:8000/properties/rentals?page=${pageParam}`, {
+    fetch(`${API_BASE_URL}/properties/rentals?page=${pageParam}`, {
       credentials: "include",
       signal: controller.signal,
     })
@@ -48,7 +50,7 @@ function RentalsContent() {
 
   async function handleListingAction(listingId) {
     try {
-      const res = await fetch(`http://localhost:8000/properties/${listingId}`, { credentials: "include" });
+      const res = await fetch(`${API_BASE_URL}/properties/${listingId}`, { credentials: "include" });
       const data = await res.json().catch(() => null);
       if (!res.ok || (data && data.status === false)) {
         router.push("/login");
@@ -62,6 +64,7 @@ function RentalsContent() {
 
   return (
     <main className="search-results-page">
+      <RoleAwareHeader />
       <SearchBar />
 
       <div className="results-header">
@@ -104,7 +107,7 @@ function RentalsContent() {
 
 export default function RentalsPage() {
   return (
-    <Suspense fallback={<main className="search-results-page"><div className="search-loading">Loading...</div></main>}>
+    <Suspense fallback={<main className="search-results-page"><RoleAwareHeader /><div className="search-loading">Loading...</div></main>}>
       <RentalsContent />
     </Suspense>
   );

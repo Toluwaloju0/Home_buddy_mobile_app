@@ -78,14 +78,10 @@ async def browse_listings(location: str = Query(..., min_length=1), page: int = 
     for listing in results:
         if isinstance(listing, dict) and listing.get("_id"):
             listing["_id"] = str(listing["_id"])
-        if isinstance(listing, dict) and listing.get("seller_id"):
-            try:
-                listing["seller_id"] = str(listing["seller_id"])
-            except Exception:
-                pass
 
     meta = {"page": int(page), "per_page": per_page, "total": total}
     content = api_response(True, f"Listings for '{location}'", {"listings": results, "meta": meta})
+    print(results)
     return JSONResponse(content.to_dict())
 
 
@@ -142,10 +138,15 @@ async def get_property(property_id: str, user_response=Depends(get_user_from_tok
     if listing.get("_id"):
         listing["_id"] = str(listing["_id"])
     if listing.get("seller_id"):
-        try:
-            listing["seller_id"] = str(listing["seller_id"])
-        except Exception:
-            pass
+        del listing["seller_id"]
+    if listing.get("updated_at"):
+        listing["updated_at"] = listing["updated_at"].isoformat()
+    if listing.get("created_at"):
+        listing["created_at"] = listing["created_at"].isoformat()
+    if listing.get("reviewed_at"):
+        del listing["reviewed_at"]
+    if listing.get("reviewed_by"):
+        del listing["reviewed_by"]
 
     content = api_response(True, "Listing retrieved", listing)
     return JSONResponse(content.to_dict())

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { API_BASE_URL } from '../../../../../lib/api';
+import AdminHeader from '../../../../components/AdminHeader';
 
 const DOCUMENT_GROUPS = new Set([
   'title_document',
@@ -204,19 +205,7 @@ export default function AdminPendingPropertyDetailPage() {
 
   return (
     <main className="dashboard-page admin-dashboard-page">
-      <header className="topbar admin-topbar">
-        <Link className="brand-lockup brand-lockup--clickable" href="/admin/properties/pending" aria-label="Back to pending properties">
-          <img src="/home_buddy_logo.png" alt="Home Buddy Connect Limited" className="brand-logo" />
-          <div>
-            <div className="brand-name">Home Buddy Connect Limited</div>
-            <div className="brand-tagline">Property review</div>
-          </div>
-        </Link>
-
-        <Link href="/admin/properties/pending" className="admin-page-button admin-back-button">
-          Pending listings
-        </Link>
-      </header>
+      <AdminHeader tagline="Property review" backHref="/admin/properties/pending" backLabel="Pending listings" />
 
       <div className="dashboard-container admin-dashboard-container">
         <section className="admin-list-header">

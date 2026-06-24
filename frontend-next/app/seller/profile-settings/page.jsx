@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { API_BASE_URL, authFetch, redirectToLogin } from '../../../lib/api';
 import UserAvatar from '../../components/UserAvatar';
+import SellerHeader from '../../components/SellerHeader';
 
 const initialFormState = {
   fullName: '',
@@ -28,11 +28,8 @@ const initialFormState = {
 };
 
 export default function SellerProfileSettingsPage() {
-  const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [userRole, setUserRole] = useState('seller');
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [hoverOpen, setHoverOpen] = useState(false);
+  const [user, setUser] = useState(null);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState(null);
   const [form, setForm] = useState(initialFormState);
@@ -68,7 +65,7 @@ export default function SellerProfileSettingsPage() {
       }
 
       const user = userData.payload;
-      setUserRole((user.role || 'seller').toLowerCase());
+      setUser(user);
       const sellerPayload = sellerData?.payload || {};
       const fullName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
 
@@ -120,26 +117,6 @@ export default function SellerProfileSettingsPage() {
 
   const openImagePicker = () => {
     imageInputRef.current?.click();
-  };
-
-  const handleLogout = async () => {
-    setDropdownOpen(false);
-    try {
-      const response = await authFetch(`${API_BASE_URL}/auth/logout`, {
-        method: 'POST',
-      });
-
-      const data = await response.json().catch(() => null);
-
-      if (response.status === 200) {
-        router.push('/login');
-      } else {
-        alert(data?.message || 'Logout failed. Please try again.');
-      }
-    } catch (error) {
-      console.error('Logout error:', error);
-      alert('Failed to logout. Please try again.');
-    }
   };
 
   const handleSubmit = async (nextMode) => {
@@ -228,75 +205,9 @@ export default function SellerProfileSettingsPage() {
     );
   }
 
-  const handleBrandClick = () => {
-    const dashboardRoutes = {
-      seller: '/seller',
-      buyer: '/buyer',
-      agent: '/agent',
-    };
-    const dashboardUrl = dashboardRoutes[userRole] || '/seller';
-    router.push(dashboardUrl);
-  };
-
   return (
     <main className="page-shell settings-page-shell">
-      <header className="topbar settings-topbar">
-        <button
-          type="button"
-          className="brand-lockup brand-lockup--clickable"
-          onClick={handleBrandClick}
-          aria-label="Home Buddy Connect Limited dashboard"
-          disabled={loading}
-        >
-          <img src="/home_buddy_logo.png" alt="Home Buddy Connect Limited" className="brand-logo" />
-          <div>
-            <div className="brand-name">Home Buddy Connect Limited</div>
-            <div className="brand-tagline">Verified housing platform</div>
-          </div>
-        </button>
-
-        <div className="topbar-tags" aria-hidden="true">
-          <span>Sell</span>
-          <span>Agents</span>
-          <span>Facility Mgt</span>
-        </div>
-
-        <div
-          className="seller-user-menu"
-          onMouseEnter={() => setHoverOpen(true)}
-          onMouseLeave={() => setHoverOpen(false)}
-          onFocus={() => setHoverOpen(true)}
-          onBlur={() => setHoverOpen(false)}
-        >
-          <button
-            type="button"
-            className="profile-trigger"
-            onClick={() => setDropdownOpen((prev) => !prev)}
-            aria-expanded={dropdownOpen || hoverOpen}
-            aria-haspopup="menu"
-          >
-            <UserAvatar src={form.imageUrl} name={displayName} size="sm" className="profile-avatar-shell" />
-            <span className="profile-name">{displayName}</span>
-            <span className="profile-caret" aria-hidden="true">▾</span>
-          </button>
-
-          <div
-            className={`profile-dropdown ${dropdownOpen || hoverOpen ? 'profile-dropdown--open' : ''}`}
-            role="menu"
-            aria-hidden={!(dropdownOpen || hoverOpen)}
-          >
-            <div className="profile-dropdown-header">
-              <UserAvatar src={form.imageUrl} name={displayName} size="lg" className="profile-dropdown-avatar-shell" />
-              <strong>{displayName}</strong>
-            </div>
-            <button type="button" className="profile-dropdown-item" role="menuitem" onClick={() => router.push('/seller')}>Dashboard</button>
-            <button type="button" className="profile-dropdown-item" role="menuitem" onClick={() => router.push('/seller/messages')}>Messages</button>
-            <button type="button" className="profile-dropdown-item" role="menuitem" onClick={() => router.push('/seller/profile-settings')}>Profile Settings</button>
-            <button type="button" className="profile-dropdown-item" role="menuitem" onClick={() => router.push('/buyer')}>Switch to Buying Account</button>
-            <button type="button" className="profile-dropdown-item" role="menuitem" onClick={handleLogout}>Log out</button>
-          </div>
-        </div>
-      </header>
+      <SellerHeader user={user} loadingUser={loading} />
 
       <section className="settings-hero">
         <div>
