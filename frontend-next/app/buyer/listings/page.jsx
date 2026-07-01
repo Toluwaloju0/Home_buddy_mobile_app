@@ -2,8 +2,18 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { API_BASE_URL, authFetch, redirectToLogin } from '../../lib/api';
-import BuyerHeader from '../components/BuyerHeader';
+import { API_BASE_URL, authFetch, redirectToLogin } from '../../../lib/api';
+import BuyerHeader from '../../components/BuyerHeader';
+
+function getCookieValue(name) {
+  if (typeof document === 'undefined') return '';
+
+  const cookie = document.cookie
+    .split('; ')
+    .find((row) => row.startsWith(`${name}=`));
+
+  return cookie ? decodeURIComponent(cookie.split('=').slice(1).join('=')) : '';
+}
 
 function resolveImage(listing) {
   if (!listing) return '/home_buddy_logo.png';
@@ -29,13 +39,45 @@ export default function ListingsPage() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
 
+  async function refreshListingSession() {
+    const res = await fetch(`${API_BASE_URL}/auth/token/refresh`, {
+      method: 'GET',
+      credentials: 'include',
+    });
+
+    return res.ok;
+  }
+
+  async function fetchRecommendedListings() {
+    const params = new URLSearchParams({
+      page: String(page),
+      per_page: String(perPage),
+    });
+
+    return fetch(`${API_BASE_URL}/properties/recommended?${params.toString()}`, {
+      method: 'GET',
+      credentials: 'include',
+    });
+  }
+
   useEffect(() => {
     let mounted = true;
 
     async function load() {
       setLoading(true);
       try {
-        const res = await fetch(`${API_BASE_URL}/properties/recommended?page=${page}&per_page=${perPage}`);
+        let res = await fetchRecommendedListings();
+
+        if (res.status === 205) {
+          const refreshed = await refreshListingSession();
+          if (!refreshed) {
+            redirectToLogin();
+            return;
+          }
+
+          res = await fetchRecommendedListings();
+        }
+
         const data = await res.json().catch(() => null);
         if (!mounted) return;
         if (res.ok && data?.payload) {
@@ -106,7 +148,7 @@ export default function ListingsPage() {
 
           return (
             <article className="buyer-property-card" key={id}>
-              <Link href={`/listings/${id}`} className="buyer-property-link" aria-label={`Open details for ${title}`}>
+              <Link href={`/buyer/listings/${id}`} className="buyer-property-link" aria-label={`Open details for ${title}`}>
                 <div className="image-shell">
                   <img src={img} alt={title} className="buyer-property-image" />
                   <div className="image-overlay">

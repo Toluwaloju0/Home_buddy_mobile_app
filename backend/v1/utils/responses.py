@@ -13,7 +13,7 @@ def function_response(status, payload = None):
 
     return FunctionResponse(status, payload)
 
-def api_response(status, message: str, payload: Dict | None=None, next_url: str | None=None):
+def api_response(status, message: str, payload: Dict | None=None):
     """ a function to create a response for the api """
 
-    return APIResponse(status, message, payload, next_url)
+    return APIResponse(status, message, payload)

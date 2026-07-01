@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { API_BASE_URL, authFetch, redirectToLogin } from '../../../lib/api';
+import { API_BASE_URL, authFetch, redirectToLogin } from '../../../../lib/api';
 
 function resolveImage(listing) {
   if (!listing) return '/home_buddy_logo.png';
@@ -50,11 +50,11 @@ export default function ListingDetail() {
           setListing(data.payload);
         } else {
           // couldn't fetch listing, redirect to listings
-          window.location.href = '/listings';
+          window.location.href = '/buyer/listings';
         }
       } catch (err) {
         // fallback
-        window.location.href = '/listings';
+        window.location.href = '/buyer/listings';
       } finally {
         if (mounted) setLoading(false);
       }
@@ -72,7 +72,7 @@ export default function ListingDetail() {
   return (
     <main className="listing-detail">
       <div className="listing-header">
-        <Link href="/listings">← Back to listings</Link>
+        <Link href="/buyer/listings">← Back to listings</Link>
       </div>
 
       <div className="listing-main">

@@ -211,7 +211,7 @@ export default function BuyerPage() {
             </p>
 
             <div className="buyer-hero-actions">
-              <button type="button" className="buyer-primary-button" onClick={() => router.push('/listings')}>
+              <button type="button" className="buyer-primary-button" onClick={() => router.push('/buyer/listings')}>
                 Browse properties
               </button>
               <button type="button" className="buyer-secondary-button" onClick={() => router.push('/contact')}>
@@ -389,7 +389,7 @@ export default function BuyerPage() {
             <p>Browse more verified listings or reach support if a property needs review.</p>
           </div>
           <div className="buyer-cta-actions">
-            <button type="button" className="buyer-primary-button" onClick={() => router.push('/listings')}>
+            <button type="button" className="buyer-primary-button" onClick={() => router.push('/buyer/listings')}>
               Explore more homes
             </button>
             <Link href="/support" className="buyer-secondary-button">
