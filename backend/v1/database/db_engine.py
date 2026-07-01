@@ -116,6 +116,9 @@ class DBStorage:
         self.__admin = self.__db["admin"]
         self.__refresh_token = self.__db["refresh_token"]
         self.__otp_code = self.__db["otp_code"]
+        self.__listings = self.__db["listings"]
+        self.__seller = self.__db["sellers"]
+        self.__buyer = self.__db["buyer"]
 
     async def ping(self) -> None:
         """Ping the database to validate connectivity."""
@@ -377,12 +380,16 @@ class DBStorage:
         return function_response(True, {"results": results, "total": total})
 
     @safe_db_operation
-    async def get_recommended_listings(self, page: int = 1, per_page: int = 10):
+    async def get_recommended_listings(self, user_id, page: int = 1, per_page: int = 10):
         """Return latest listings for recommendations."""
-        listings = self.__db["listings"]
-        total = await listings.count_documents({})
+
         skip = max(0, (int(page) - 1)) * int(per_page)
-        cursor = listings.find({}).sort("created_at", -1).skip(skip).limit(int(per_page))
+        seller = await self.__seller.find_one({"user_id": ObjectId(user_id)}, {"_id": 1})
+        seller_id = seller.get("_id", "")
+
+        # get all listing not made by the current user
+        total = await self.__listings.count_documents({"seller_id": {"$ne": seller_id}})
+        cursor = self.__listings.find({"seller_id": {"$ne": seller_id}}, {}).sort("created_at", -1).skip(skip).limit(int(per_page))
         results = await cursor.to_list(length=int(per_page))
         return function_response(True, {"results": results, "total": total})
 

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from typing import List
 
@@ -26,11 +27,11 @@ async def search_listings(q: str = Query(..., min_length=1), user_response=Depen
     # Verify user authentication
     if not user_response.status:
         content = api_response(False, "The access token provided is not valid")
-        return JSONResponse(content.to_dict(), 205)
+        return JSONResponse(content.to_dict(), 401)
 
     if not user_response.payload:
         content = api_response(False, "The access token is expired, refresh and try again")
-        return JSONResponse(content.to_dict(), 401)
+        return JSONResponse(content.to_dict(), 205)
 
     user = user_response.payload
     user_id = str(user.get("_id"))
@@ -112,6 +113,43 @@ async def browse_rentals(page: int = Query(1, ge=1)):
     content = api_response(True, "Rental listings", {"listings": results, "meta": meta})
     return JSONResponse(content.to_dict())
 
+@properties.get("/recommended", summary="Recommended listings")
+async def recommended_listings(user_response=Depends(get_user_from_token), page: int = 1, per_page: int = 6):
+    """Return a paginated list of recommended/latest listings."""
+
+    if not user_response.status:
+        content = api_response(False, "The access token provided is not valid")
+        return JSONResponse(content.to_dict(), 401)
+
+    if not user_response.payload:
+        content = api_response(False, "The access token is expired, refresh and try again")
+        return JSONResponse(content.to_dict(), 205)
+    
+    # get the database response for all the listings present for this page
+
+    db_response = await storage.get_recommended_listings(user_response.payload.get("_id"), page, per_page)
+    if not db_response.status:
+        content = api_response(False, "Failed to fetch recommended listings")
+        return JSONResponse(content.to_dict(), 500)
+
+    payload = db_response.payload or {}
+    results = payload.get("results", [])
+    total = payload.get("total", len(results))
+
+    # print(results, "=" * 80)
+
+    for listing in results:
+        if isinstance(listing, dict) and listing.get("_id"):
+            listing["_id"] = str(listing["_id"])
+        if isinstance(listing, dict) and listing.get("seller_id"):
+            try:
+                listing["seller_id"] = str(listing["seller_id"])
+            except Exception:
+                pass
+
+    meta = {"page": int(page), "per_page": int(per_page), "total": total}
+    content = api_response(True, "Got Recommended listings", {"listings": results, "meta": meta})
+    return JSONResponse(jsonable_encoder(content.to_dict()))
 
 @properties.get("/{property_id}", summary="Get property by id")
 async def get_property(property_id: str, user_response=Depends(get_user_from_token)):
@@ -120,6 +158,7 @@ async def get_property(property_id: str, user_response=Depends(get_user_from_tok
     Listing detail access requires authentication; callers without a
     valid access token will receive a non-success response.
     """
+
     # Verify user authentication
     if not user_response.status:
         content = api_response(False, "The access token provided is not valid")
@@ -149,30 +188,4 @@ async def get_property(property_id: str, user_response=Depends(get_user_from_tok
         del listing["reviewed_by"]
 
     content = api_response(True, "Listing retrieved", listing)
-    return JSONResponse(content.to_dict())
-
-
-@properties.get("/recommended", summary="Recommended listings")
-async def recommended_listings(page: int = 1, per_page: int = 6):
-    """Return a paginated list of recommended/latest listings."""
-    db_response = await storage.get_recommended_listings(page, per_page)
-    if not db_response.status:
-        content = api_response(False, "Failed to fetch recommended listings")
-        return JSONResponse(content.to_dict(), 500)
-
-    payload = db_response.payload or {}
-    results = payload.get("results", [])
-    total = int(payload.get("total", 0))
-
-    for listing in results:
-        if isinstance(listing, dict) and listing.get("_id"):
-            listing["_id"] = str(listing["_id"])
-        if isinstance(listing, dict) and listing.get("seller_id"):
-            try:
-                listing["seller_id"] = str(listing["seller_id"])
-            except Exception:
-                pass
-
-    meta = {"page": int(page), "per_page": int(per_page), "total": total}
-    content = api_response(True, "Recommended listings", {"listings": results, "meta": meta})
     return JSONResponse(content.to_dict())
