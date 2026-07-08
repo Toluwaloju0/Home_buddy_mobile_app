@@ -5,27 +5,24 @@ instance for convenience. The class groups upload and URL helper
 functions that previously lived as top-level functions.
 """
 
-from uuid import uuid4
+import aioboto3
+import asyncio
+import boto3
+import json
 import logging
+import requests as re
+
+from uuid import uuid4
 from urllib.parse import urlparse
 
-import aioboto3
 from botocore.exceptions import BotoCoreError, ClientError
 from fastapi import UploadFile
 
+from .media_fraud_checker import image_fraud_checker, video_fraud_checker
 from utils.responses import function_response
 from utils.settings import settings
 
 logger = logging.getLogger("home_buddy.s3")
-
-
-ALLOWED_PROFILE_IMAGE_TYPES = {
-    "image/jpeg": ".jpg",
-    "image/jpg": ".jpg",
-    "image/png": ".png",
-    "image/webp": ".webp",
-    "application/pdf": ".pdf",
-}
 
 # Maximum allowed size for profile images (bytes)
 MAX_PROFILE_IMAGE_BYTES = 1 * 1024 * 1024  # 1 MB
@@ -45,14 +42,68 @@ class S3Uploader:
         self.aws_region = cfg.aws_region
         self.access_key = cfg.aws_access_key_id
         self.secret_key = cfg.aws_secret_access_key
-    
-        # expose allowed types on the instance (kept as module constant by default)
-        self.allowed_profile_image_types = ALLOWED_PROFILE_IMAGE_TYPES
 
-    def get_profile_image_key(self, user_id: str) -> str:
-        """Return the fixed S3 key used for all profile images."""
+    def upload_listing_media(self, listing_id: str, media_name: str, media: UploadFile):
+        """ a method to upload a listing to amazon s3 bucket and get the result of the ai fraud detector scan
+        Args:
+            listing_id: the id of the seller having the listing
+            media_type: the type of the media to upload
+            media: the media file to upload
+        """
 
-        return f"profile_image/{user_id}"
+        from database.db_engine import storage
+
+        # upload the file to amazon s3 bucket
+        if not media:
+            return
+        
+        key = f"listings/{listing_id}/{media_name}.{media.filename.split(".")[-1]}"
+
+        try:
+            client = boto3.client(
+                "s3", region_name = self.aws_region,
+                aws_access_key_id = self.access_key,
+                aws_secret_access_key = self.secret_key
+            )
+                # upload the file to the s3 bucket
+            client.upload_fileobj(media.file, self.bucket_name, key)
+            clean_url = client.generate_presigned_url(
+                'get_object',
+                Params={'Bucket': self.bucket_name, 'Key': key},
+                ExpiresIn=30
+            )
+            print(clean_url, "=" * 80)
+        except Exception as e:
+            # log the exception for future debugging
+            logger.error(e)
+            return
+
+        if not clean_url:
+            return
+        logger.info(clean_url)
+        
+        # pass the presigned clean url to the ai fraud detector
+        if media.filename.endswith((".mp4", ".mov")):
+            output = asyncio.run(video_fraud_checker(clean_url, media))
+        elif media.filename.endswith(".pdf"):
+            output = {"status": "success"}
+        else:
+            output = asyncio.run(image_fraud_checker(clean_url))
+
+        needed_output = {
+            "status": output.get("status", "unknown"),
+            "confidence": output.get("type", {}).get("ai_generated", 0)
+        }
+        if media.filename.endswith((".mp4", ".mov")):
+            needed_output["type"] = "movie"
+        elif media.filename.endswith(".pdf"):
+            needed_output["type"] = "pdf"
+        else:
+            needed_output["type"] = "image"
+
+        # save the url and ai analysis to the database
+        asyncio.run(storage.save_listing_media(listing_id, media_name, key, needed_output))
+        
 
     async def _upload_object(self, uploaded_file: UploadFile, object_key: str):
         """Internal helper that uploads a file object to S3 by key."""
@@ -103,7 +154,7 @@ class S3Uploader:
     async def upload_profile_image(self, uploaded_file: UploadFile, user_id: str):
         """Upload a user profile image to the shared `profile_image/{user_id}` key."""
 
-        file_extension = self.allowed_profile_image_types.get(uploaded_file.content_type)
+        file_extension = uploaded_file.filename.split(".")[-1]
         if not file_extension:
             return function_response(False)
 
@@ -122,7 +173,7 @@ class S3Uploader:
         if size is not None and size >= MAX_PROFILE_IMAGE_BYTES:
             return function_response(False, {"error": "file_too_large", "max_bytes": MAX_PROFILE_IMAGE_BYTES, "size": size})
 
-        object_key = self.get_profile_image_key(user_id)
+        object_key = f"profile_image/{user_id}"
         return await self._upload_object(uploaded_file, object_key)
 
     async def replace_profile_image(self, uploaded_file: UploadFile, user_id: str, existing_object_key: str | None = None):
@@ -143,7 +194,7 @@ class S3Uploader:
         uploaded filename is used.
         """
 
-        file_extension = self.allowed_profile_image_types.get(uploaded_file.content_type)
+        file_extension = uploaded_file.filename.split(".")[-1]
         if not file_extension:
             return function_response(False)
 
@@ -177,7 +228,7 @@ class S3Uploader:
         `kind` is a short descriptor such as `proof-of-address`, `id-front`, `id-back`.
         """
 
-        file_extension = self.allowed_profile_image_types.get(uploaded_file.content_type)
+        file_extension = uploaded_file.filename.split(".")[-1]
         if not file_extension:
             return function_response(False)
 

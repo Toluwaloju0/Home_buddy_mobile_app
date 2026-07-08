@@ -15,26 +15,6 @@ from services.s3_uploader import uploader
 
 logger = logging.getLogger("home_buddy.db_engine")
 
-
-def _serialize_user_document(user: dict | None) -> dict | None:
-    """Return a JSON-safe user document without sensitive fields."""
-
-    if not user:
-        return None
-
-    sanitized = dict(user)
-    sanitized.pop("password", None)
-    sanitized.pop("image_key", None)
-
-    for key, value in list(sanitized.items()):
-        if isinstance(value, ObjectId):
-            sanitized[key] = str(value)
-        elif isinstance(value, datetime):
-            sanitized[key] = value.isoformat()
-
-    return sanitized
-
-
 async def _serialize_listing_document(listing: dict | None) -> dict | None:
     """Return a JSON-safe listing document with accessible media URLs."""
 
@@ -84,6 +64,7 @@ def safe_db_operation(fn):
 
     @wraps(fn)
     async def wrapper(*args, **kwargs):
+        ("the wrapper is active..... This should print for all database operations calls")
         try:
             return await fn(*args, **kwargs)
         except Exception:
@@ -195,7 +176,10 @@ class DBStorage:
         return function_response(False)
 
     async def get_seller_level(self, is_verified: bool, houses_sold: int = 0):
-        """Compute the seller level based on verification and sales count."""
+        """Compute the seller level based on verification and sales count.
+        
+        THIS METHOD WOULD BE UPDATED SOON
+        """
 
         if not is_verified:
             return "pending verification"
@@ -245,12 +229,42 @@ class DBStorage:
 
     @safe_db_operation
     async def create_listing_submission(self, listing_document: Dict):
-        """Persist a seller listing submission in the listings collection."""
-        listings = self.__db["listings"]
-        result = await listings.insert_one(listing_document)
+        """Persist a seller listing submission in the listings collection.
+        Args:
+            listing_document: the document of the listing to be created
+        """
+
+        result = await self.__listings.insert_one(listing_document)
         if result.acknowledged:
             return function_response(True, {"listing_id": result.inserted_id})
         return function_response(False)
+    
+    @safe_db_operation
+    async def save_listing_media(self, listing_id: str, media_name: str, data: Dict):
+        """ a method to save the provided media for a listing along with the ai detector scan data
+        Args:
+            listing_id: the _id of the listing to be updated
+            media_name: the name of the media to be saved this would also be the key of the media in the database
+            data: a dictionary containing the image key, the type of file in the key and the result of the ai scan
+        """
+
+        # check if the provided image belongs to the verification list so that verification images are saved differently
+        if media_name in [
+            "tax_clearance_certificate",
+            "structural_integrity_report", "occupancy_permit",
+            "proof_of_ownership"
+        ] or media_name.startswith("estate_dues"):
+            await self.__listings.update_one({"_id": ObjectId(listing_id)}, {
+                "$push": {
+                    "verification_media": {media_name: data}
+                }
+            })
+        else:
+            await self.__listings.update_one({"_id": ObjectId(listing_id)}, {
+                "$push": {
+                    "listing_media": {media_name: data}
+                }
+            })
 
     @safe_db_operation
     async def update_listing_by_id(self, listing_id: str, **kwargs):
@@ -594,7 +608,7 @@ class DBStorage:
 
         total = await self.__user.count_documents(query)
         cursor = self.__user.find(query).sort("created_at", -1).skip(skip).limit(per_page)
-        users = [_serialize_user_document(user) async for user in cursor]
+        users = [user async for user in cursor]
 
         return function_response(
             True,
@@ -637,7 +651,7 @@ class DBStorage:
         if user.get("image_url"):
             user["image_url"] = await uploader.resolve_accessible_s3_url(user.get("image_url"), user.get("image_key"))
 
-        return function_response(True, _serialize_user_document(user))
+        return function_response(True, user)
 
     @safe_db_operation
     async def get_admin_pending_listings(self, page: int = 1, per_page: int = 20):

@@ -96,6 +96,14 @@ class Settings:
     def aws_secret_access_key(self) -> str | None:
         return self.get("AWS_SECRET_ACCESS_KEY")
 
+    @cached_property
+    def sightengine_api_user(self) -> str | None:
+        return self.get("SIGHTENGINE_API_USER")
+
+    @cached_property
+    def sightengine_api_secret(self) -> str | None:
+        return self.get("SIGHTENGINE_API_SECRET")
+
 
 settings = Settings()
 

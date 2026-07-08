@@ -168,9 +168,9 @@ function ListingsContent() {
       <section className="listings-container">
         <div className="listings-header">
           <h1>My Listings</h1>
-          <Link href="/seller/listings/new" className="btn-primary">
-            + Add New Listing
-          </Link>
+          {/* <Link href="/seller/listings/new" className="btn-primary"> */}
+            {/* + Add New Listing
+          </Link> */}
         </div>
 
         {loadingListings ? (

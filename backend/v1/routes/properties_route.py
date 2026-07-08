@@ -136,8 +136,6 @@ async def recommended_listings(user_response=Depends(get_user_from_token), page:
     results = payload.get("results", [])
     total = payload.get("total", len(results))
 
-    # print(results, "=" * 80)
-
     for listing in results:
         if isinstance(listing, dict) and listing.get("_id"):
             listing["_id"] = str(listing["_id"])
