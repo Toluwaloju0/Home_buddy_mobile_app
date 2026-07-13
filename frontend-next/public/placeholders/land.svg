@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" role="img" aria-labelledby="title desc">
+  <title id="title">Land listing placeholder</title>
+  <desc id="desc">Illustration of a land plot for listings without preview images.</desc>
+  <rect width="640" height="420" fill="#f5f7ef"/>
+  <circle cx="514" cy="86" r="38" fill="#f7c948"/>
+  <path d="M0 284c98-76 180-76 278-10 102 70 234 62 362-30v176H0V284Z" fill="#d6ead8"/>
+  <path d="M0 338c116-58 223-52 332 8 82 46 180 44 308-18v92H0v-82Z" fill="#17a56b"/>
+  <path d="M142 258l112-46 210 88-112 48-210-90Z" fill="#ffffff" stroke="#1f3438" stroke-width="8" stroke-linejoin="round"/>
+  <path d="M254 212v-62m210 150v-68m-322 26v-64m210 154v-60" stroke="#1f3438" stroke-width="8" stroke-linecap="round"/>
+  <path d="M126 190h40m72-42h40m170 80h40m-152 58h40" stroke="#17a56b" stroke-width="10" stroke-linecap="round"/>
+  <text x="320" y="390" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="700" fill="#1f3438">Land</text>
+</svg>

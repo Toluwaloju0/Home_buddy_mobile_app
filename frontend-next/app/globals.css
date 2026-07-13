@@ -2260,6 +2260,33 @@ a {
   padding: 0 2rem 1rem;
 }
 
+.buyer-profile-mode-tabs {
+  display: inline-flex;
+  gap: 0.35rem;
+  padding: 0.35rem;
+  margin-bottom: 1.25rem;
+  border: 1px solid rgba(19, 33, 38, 0.1);
+  border-radius: 0.75rem;
+  background: #f7f9f8;
+}
+
+.buyer-profile-mode-tab {
+  appearance: none;
+  border: 0;
+  border-radius: 0.55rem;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-weight: 800;
+  padding: 0.7rem 1rem;
+}
+
+.buyer-profile-mode-tab--active {
+  background: white;
+  color: var(--text);
+  box-shadow: 0 8px 18px rgba(8, 15, 22, 0.07);
+}
+
 .buyer-summary-card {
   margin-bottom: 1.25rem;
 }
@@ -2439,6 +2466,41 @@ a {
   border: 1px solid rgba(226, 115, 115, 0.25);
 }
 
+.buyer-danger-card,
+.buyer-role-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  margin-top: 1.25rem;
+}
+
+.buyer-danger-card h2,
+.buyer-role-card h2 {
+  margin: 0.15rem 0 0;
+}
+
+.buyer-danger-button {
+  appearance: none;
+  border: 1px solid rgba(185, 28, 28, 0.2);
+  border-radius: 0.65rem;
+  background: #b91c1c;
+  color: white;
+  cursor: pointer;
+  font-weight: 800;
+  padding: 0.75rem 1rem;
+  white-space: nowrap;
+}
+
+.buyer-danger-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.buyer-role-action {
+  white-space: nowrap;
+}
+
 .buyer-profile-hero {
   padding-bottom: 1rem;
 }
@@ -2497,9 +2559,23 @@ a {
 
   .settings-section-title,
   .settings-actions,
+  .buyer-danger-card,
+  .buyer-role-card,
   .topbar {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .buyer-profile-mode-tabs {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .buyer-profile-mode-tab,
+  .buyer-danger-button,
+  .buyer-role-action {
+    width: 100%;
   }
 
   .settings-actions {

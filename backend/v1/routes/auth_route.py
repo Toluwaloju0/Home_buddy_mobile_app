@@ -305,6 +305,34 @@ async def admin_logout(request: Request):
     return response
 
 
+# @auth.post("/admin/refresh")
+# async def refresh_admin_token(request: Request):
+#     """ an endpoint to refresh the token provided by the user
+#     Args:
+#         request: the request in its entire form
+#     """
+
+#     refresh_token = request.cookies.get("refresh_token")
+
+#     get_id_response = await token_manager.verify_refresh_token(refresh_token, is_user=False)
+#     if not get_id_response.status:
+#         content = api_response(False, "The refresh token is not valid")
+#         response = JSONResponse(content.to_dict(), 400)
+#         response.delete_cookie("access_token")
+#         response.delete_cookie("refresh_token")
+#         return response
+
+#     access_token_response = await token_manager.create_access_token(get_id_response.payload.get("user_id"))
+#     refresh_token_response = await token_manager.create_refresh_token(get_id_response.payload.get("user_id"))
+
+#     # get the user id and create a new access and refresh token for the user
+#     content = api_response(True, "A new access Token has been created succefully")
+#     response = JSONResponse(content.to_dict())
+#     response.set_cookie("access_token", access_token_response.payload.get("access_token"))
+#     response.set_cookie("refresh_token", refresh_token_response.payload.get("refresh_token"))
+#     return response
+
+
 @auth.post("/logout")
 async def logout(request: Request):
     """Logout the user by deleting refresh tokens and clearing cookies."""

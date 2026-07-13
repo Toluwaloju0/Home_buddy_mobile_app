@@ -10,6 +10,8 @@ function ListingsContent() {
   const [listings, setListings] = useState([]);
   const [loadingUser, setLoadingUser] = useState(true);
   const [loadingListings, setLoadingListings] = useState(true);
+  const [page, setPage] = useState(1);
+  const [hasNextPage, setHasNextPage] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -47,7 +49,8 @@ function ListingsContent() {
     let mounted = true;
 
     async function loadListings() {
-      const response = await authFetch(`${API_BASE_URL}/seller/listings`, {
+      setLoadingListings(true);
+      const response = await authFetch(`${API_BASE_URL}/seller/listings/all?page=${page}`, {
         method: 'GET',
       });
 
@@ -60,9 +63,13 @@ function ListingsContent() {
       if (!mounted) return;
 
       if (response.status === 200 && data?.payload) {
-        setListings(data.payload);
+        const nextListings = Array.isArray(data.payload) ? data.payload : [];
+        setListings(nextListings);
+        setHasNextPage(nextListings.length > 0);
       } else {
         console.error('Failed to load listings:', data?.message);
+        setListings([]);
+        setHasNextPage(false);
       }
 
       setLoadingListings(false);
@@ -73,7 +80,7 @@ function ListingsContent() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [page]);
 
   const renderFooter = () => (
     <footer className="footer">
@@ -118,17 +125,21 @@ function ListingsContent() {
   );
 
   const getThumbnailImage = (listing) => {
-    // Try to get the first exterior image
-    if (listing.media?.exterior_images?.[0]?.url) {
-      return listing.media.exterior_images[0].url;
+    return listing.preview_url || getPropertyPlaceholder(listing.property_type);
+  };
+
+  const getPropertyPlaceholder = (propertyType) => {
+    const normalizedType = String(propertyType || '').toLowerCase().trim();
+
+    if (normalizedType === 'shop') {
+      return '/placeholders/shop.svg';
     }
-    // Fallback to any available image
-    for (const [, images] of Object.entries(listing.media || {})) {
-      if (Array.isArray(images) && images[0]?.url) {
-        return images[0].url;
-      }
+
+    if (normalizedType === 'land') {
+      return '/placeholders/land.svg';
     }
-    return '/placeholder.jpg';
+
+    return '/placeholders/apartment.svg';
   };
 
   const getStatusColor = (status) => {
@@ -147,18 +158,8 @@ function ListingsContent() {
   };
 
   const getStatusLabel = (status) => {
-    switch (status) {
-      case 'pending_approval':
-        return 'Pending Review';
-      case 'active':
-        return 'Active';
-      case 'sold':
-        return 'Sold';
-      case 'draft':
-        return 'Draft';
-      default:
-        return status;
-    }
+    if (!status) return '';
+    return String(status).replace(/_/g, ' ');
   };
 
   return (
@@ -193,38 +194,38 @@ function ListingsContent() {
                 <div className="listing-card-image">
                   <img
                     src={getThumbnailImage(listing)}
-                    alt={listing.title}
+                    alt={listing.property_type || 'Property listing'}
                     onError={(e) => {
-                      e.target.src = '/placeholder.jpg';
+                      e.currentTarget.src = getPropertyPlaceholder(listing.property_type);
                     }}
                   />
-                  <span className={`listing-status ${getStatusColor(listing.status)}`}>
-                    {getStatusLabel(listing.status)}
-                  </span>
+                  {listing.status ? (
+                    <span className={`listing-status ${getStatusColor(listing.status)}`}>
+                      {getStatusLabel(listing.status)}
+                    </span>
+                  ) : null}
                 </div>
                 <div className="listing-card-content">
-                  <h3>{listing.title}</h3>
+                  <h3>{listing.description || 'No description provided'}</h3>
                   <p className="listing-price">₦{listing.price ? parseInt(listing.price).toLocaleString() : 'N/A'}</p>
-                  <p className="listing-location">{listing.location || listing.full_address || 'Location not specified'}</p>
-                  <div className="listing-details">
-                    {listing.number_of_bedrooms && (
-                      <span className="detail-item">{listing.number_of_bedrooms} bed</span>
-                    )}
-                    {listing.number_of_bathrooms && (
-                      <span className="detail-item">{listing.number_of_bathrooms} bath</span>
-                    )}
-                    {listing.size_square_meters && (
-                      <span className="detail-item">{listing.size_square_meters} m²</span>
-                    )}
-                  </div>
-                  <p className="listing-date">
-                    Listed {new Date(listing.created_at).toLocaleDateString()}
-                  </p>
+                  <p className="listing-location">{listing.property_type || 'Property type not specified'}</p>
                 </div>
               </Link>
             ))}
           </div>
         )}
+
+        {!loadingListings && listings.length > 0 ? (
+          <div className="listings-pagination">
+            <button type="button" onClick={() => setPage((current) => Math.max(current - 1, 1))} disabled={page === 1}>
+              Previous
+            </button>
+            <span>Page {page}</span>
+            <button type="button" onClick={() => setPage((current) => current + 1)} disabled={!hasNextPage}>
+              Next
+            </button>
+          </div>
+        ) : null}
       </section>
 
       {renderFooter()}

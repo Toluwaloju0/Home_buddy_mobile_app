@@ -47,7 +47,7 @@ class User(Basemodel):
     password: str | None = None
     phone_number: str | None = None
     phone_number_verified: bool = False
-    image_url: str | None = None
+    image_key: str | None = None
 
     def __init__(self, **kwargs):
         """ the initializing class 

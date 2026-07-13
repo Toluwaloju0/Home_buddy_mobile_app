@@ -67,17 +67,18 @@ class Token:
             return function_response(True, {"refresh_token": token})
         return save_token_response
     
-    async def verify_refresh_token(self, token: str):
+    async def verify_refresh_token(self, token: str, is_user: bool = True):
         """ a method to verify the refresh token passed to the user
         Args:
             token (str): the token to be used to refresh the user status
+            is_user (bool): a boolean value for a normal user or an admin user
         Return the user email as part of the response
         """
 
         if token is None:
             return function_response(False)
 
-        user_id_response = await storage.get_refresh_token(token)
+        user_id_response = await storage.get_refresh_token(token) if is_user else await storage.get_admin_by_id(token)
         return user_id_response
 
 token_manager = Token()

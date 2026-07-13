@@ -17,27 +17,6 @@ from services.s3_uploader import uploader
 
 seller = APIRouter(prefix="/seller", tags=["Seller"])
 
-# Mapping of form field names to friendly display names
-IMAGE_GROUP_DISPLAY_NAMES = {
-    "exterior_images": "Exterior",
-    "sitting_room_images": "Sitting Room",
-    "bedroom_images": "Bedroom",
-    "kitchen_images": "Kitchen",
-    "bathroom_images": "Bathroom",
-    "other_interior_images": "Other Interior",
-    "garden_images": "Garden",
-    "gym_images": "Gym",
-    "title_document": "Title Document",
-    "proof_of_ownership": "Proof of Ownership",
-    "tax_clearance_certificate": "Tax Clearance Certificate",
-    "approved_building_plan": "Approved Building Plan",
-    "structural_integrity_report": "Structural Integrity Report",
-    "estate_dues_receipt": "Estate Dues Receipt",
-    "occupancy_permit": "Occupancy Permit",
-    "utility_bill": "Utility Bill",
-}
-
-
 async def serialize_mongo_value(value):
     """Convert Mongo-specific values into JSON-safe primitives."""
 
@@ -55,51 +34,6 @@ async def serialize_mongo_value(value):
     if isinstance(value, list):
         return [await serialize_mongo_value(item) for item in value]
     return value
-
-
-async def upload_grouped_files(listing_id: str, group_name: str, files: list[UploadFile]):
-    """Upload a list of files to the listing folder and return metadata list.
-
-    Files are named using the convention `groupname_{n}` when multiple files
-    are present and `groupname` when only a single file exists for that group.
-    """
-
-    uploaded_files = []
-    image_type = IMAGE_GROUP_DISPLAY_NAMES.get(group_name, group_name)
-    total = len(files) if files is not None else 0
-
-    for index, uploaded_file in enumerate(files, start=1):
-        if not uploaded_file:
-            continue
-
-        # Name files according to the requested convention
-        if total == 1:
-            filename_override = group_name
-        else:
-            filename_override = f"{group_name}_{index}"
-
-        file_response = await uploader.upload_house_image(
-            uploaded_file,
-            listing_id,
-            group_name,
-            index,
-            filename_override=filename_override,
-        )
-        if not file_response.status:
-            return None
-
-        uploaded_files.append(
-            {
-                "filename": uploaded_file.filename,
-                "content_type": uploaded_file.content_type,
-                "url": file_response.payload.get("url"),
-                "key": file_response.payload.get("key"),
-                "image_type": image_type,
-                "image_number": index,
-            }
-        )
-
-    return uploaded_files
 
 
 @seller.get("/me")
@@ -261,6 +195,57 @@ async def get_seller_dashboard_stats(user_response=Depends(get_user_from_token))
         return JSONResponse(content.to_dict(), 500)
 
     content = api_response(True, "Seller dashboard stats retrieved successfully", stats_response.payload)
+    return JSONResponse(content.to_dict())
+
+@seller.get("/listings/all")
+@seller.get("/listing/all/{listing_id}")
+async def get_my_listings(
+    listing_id: str = None, page: int = 1,
+    user_response=Depends(get_user_from_token)
+):
+    """
+    Retrieve all listings for the authenticated seller. or a specific listing for a seller
+    Args:
+        listing_id: a string for the specific listing for a seller
+        page: the page number for a list of paginated listings
+    """
+
+    if not user_response.status:
+        content = api_response(False, "The access token provided is not valid")
+        return JSONResponse(content.to_dict(), 401)
+
+    if not user_response.payload:
+        content = api_response(False, "The access token is expired, refresh and try again")
+        return JSONResponse(content.to_dict(), 205)
+
+    # get the seller_id for the seller listing the document
+    seller_response = await storage.get_seller_by_user_id(user_response.payload.get("_id", ""))
+    seller_id = seller_response.payload.get("_id", "") if  seller_response.status else None
+    # ensure the endpoint is only accessible by sellers
+    if (
+        not seller_id and user_response.payload.get("role") not in ["seller", "both"]
+    ):
+        content = api_response(False, "The user must be a seller")
+        return JSONResponse(content.to_dict(), 400)
+    
+    if listing_id:
+        listing_response = await storage.get_listing_by_id(listing_id)
+        if not listing_response.status:
+            content = api_response(False, "Listing not found")
+            return JSONResponse(content.to_dict(), 404)
+        content = api_response(True, "The listing has been retrieved successfully", await serialize_mongo_value(listing_response.payload))
+        return JSONResponse(content.to_dict())
+
+
+    listings_response = await storage.get_seller_listings(seller_id, page)
+    if not listings_response.status:
+        content = api_response(False, "Failed to retrieve listings")
+        return JSONResponse(content.to_dict(), 500)
+
+    listings = listings_response.payload
+    serialized_listings = [await serialize_mongo_value(listing) for listing in listings]
+
+    content = api_response(True, "Listings retrieved successfully", serialized_listings)
     return JSONResponse(content.to_dict())
 
 
@@ -900,33 +885,6 @@ async def submit_land_listing(
         background_tasks.add_task(uploader.upload_listing_media, listing_id, key, value)
 
     content = api_response(True, "Land Listing submitted successfully and is pending admin approval")
-    return JSONResponse(content.to_dict())
-
-
-@seller.get("/listings")
-async def get_my_listings(user_response=Depends(get_user_from_token)):
-    """Retrieve all listings for the authenticated seller."""
-
-    if not user_response.status:
-        content = api_response(False, "The access token provided is not valid")
-        return JSONResponse(content.to_dict(), 205)
-
-    if not user_response.payload:
-        content = api_response(False, "The access token is expired, refresh and try again")
-        return JSONResponse(content.to_dict(), 401)
-
-    user = user_response.payload
-    seller_id = str(user.get("_id"))
-
-    listings_response = await storage.get_seller_listings(seller_id)
-    if not listings_response.status:
-        content = api_response(False, "Failed to retrieve listings")
-        return JSONResponse(content.to_dict(), 500)
-
-    listings = listings_response.payload
-    serialized_listings = [await serialize_mongo_value(listing) for listing in listings]
-
-    content = api_response(True, "Listings retrieved successfully", serialized_listings)
     return JSONResponse(content.to_dict())
 
 

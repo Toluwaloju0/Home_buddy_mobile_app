@@ -240,7 +240,7 @@ export default function BuyerHeader({ user: providedUser, loadingUser: providedL
           </div>
 
           <button type="button" className="profile-dropdown-item" role="menuitem" onClick={() => router.push('/buyer')}>Dashboard</button>
-          <button type="button" className="profile-dropdown-item" role="menuitem" onClick={() => router.push('/buyer/profile-settings')}>Update Profile</button>
+          <button type="button" className="profile-dropdown-item" role="menuitem" onClick={() => router.push('/buyer/profile')}>Update Profile</button>
           <button type="button" className="profile-dropdown-item" role="menuitem" onClick={() => openSection('saved-homes')}>Saved Homes</button>
           <button type="button" className="profile-dropdown-item" role="menuitem" onClick={() => openSection('requests')}>Inspection Requests</button>
           <button type="button" className="profile-dropdown-item" role="menuitem" onClick={() => openSection('messages')}>Messages</button>

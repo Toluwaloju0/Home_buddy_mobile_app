@@ -8,17 +8,6 @@ from utils.responses import api_response
 
 admin = APIRouter(prefix="/admin", tags=["admin"])
 
-
-def _is_admin(user: dict | None) -> bool:
-    if not user:
-        return False
-
-    role = user.get("role")
-    print(role, "role")
-    role_value = role.value if hasattr(role, "value") else str(role)
-    return role_value.lower() == UserRole.ADMIN.value
-
-
 def _admin_access_error(user_response):
     if not user_response.status:
         content = api_response(False, "The access token provided is not valid")
@@ -28,14 +17,12 @@ def _admin_access_error(user_response):
         content = api_response(False, "The access token is expired, refresh and try again")
         return JSONResponse(content.to_dict(), 205)
 
-    if not _is_admin(user_response.payload):
+    if user_response.payload.get("role") != UserRole.ADMIN:
         content = api_response(False, "Unauthorized: admin access required")
         return JSONResponse(content.to_dict(), 401)
 
     return None
 
-
-@admin.get("/dashboard", summary="Admin dashboard")
 @admin.get("/dashboard/stats", summary="Admin dashboard stats")
 async def admin_dashboard(user_response=Depends(get_admin_from_token)):
     access_error = _admin_access_error(user_response)
@@ -52,56 +39,65 @@ async def admin_dashboard(user_response=Depends(get_admin_from_token)):
 
 
 @admin.get("/users", summary="Paginated users list")
+@admin.get("/users/{user_id}", summary="Paginated unverified users list if user_id is unverified else a user object")
 async def admin_users(
-    page: int = Query(1, ge=1),
-    per_page: int = Query(20, ge=1, le=100),
+    user_id:str | None = None,
+    page: int = 1,
     user_response=Depends(get_admin_from_token),
 ):
     access_error = _admin_access_error(user_response)
     if access_error:
         return access_error
+    
+    if not user_id:
+        users_response = await storage.get_admin_users(page)
+        if not users_response.status:
+            content = api_response(False, "Failed to retrieve users")
+            return JSONResponse(content.to_dict(), 500)
+        
+        content = api_response(True, "Users retrieved successfully", users_response.payload)
+        return JSONResponse(content.to_dict())
 
-    users_response = await storage.get_admin_users(page, per_page)
-    if not users_response.status:
-        content = api_response(False, "Failed to retrieve users")
-        return JSONResponse(content.to_dict(), 500)
+    # handle unverified users
+    elif user_id == "unverified":
+        user_response = await storage.get_admin_users(page, {"is_verified": False})
+        if not user_response.status:
+            content = api_response(False, "Failed to retrieve unverified users")
+            return JSONResponse(content.to_dict(), 500)
+        
+        payload = user_response.payload or []
+        
+        content = api_response(True, "Unverified Users retrieved successfully", payload)
+        return JSONResponse(content.to_dict())
+    
+    # handle sellers
+    elif user_id == "sellers":
+        user_response = await storage.get_admin_users(page, {"role": {"$in": ["sellers", "both"]}})
+        if not user_response.status:
+            content = api_response(False, "Failed to retrieve sellers")
+            return JSONResponse(content.to_dict(), 500)
+        
+        payload = user_response.payload or []
+        
+        content = api_response(True, "Sellers retrieved successfully", payload)
+        return JSONResponse(content.to_dict())
 
-    content = api_response(True, "Users retrieved successfully", users_response.payload)
-    return JSONResponse(content.to_dict())
+    # handle buyers
+    elif user_id == "buyers":
+        user_response = await storage.get_admin_users(page, {"role": {"$in": ["buyers", "both"]}})
+        if not user_response.status:
+            content = api_response(False, "Failed to retrieve buyers")
+            return JSONResponse(content.to_dict(), 500)
+        
+        payload = user_response.payload or []
+        
+        content = api_response(True, "Buyers retrieved successfully", payload)
+        return JSONResponse(content.to_dict())
 
-
-@admin.get("/users/unverified", summary="Paginated unverified users list")
-async def admin_unverified_users(
-    page: int = Query(1, ge=1),
-    per_page: int = Query(20, ge=1, le=100),
-    user_response=Depends(get_admin_from_token),
-):
-    access_error = _admin_access_error(user_response)
-    if access_error:
-        return access_error
-
-    users_response = await storage.get_admin_unverified_users(page, per_page)
-    if not users_response.status:
-        content = api_response(False, "Failed to retrieve unverified users")
-        return JSONResponse(content.to_dict(), 500)
-
-    content = api_response(True, "Unverified users retrieved successfully", users_response.payload)
-    return JSONResponse(content.to_dict())
-
-
-@admin.get("/users/{user_id}", summary="Admin user detail")
-async def admin_user_detail(user_id: str, user_response=Depends(get_admin_from_token)):
-    access_error = _admin_access_error(user_response)
-    if access_error:
-        return access_error
-
-    user_detail_response = await storage.get_admin_user_by_id(user_id)
-    if not user_detail_response.status:
-        content = api_response(False, "User not found")
-        return JSONResponse(content.to_dict(), 404)
-
-    content = api_response(True, "User retrieved successfully", user_detail_response.payload)
-    return JSONResponse(content.to_dict())
+    else:
+        user_response = await storage.get_admin_user_by_id(user_id)
+        content = api_response(True, "The user is retrieved successfully", user_response.payload) if user_response.status else api_response(False, "The user is not retrieved")
+        return JSONResponse(content.to_dict())
 
 
 @admin.get("/properties/pending", summary="Paginated pending property listings")
