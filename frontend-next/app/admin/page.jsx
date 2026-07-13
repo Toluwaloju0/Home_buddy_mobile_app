@@ -66,6 +66,18 @@ export default function AdminDashboard() {
       description: 'All registered accounts in the system.',
       href: '/admin/users',
     },
+    {
+      label: 'Total sellers',
+      value: stats.total_sellers ?? 0,
+      description: 'Registered users with seller access.',
+      href: '/admin/users',
+    },
+    {
+      label: 'Total buyers',
+      value: stats.total_buyers ?? 0,
+      description: 'Registered users with buyer access.',
+      href: '/admin/users',
+    },
     // {
     //   label: 'Email verified users',
     //   value: stats.email_verified_users ?? 0,

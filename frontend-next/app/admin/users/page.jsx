@@ -1,27 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { API_BASE_URL } from '../../../lib/api';
 import AdminHeader from '../../components/AdminHeader';
-
-function formatDate(value) {
-  if (!value) {
-    return 'Not recorded';
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return 'Not recorded';
-  }
-
-  return date.toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-}
 
 function userName(user) {
   const name = [user.first_name, user.last_name].filter(Boolean).join(' ').trim();
@@ -32,10 +15,9 @@ function AdminUsersContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const page = Math.max(Number(searchParams.get('page') || 1), 1);
-  const perPage = 20;
+  const perPage = 10;
 
   const [users, setUsers] = useState([]);
-  const [meta, setMeta] = useState({ page: 1, per_page: perPage, total: 0, total_pages: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -47,7 +29,7 @@ function AdminUsersContent() {
       setError('');
 
       try {
-        const response = await fetch(`${API_BASE_URL}/admin/users?page=${page}&per_page=${perPage}`, {
+        const response = await fetch(`${API_BASE_URL}/admin/users?page=${page}`, {
           method: 'GET',
           credentials: 'include',
         });
@@ -72,8 +54,7 @@ function AdminUsersContent() {
           return;
         }
 
-        setUsers(data?.payload?.users || []);
-        setMeta(data?.payload?.meta || { page, per_page: perPage, total: 0, total_pages: 0 });
+        setUsers(Array.isArray(data?.payload) ? data.payload : []);
       } catch (err) {
         if (isMounted) {
           setError(err.message || 'Failed to load users');
@@ -92,15 +73,11 @@ function AdminUsersContent() {
     };
   }, [page, router]);
 
-  const pageSummary = useMemo(() => {
-    if (!meta.total) {
-      return '0 users';
-    }
-
-    const start = (meta.page - 1) * meta.per_page + 1;
-    const end = Math.min(meta.page * meta.per_page, meta.total);
-    return `${start}-${end} of ${meta.total.toLocaleString()} users`;
-  }, [meta]);
+  const hasPreviousPage = page > 1;
+  const hasNextPage = users.length === perPage;
+  const pageSummary = users.length
+    ? `Page ${page} · ${users.length} user${users.length === 1 ? '' : 's'} shown`
+    : '0 users';
 
   return (
     <main className="dashboard-page admin-dashboard-page">
@@ -124,7 +101,7 @@ function AdminUsersContent() {
               <span>Email</span>
               <span>Role</span>
               <span>Status</span>
-              <span>Joined</span>
+              <span>Phone number</span>
             </div>
 
             {loading ? (
@@ -138,7 +115,7 @@ function AdminUsersContent() {
                   <span className={user.is_verified ? 'admin-pill admin-pill--ok' : 'admin-pill admin-pill--muted'}>
                     {user.is_verified ? 'Verified' : 'Unverified'}
                   </span>
-                  <span>{formatDate(user.created_at)}</span>
+                  <span>{user.phone_number || 'No phone number'}</span>
                 </Link>
               ))
             ) : (
@@ -150,18 +127,16 @@ function AdminUsersContent() {
         <div className="admin-pagination">
           <Link
             href={`/admin/users?page=${Math.max(page - 1, 1)}`}
-            className={`admin-page-button ${page <= 1 ? 'admin-pagination__disabled' : ''}`}
-            aria-disabled={page <= 1}
+            className={`admin-page-button ${!hasPreviousPage ? 'admin-pagination__disabled' : ''}`}
+            aria-disabled={!hasPreviousPage}
           >
             Previous
           </Link>
-          <span>
-            Page {meta.page || page} of {Math.max(meta.total_pages || 1, 1)}
-          </span>
+          <span>Page {page}</span>
           <Link
             href={`/admin/users?page=${page + 1}`}
-            className={`admin-page-button ${meta.total_pages && page >= meta.total_pages ? 'admin-pagination__disabled' : ''}`}
-            aria-disabled={Boolean(meta.total_pages && page >= meta.total_pages)}
+            className={`admin-page-button ${!hasNextPage ? 'admin-pagination__disabled' : ''}`}
+            aria-disabled={!hasNextPage}
           >
             Next
           </Link>

@@ -1,32 +1,19 @@
 """ a module to get the user route and the CRUD process attached to it """
 
 from typing import Dict
-from fastapi import APIRouter, Depends, Body, Form, File, UploadFile
+from fastapi import APIRouter, Depends, Body, Form, File, UploadFile, BackgroundTasks
 from fastapi.responses import JSONResponse
 from middlewares.verify_user import get_user_from_token
-from argon2.exceptions import VerifyMismatchError
 from pydantic import EmailStr
 
-from database.db_engine import storage
+from database.db_engine import DBStorage, storage
 from models.user import UserRole
 from utils.responses import api_response
-from utils.password import ph, password_strength_checker
+from utils.password import password_strength_checker
 from utils.email_checker import email_domain_checker
+from database.get_db import get_db
 from services.email_sender import email_sender
 from services.s3_uploader import uploader
-
-
-# async def enrich_user_image(user_payload):
-#     """Attach a browser-loadable avatar URL when the user stores an S3 object reference."""
-
-#     if not user_payload or not user_payload.get("image_url"):
-#         return user_payload
-
-#     user_payload["image_url"] = await uploader.resolve_accessible_s3_url(
-#         user_payload.get("image_url"),
-#         user_payload.get("image_key"),
-#     )
-#     return user_payload
 
 user = APIRouter(prefix="/user", tags=["Users"], dependencies=[Depends(get_user_from_token)])
 
@@ -43,51 +30,19 @@ async def get_me(user_response = Depends(get_user_from_token)):
         return JSONResponse(content.to_dict(), 205)
     
     user = user_response.payload
-    # user = await enrich_user_image(user)
+    print(user)
+    if user.get("image_key"):
+        user["image_url"] = uploader.create_url(user.get("image_key"))
+        del user["image_key"]
 
     content = api_response(True, "The user has been retrieved successfully", user)
     return JSONResponse(content.to_dict())
 
-
-@user.get("/saved")
-async def get_saved_listings(user_response = Depends(get_user_from_token)):
-    """Return saved listings (shortlist) for the authenticated user.
-
-    This implementation expects an optional `saved_listings` field on the
-    user document which is a list of listing IDs. If none exists an empty
-    list is returned.
-    """
-    if not user_response.status:
-        content = api_response(False, "The access token provided is not valid")
-        return JSONResponse(content.to_dict(), 400)
-
-    if not user_response.payload:
-        content = api_response(False, "The access token is expired, refresh and try again")
-        return JSONResponse(content.to_dict(), 205)
-
-    user = user_response.payload
-    saved_ids = user.get("saved_listings") or []
-
-    results = []
-    for lid in saved_ids:
-        listing_resp = await storage.get_listing_by_id(lid)
-        if listing_resp.status and listing_resp.payload:
-            listing = listing_resp.payload
-            if listing.get("_id"):
-                listing["_id"] = str(listing["_id"])
-            if listing.get("seller_id"):
-                try:
-                    listing["seller_id"] = str(listing["seller_id"])
-                except Exception:
-                    pass
-            results.append(listing)
-
-    content = api_response(True, "Saved listings retrieved", results)
-    return JSONResponse(content.to_dict())
-
-
 @user.delete("/me")
-async def delete_me(user_response = Depends(get_user_from_token)):
+async def delete_me(
+    user_response = Depends(get_user_from_token),
+    storage: DBStorage = Depends(get_db)
+):
     """ a function to delete the user from the database totally
     Args:
         user_response: the response gotten from verifying the access token
@@ -146,7 +101,11 @@ async def update_me(payload: Dict[str, str] = Body(), user_response = Depends(ge
     return JSONResponse(content.to_dict())
 
 @user.patch("/me/email")
-async def update_email(payload: Dict[str, EmailStr] = Body(), user_response = Depends(get_user_from_token)):
+async def update_email(
+    payload: Dict[str, EmailStr] = Body(),
+    user_response = Depends(get_user_from_token),
+    storage: DBStorage = Depends(get_db)
+):
     """ a function to update the email address of the user """
 
     if not user_response.status:
@@ -193,7 +152,11 @@ async def update_email(payload: Dict[str, EmailStr] = Body(), user_response = De
 
 
 @user.post("/switch-role")
-async def switch_role(payload: Dict[str, str] = Body(...), user_response = Depends(get_user_from_token)):
+async def switch_role(
+    payload: Dict[str, str] = Body(...),
+    user_response = Depends(get_user_from_token), 
+    storage: DBStorage = Depends(get_db)
+):
     """Switch the user's active dashboard role.
 
     The backend will set the stored user role to `both`, ensure the
@@ -249,6 +212,7 @@ async def update_me(
     phone_number: str | None = Form(None),
     profile_image: UploadFile | None = File(None),
     user_response = Depends(get_user_from_token),
+    storage: DBStorage = Depends(get_db)
 ):
     """ a method to update the user from the database
     Args:
@@ -274,19 +238,19 @@ async def update_me(
         update_dict["phone_number_verified"] = False
 
     if profile_image:
-        existing_profile_key = uploader.extract_s3_key_from_url(user.get("image_url")) or user.get("image_key")
-        profile_image_response = await uploader.replace_profile_image(profile_image, str(user.get("_id")), existing_profile_key)
-        if not profile_image_response.status:
-            payload = profile_image_response.payload or {}
-            if payload.get("error") == "file_too_large":
-                content = api_response(False, "Profile image must be smaller than 1 MB")
-                return JSONResponse(content.to_dict(), 400)
-
-            content = api_response(False, "The profile image could not be uploaded")
-            return JSONResponse(content.to_dict(), 500)
-
-        update_dict["image_url"] = profile_image_response.payload.get("url")
-        update_dict["image_key"] = profile_image_response.payload.get("key")
+        # check that the provided image is in the correct format
+        if not profile_image.filename.endswith((".jpg", ".jpeg", ".png")):
+            content = api_response(False, "The provided image is not in the correct format")
+            return JSONResponse(content.to_dict())
+        if profile_image.size > 5 * (1024 ** 2):
+            content = api_response(False, "The provided image is more than the required size")
+            return JSONResponse(content.to_dict())
+        if user.get("image_key", ""):
+            # delete the image from the s3 bucket
+            uploader.delete_object(user["image_key"])
+        # add background tasks to upload the image and save the key to the mongo document
+        image_key = uploader.upload_profile_image(user.get("_id"), profile_image)
+        update_dict["image_key"] = image_key
     
     if len(update_dict.keys()) < 1:
         content = api_response(True, "The neccessary data for the update was not found")
@@ -296,6 +260,45 @@ async def update_me(
     if not update_response.status:
         content = api_response(False, "The update saved to fail")
     else:
-        content = api_response(True, "The update has completed successfully", payload=update_response.payload)
+        if update_dict.get("image_key"):
+            update_dict["image_url"] = uploader.create_url(update_dict.get("image_key"))
+            del update_dict["image_key"]
+        content = api_response(True, "The update has completed successfully", update_dict)
 
+    return JSONResponse(content.to_dict())
+
+@user.get("/saved")
+async def get_saved_listings(user_response = Depends(get_user_from_token)):
+    """Return saved listings (shortlist) for the authenticated user.
+
+    This implementation expects an optional `saved_listings` field on the
+    user document which is a list of listing IDs. If none exists an empty
+    list is returned.
+    """
+    if not user_response.status:
+        content = api_response(False, "The access token provided is not valid")
+        return JSONResponse(content.to_dict(), 400)
+
+    if not user_response.payload:
+        content = api_response(False, "The access token is expired, refresh and try again")
+        return JSONResponse(content.to_dict(), 205)
+
+    user = user_response.payload
+    saved_ids = user.get("saved_listings") or []
+
+    results = []
+    for lid in saved_ids:
+        listing_resp = await storage.get_listing_by_id(lid)
+        if listing_resp.status and listing_resp.payload:
+            listing = listing_resp.payload
+            if listing.get("_id"):
+                listing["_id"] = str(listing["_id"])
+            if listing.get("seller_id"):
+                try:
+                    listing["seller_id"] = str(listing["seller_id"])
+                except Exception:
+                    pass
+            results.append(listing)
+
+    content = api_response(True, "Saved listings retrieved", results)
     return JSONResponse(content.to_dict())

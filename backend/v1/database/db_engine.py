@@ -11,69 +11,8 @@ from models.seller_model import Seller
 from utils.responses import function_response
 from utils.password import ph
 from utils.settings import settings
-from services.s3_uploader import uploader
 
 logger = logging.getLogger("home_buddy.db_engine")
-
-
-def _serialize_user_document(user: dict | None) -> dict | None:
-    """Return a JSON-safe user document without sensitive fields."""
-
-    if not user:
-        return None
-
-    sanitized = dict(user)
-    sanitized.pop("password", None)
-    sanitized.pop("image_key", None)
-
-    for key, value in list(sanitized.items()):
-        if isinstance(value, ObjectId):
-            sanitized[key] = str(value)
-        elif isinstance(value, datetime):
-            sanitized[key] = value.isoformat()
-
-    return sanitized
-
-
-async def _serialize_listing_document(listing: dict | None) -> dict | None:
-    """Return a JSON-safe listing document with accessible media URLs."""
-
-    if not listing:
-        return None
-
-    serialized = {}
-    for key, value in listing.items():
-        if isinstance(value, ObjectId):
-            serialized[key] = str(value)
-        elif isinstance(value, datetime):
-            serialized[key] = value.isoformat()
-        elif isinstance(value, dict):
-            serialized[key] = await _serialize_listing_document(value)
-        elif isinstance(value, list):
-            serialized[key] = [
-                await _serialize_listing_document(item) if isinstance(item, dict) else item
-                for item in value
-            ]
-        else:
-            serialized[key] = value
-
-    media = serialized.get("media")
-    if isinstance(media, dict):
-        for files in media.values():
-            if not isinstance(files, list):
-                continue
-
-            for file_data in files:
-                if not isinstance(file_data, dict) or not file_data.get("url"):
-                    continue
-
-                file_data["url"] = await uploader.resolve_accessible_s3_url(
-                    file_data.get("url"),
-                    file_data.get("key"),
-                )
-
-    return serialized
-
 
 def safe_db_operation(fn):
     """Decorator to wrap DB operations: logs exceptions and returns a
@@ -118,7 +57,7 @@ class DBStorage:
         self.__otp_code = self.__db["otp_code"]
         self.__listings = self.__db["listings"]
         self.__seller = self.__db["sellers"]
-        self.__buyer = self.__db["buyer"]
+        self.__buyer = self.__db["buyers"]
 
     async def ping(self) -> None:
         """Ping the database to validate connectivity."""
@@ -156,7 +95,7 @@ class DBStorage:
             user_id: ObjectId or string of the user id
             initial_data: optional initial payload for buyer profile
         """
-        buyers = self.__db["buyers"]
+        buyers = self.__buyer
         doc = {
             "user_id": ObjectId(user_id) if isinstance(user_id, str) else user_id,
             "created_at": datetime.now(),
@@ -177,7 +116,7 @@ class DBStorage:
             user_id: ObjectId or string of the user id
             initial_data: optional initial payload for seller profile
         """
-        sellers = self.__db["sellers"]
+        sellers = self.__seller
         seller_profile = Seller(user_id=ObjectId(user_id) if isinstance(user_id, str) else user_id)
         doc = seller_profile.to_dict()
         if isinstance(initial_data, dict):
@@ -194,25 +133,10 @@ class DBStorage:
             return function_response(True, {"seller_id": res.inserted_id})
         return function_response(False)
 
-    async def get_seller_level(self, is_verified: bool, houses_sold: int = 0):
-        """Compute the seller level based on verification and sales count."""
-
-        if not is_verified:
-            return "pending verification"
-
-        houses_sold = int(houses_sold or 0)
-        if houses_sold > 30:
-            return "third tier"
-        if houses_sold > 10:
-            return "second tier"
-        if houses_sold >= 1:
-            return "first tier"
-        return "verified"
-
     @safe_db_operation
     async def get_seller_by_user_id(self, user_id: str):
         """Get a seller profile document by its linked user id."""
-        seller = await self.__db["sellers"].find_one({"user_id": ObjectId(user_id)})
+        seller = await self.__seller.find_one({"user_id": ObjectId(user_id)})
         if not seller:
             return function_response(False)
         return function_response(True, seller)
@@ -220,37 +144,49 @@ class DBStorage:
     @safe_db_operation
     async def get_buyer_by_user_id(self, user_id: str):
         """Get a buyer profile document by its linked user id."""
-        buyer = await self.__db["buyers"].find_one({"user_id": ObjectId(user_id)})
+        buyer = await self.__buyer.find_one({"user_id": ObjectId(user_id)})
         if not buyer:
             return function_response(False)
         return function_response(True, buyer)
 
     @safe_db_operation
-    async def update_seller_by_user_id(self, user_id: str, **kwargs):
-        """Update seller profile fields and recompute level when needed."""
-        sellers = self.__db["sellers"]
-        current = await sellers.find_one({"user_id": ObjectId(user_id)})
-        if not current:
-            return function_response(False)
-
-        is_verified = kwargs.get("is_verified", current.get("is_verified", False))
-        houses_sold = kwargs.get("houses_sold", current.get("houses_sold", 0))
-        kwargs["level"] = await self.get_seller_level(is_verified=is_verified, houses_sold=houses_sold)
-        kwargs["updated_at"] = datetime.now()
-
-        result = await sellers.update_one({"user_id": ObjectId(user_id)}, {"$set": kwargs})
-        if not result.acknowledged:
-            return function_response(False)
-        return function_response(True)
-
-    @safe_db_operation
     async def create_listing_submission(self, listing_document: Dict):
-        """Persist a seller listing submission in the listings collection."""
-        listings = self.__db["listings"]
-        result = await listings.insert_one(listing_document)
+        """Persist a seller listing submission in the listings collection.
+        Args:
+            listing_document: the document of the listing to be created
+        """
+
+        result = await self.__listings.insert_one(listing_document)
         if result.acknowledged:
             return function_response(True, {"listing_id": result.inserted_id})
         return function_response(False)
+    
+    @safe_db_operation
+    async def save_listing_media(self, listing_id: str, media_name: str, data: Dict):
+        """ a method to save the provided media for a listing along with the ai detector scan data
+        Args:
+            listing_id: the _id of the listing to be updated
+            media_name: the name of the media to be saved this would also be the key of the media in the database
+            data: a dictionary containing the image key, the type of file in the key and the result of the ai scan
+        """
+
+        # check if the provided image belongs to the verification list so that verification images are saved differently
+        if media_name in [
+            "tax_clearance_certificate",
+            "structural_integrity_report", "occupancy_permit",
+            "proof_of_ownership"
+        ] or media_name.startswith("estate_dues"):
+            await self.__listings.update_one({"_id": ObjectId(listing_id)}, {
+                "$push": {
+                    "verification_media": {media_name: data}
+                }
+            })
+        else:
+            await self.__listings.update_one({"_id": ObjectId(listing_id)}, {
+                "$push": {
+                    "listing_media": {media_name: data}
+                }
+            })
 
     @safe_db_operation
     async def update_listing_by_id(self, listing_id: str, **kwargs):
@@ -271,25 +207,41 @@ class DBStorage:
         return function_response(True)
 
     @safe_db_operation
-    async def get_seller_listings(self, seller_id: str):
+    async def get_seller_listings(self, seller_id: str, page: int):
         """Fetch all listings for a seller.
         
         Args:
             seller_id: The seller's user ID
-            
+            page: the page number to use in getting a paginated list of listings
         Returns:
             List of listing documents with media metadata
         """
+
+        from services.s3_uploader import uploader
+
         listings = self.__db["listings"]
         # Match seller_id as string or ObjectId
-        query = {
-            "$or": [
-                {"seller_id": seller_id},
-                {"seller_id": ObjectId(seller_id) if ObjectId.is_valid(seller_id) else seller_id}
-            ]
-        }
-        results = await listings.find(query).sort("created_at", -1).to_list(length=1000)
+        query = {"seller_id": ObjectId(seller_id)}
+        results = await listings.find(query, {"_id": 1, "property_type": 1, "price": 1, "description": 1, "listing_media": 1, "status": 1}).skip((page - 1) * 10).limit(10).to_list()
         if results:
+            for listing in results:
+                # get a preview url to use to preview the house in the frontend dashboard
+                preview_key = None
+                # pick the exterior image or land image for each listing
+                if listing["property_type"] == "shop":
+                    for media_dict in listing["listing_media"]:
+                        if media_dict.get("shop_exterior", None):
+                            preview_key = media_dict.get("shop_exterior", {}).get("key", None)
+                elif listing["property_type"] == "land":
+                    for media_dict in listing["listing_media"]:
+                        if media_dict.get("land_image", None):
+                            preview_key = media_dict.get("land_image", {}).get("key", None)
+                else:
+                    for media_dict in listing["listing_media"]:
+                        if media_dict.get("exterior", None):
+                            preview_key = media_dict.get("exterior", {}).get("key", None)
+                listing["preview_url"] = uploader.create_url(preview_key)
+                del listing["listing_media"]
             return function_response(True, results)
         return function_response(True, [])
 
@@ -413,34 +365,21 @@ class DBStorage:
         Returns:
             The listing document with full media metadata
         """
-        listings = self.__db["listings"]
-        listing = await listings.find_one({"_id": ObjectId(listing_id)})
-        if listing.get("media", {}).get("proof_of_ownership"):
-            del listing["media"]["proof_of_ownership"]
-        if listing.get("media", {}).get("title_document"):
-            del listing["media"]["title_document"]
-        if listing.get("media", {}).get("tax_clearance_certificate"):
-            del listing["media"]["tax_clearance_certificate"]
+
+        from services.s3_uploader import uploader
+
+        listing = await self.__listings.find_one({"_id": ObjectId(listing_id)}, {"verification_media": 0})
         if listing:
+            for media in listing["listing_media"]:
+                for key, value in media.items():
+                    image_key = value.get("key")
+                    media[key] = uploader.create_url(image_key)
             return function_response(True, listing)
-        return function_response(False, payload=None)
-
-    async def _seller_identity_filters(self, user_id: str):
-        """Build common seller/user identity filters for mixed schemas."""
-
-        filters = [{"seller_id": user_id}, {"user_id": user_id}]
-        try:
-            oid = ObjectId(user_id)
-            filters.extend([{"seller_id": oid}, {"user_id": oid}])
-        except Exception:
-            pass
-        return filters
+        return function_response(False)
 
     @safe_db_operation
     async def get_seller_dashboard_stats(self, user_id: str):
         """Return seller dashboard counts from listings/messages/inspections/deals data."""
-
-        identity_filters = await self._seller_identity_filters(user_id)
 
         listings_col = self.__db["listings"]
         messages_col = self.__db["messages"]
@@ -448,12 +387,12 @@ class DBStorage:
         deals_col = self.__db["deals"]
 
         # listings uploaded by this seller
-        active_listings = await listings_col.count_documents({"$or": identity_filters})
+        active_listings = await listings_col.count_documents({"$or": user_id})
 
         # buyers with pending messages to answer
         pending_message_filter = {
             "$and": [
-                {"$or": identity_filters},
+                {"$or": user_id},
                 {
                     "$or": [
                         {"status": {"$in": ["pending", "unread", "open"]}},
@@ -480,7 +419,7 @@ class DBStorage:
         scheduled_inspections = await inspections_col.count_documents(
             {
                 "$and": [
-                    {"$or": identity_filters},
+                    {"$or": user_id},
                     {"status": {"$in": ["scheduled", "pending", "upcoming"]}},
                 ]
             }
@@ -490,7 +429,7 @@ class DBStorage:
         sold_from_listings = await listings_col.count_documents(
             {
                 "$and": [
-                    {"$or": identity_filters},
+                    {"$or": user_id},
                     {
                         "$or": [
                             {"status": {"$in": ["sold", "completed", "closed"]}},
@@ -503,15 +442,12 @@ class DBStorage:
         sold_from_deals = await deals_col.count_documents(
             {
                 "$and": [
-                    {"$or": identity_filters},
+                    {"$or": user_id},
                     {"status": {"$in": ["verified", "completed", "closed", "successful"]}},
                 ]
             }
         )
         verified_deals = max(sold_from_listings, sold_from_deals)
-
-        # keep seller profile sales count and level in sync with computed sales
-        await self.update_seller_by_user_id(user_id, houses_sold=verified_deals)
 
         return function_response(
             True,
@@ -527,117 +463,48 @@ class DBStorage:
     async def get_admin_dashboard_stats(self):
         """Return platform-wide counts for the admin dashboard."""
 
-        users_col = self.__db["users"]
-        listings_col = self.__db["listings"]
         disputes_col = self.__db["disputes"]
-
-        total_users = await users_col.count_documents({})
-        email_verified_users = await users_col.count_documents({"is_verified": True})
-        email_non_verified_users = await users_col.count_documents(
-            {
-                "$or": [
-                    {"is_verified": False},
-                    {"is_verified": {"$exists": False}},
-                ]
-            }
-        )
-
-        total_properties = await listings_col.count_documents({})
-        available_properties = await listings_col.count_documents(
-            {
-                "$and": [
-                    {"status": {"$in": ["pending_approval", "approved"]}},
-                    {
-                        "$or": [
-                            {"is_sold": False},
-                            {"is_sold": {"$exists": False}},
-                        ]
-                    },
-                ]
-            }
-        )
-        occupied_properties = await listings_col.count_documents(
-            {
-                "$or": [
-                    {"is_sold": True},
-                    {"status": {"$in": ["sold", "completed", "closed"]}},
-                ]
-            }
-        )
-        approved_property_listings = await listings_col.count_documents({"status": "approved"})
-        pending_property_listings = await listings_col.count_documents({"status": "pending_approval"})
         support_tickets = await disputes_col.count_documents({})
 
         return function_response(
             True,
             {
-                "total_users": total_users,
-                "email_verified_users": email_verified_users,
-                "email_non_verified_users": email_non_verified_users,
-                "total_properties": total_properties,
-                "available_properties": available_properties,
-                "occupied_properties": occupied_properties,
-                "approved_property_listings": approved_property_listings,
-                "pending_property_listings": pending_property_listings,
+                "total_users": await self.__user.count_documents({}),
+                "email_non_verified_users": await self.__user.count_documents({"is_verified": False}),
+                "total_properties": await self.__listings.count_documents({}),
+                "approved_property_listings": await self.__listings.count_documents({"status": "approved"}),
+                "pending_property_listings": await self.__listings.count_documents({"status": "pending_approval"}),
+                "sold_property_listing": await self.__listings.count_documents({"status": "sold"}),
+                "total_sellers": await self.__user.count_documents({"role": {"$in": ["sellers", "both"]}}),
+                "total_buyers": await self.__user.count_documents({"role": {"$in": ["buyers", "both"]}}),
                 "support_tickets": support_tickets,
             },
         )
 
     @safe_db_operation
-    async def get_admin_users(self, page: int = 1, per_page: int = 20, filter_query: dict | None = None):
+    async def get_admin_users(self, page: int = 1, filter_query: dict | None = None):
         """Return a paginated list of users for the admin area."""
 
-        page = max(int(page or 1), 1)
-        per_page = min(max(int(per_page or 20), 1), 100)
-        skip = (page - 1) * per_page
+        skip = (page - 1) * 10
         query = filter_query or {}
 
-        total = await self.__user.count_documents(query)
-        cursor = self.__user.find(query).sort("created_at", -1).skip(skip).limit(per_page)
-        users = [_serialize_user_document(user) async for user in cursor]
+        users = await self.__user.find(query, {"password": 0, "created_at": 0}).sort("created_at", -1).skip(skip).limit(10).to_list()
 
-        return function_response(
-            True,
-            {
-                "users": users,
-                "meta": {
-                    "page": page,
-                    "per_page": per_page,
-                    "total": total,
-                    "total_pages": (total + per_page - 1) // per_page if total else 0,
-                },
-            },
-        )
-
-    async def get_admin_unverified_users(self, page: int = 1, per_page: int = 20):
-        """Return users whose email verification is missing or false."""
-
-        return await self.get_admin_users(
-            page,
-            per_page,
-            {
-                "$or": [
-                    {"is_verified": False},
-                    {"is_verified": {"$exists": False}},
-                ]
-            },
-        )
+        return function_response(True, users)
 
     @safe_db_operation
     async def get_admin_user_by_id(self, user_id: str):
         """Return one sanitized user document for the admin area."""
 
-        if not ObjectId.is_valid(user_id):
-            return function_response(False)
+        from services.s3_uploader import uploader
 
-        user = await self.__user.find_one({"_id": ObjectId(user_id)})
+        user = await self.__user.find_one({"_id": ObjectId(user_id)}, {"password": 0, "created_at": 0})
         if not user:
             return function_response(False)
 
-        if user.get("image_url"):
-            user["image_url"] = await uploader.resolve_accessible_s3_url(user.get("image_url"), user.get("image_key"))
-
-        return function_response(True, _serialize_user_document(user))
+        if user.get("image_key"):
+            user["image_url"] = await uploader.create_url(user.get("image_key"))
+        return function_response(True, user)
 
     @safe_db_operation
     async def get_admin_pending_listings(self, page: int = 1, per_page: int = 20):
@@ -651,7 +518,7 @@ class DBStorage:
 
         total = await listings.count_documents(query)
         cursor = listings.find(query).sort("created_at", -1).skip(skip).limit(per_page)
-        results = [await _serialize_listing_document(listing) async for listing in cursor]
+        results = cursor.to_list()
 
         return function_response(
             True,
@@ -677,7 +544,7 @@ class DBStorage:
         if not listing:
             return function_response(False)
 
-        return function_response(True, await _serialize_listing_document(listing))
+        return function_response(True,listing)
 
     @safe_db_operation
     async def update_admin_listing_status(self, listing_id: str, status: str, admin_id: str | None = None):
@@ -703,7 +570,7 @@ class DBStorage:
         if not listing:
             return function_response(False)
 
-        return function_response(True, await _serialize_listing_document(listing))
+        return function_response(True, listing)
     
     @safe_db_operation
     async def get_admin_by_email(self, email: str, password: str):
@@ -731,6 +598,7 @@ class DBStorage:
         if not admin:
             return function_response(False)
 
+        del admin["password"]
         return function_response(True, admin)
     
     @safe_db_operation
@@ -744,9 +612,6 @@ class DBStorage:
         user = await self.__user.find_one({"email": email})
         if not user:
             return function_response(False)
-
-        # if user.get("image_url"):
-        #     user["image_url"] = await uploader.resolve_accessible_s3_url(user.get("image_url"), user.get("image_key"))
 
         # If no password provided, return the user record for OTP flow
         if password is None:
@@ -770,6 +635,8 @@ class DBStorage:
         Returns a FunctionResponse with payload as the user dict if found
         """
 
+        from services.s3_uploader import uploader
+
         user = await self.__user.find_one({"email": email})
         if not user:
             return function_response(False)
@@ -792,8 +659,6 @@ class DBStorage:
         if not user:
             return function_response(False)
         del user["password"]
-        if user.get("image_url"):
-            user["image_url"] = await uploader.resolve_accessible_s3_url(user.get("image_url"), user.get("image_key"))
         return function_response(True, user)
         
     @safe_db_operation

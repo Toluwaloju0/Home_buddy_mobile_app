@@ -20,7 +20,7 @@ function ListingDetailContent() {
     let mounted = true;
 
     async function loadListing() {
-      const response = await authFetch(`${API_BASE_URL}/seller/listings/${listingId}`, {
+      const response = await authFetch(`${API_BASE_URL}/seller/listing/all/${listingId}`, {
         method: 'GET',
       });
 
@@ -32,29 +32,22 @@ function ListingDetailContent() {
       const data = await response.json().catch(() => null);
       if (!mounted) return;
 
-      if (response.status === 200 && data?.payload) {
-        const listingData = data.payload;
+      const responsePayload = data?.payload || data;
+      if (response.status === 200 && responsePayload) {
+        const listingData = responsePayload;
         setListing(listingData);
 
-        // Collect all images with metadata
-        const images = [];
-        if (listingData.media) {
-          Object.entries(listingData.media).forEach(([groupKey, filesList]) => {
-            if (Array.isArray(filesList)) {
-              filesList.forEach((file) => {
-                if (file.url) {
-                  images.push({
-                    url: file.url,
-                    type: file.image_type || groupKey,
-                    number: file.image_number || 1,
-                    filename: file.filename,
-                  });
-                }
-              });
-            }
+        const mediaItems = [];
+        if (Array.isArray(listingData.listing_media)) {
+          listingData.listing_media.forEach((mediaGroup) => {
+            Object.entries(mediaGroup || {}).forEach(([title, url]) => {
+              if (url) {
+                mediaItems.push({ title, url });
+              }
+            });
           });
         }
-        setAllImages(images);
+        setAllImages(mediaItems);
       } else {
         console.error('Failed to load listing:', data?.message);
       }
@@ -151,6 +144,32 @@ function ListingDetailContent() {
   const currentImage = allImages[currentImageIndex];
   const nextImage = () => setCurrentImageIndex((prev) => (prev + 1) % allImages.length);
   const prevImage = () => setCurrentImageIndex((prev) => (prev - 1 + allImages.length) % allImages.length);
+  const formatLabel = (label) => String(label || '').replace(/_/g, ' ');
+  const formatValue = (value) => {
+    if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+    if (value === null || value === undefined || value === '') return 'N/A';
+    if (Array.isArray(value)) return value.length ? value.join(', ') : 'N/A';
+    return String(value);
+  };
+  const detailRows = [
+    ['Title', listing.title],
+    ['Property Type', listing.property_type],
+    ['Description', listing.description],
+    ['State', listing.state],
+    ['LGA', listing.LGA],
+    ['Street', listing.street],
+    ['Building Number', listing.building_number],
+    ['Shop Number', listing.shop_number],
+    ['House Number', listing.house_no],
+    ['Inspection Means', listing.inspection_means],
+    ['Size Square Meters', listing.size_square_meters],
+    ['Status', listing.status],
+    ['Negotiable', listing.is_negotiable],
+    ['Bathroom', listing.bathroom],
+    ['Bedrooms', listing.number_of_bedrooms],
+    ['Bathrooms', listing.number_of_bathrooms],
+    ['Year Built', listing.year_built],
+  ].filter(([, value]) => value !== undefined && value !== null && value !== '');
 
   return (
     <main className="page-shell listing-detail-page">
@@ -177,9 +196,9 @@ function ListingDetailContent() {
             <div className="gallery-main">
               <img
                 src={currentImage?.url}
-                alt={`${currentImage?.type} ${currentImage?.number}`}
+                alt={formatLabel(currentImage?.title)}
                 onError={(e) => {
-                  e.target.src = '/placeholder.jpg';
+                  e.currentTarget.src = '/placeholders/apartment.svg';
                 }}
               />
               {allImages.length > 1 && (
@@ -218,9 +237,9 @@ function ListingDetailContent() {
                 >
                   <img
                     src={img.url}
-                    alt={`${img.type} ${img.number}`}
+                    alt={formatLabel(img.title)}
                     onError={(e) => {
-                      e.target.src = '/placeholder.jpg';
+                      e.currentTarget.src = '/placeholders/apartment.svg';
                     }}
                   />
                 </button>
@@ -237,45 +256,15 @@ function ListingDetailContent() {
         {/* Listing Header Info */}
         <section className="listing-header-info">
           <div>
-            <h1>{listing.title}</h1>
+            <h1>{listing.title || listing.description || 'Listing detail'}</h1>
             <p className="listing-location">
-              📍 {listing.location || listing.full_address || 'Location not specified'}
+              {listing.property_type ? formatLabel(listing.property_type) : 'Property type not specified'}
             </p>
           </div>
           <div className="listing-price-section">
             <p className="listing-price">₦{listing.price ? parseInt(listing.price).toLocaleString() : 'N/A'}</p>
             {listing.is_negotiable && <span className="negotiable-tag">Negotiable</span>}
-          </div>
-        </section>
-
-        {/* Key Features */}
-        <section className="key-features">
-          <h2>Key Features</h2>
-          <div className="features-grid">
-            {listing.number_of_bedrooms && (
-              <div className="feature-item">
-                <span className="feature-icon">🛏️</span>
-                <span className="feature-text">{listing.number_of_bedrooms} Bedroom{listing.number_of_bedrooms > 1 ? 's' : ''}</span>
-              </div>
-            )}
-            {listing.number_of_bathrooms && (
-              <div className="feature-item">
-                <span className="feature-icon">🚿</span>
-                <span className="feature-text">{listing.number_of_bathrooms} Bathroom{listing.number_of_bathrooms > 1 ? 's' : ''}</span>
-              </div>
-            )}
-            {listing.size_square_meters && (
-              <div className="feature-item">
-                <span className="feature-icon">📐</span>
-                <span className="feature-text">{listing.size_square_meters} m²</span>
-              </div>
-            )}
-            {listing.property_type && (
-              <div className="feature-item">
-                <span className="feature-icon">🏠</span>
-                <span className="feature-text">{listing.property_type}</span>
-              </div>
-            )}
+            {listing.status ? <span className="negotiable-tag">{formatLabel(listing.status)}</span> : null}
           </div>
         </section>
 
@@ -289,55 +278,34 @@ function ListingDetailContent() {
 
         {/* Property Details Table */}
         <section className="property-details">
-          <h2>Property Details</h2>
+          <h2>Listing Details</h2>
           <div className="details-table">
-            {listing.property_type && (
-              <div className="detail-row">
-                <span className="detail-label">Property Type</span>
-                <span className="detail-value">{listing.property_type}</span>
+            {detailRows.map(([label, value]) => (
+              <div className="detail-row" key={label}>
+                <span className="detail-label">{label}</span>
+                <span className="detail-value">{formatValue(value)}</span>
               </div>
-            )}
-            {listing.year_built && (
-              <div className="detail-row">
-                <span className="detail-label">Year Built</span>
-                <span className="detail-value">{listing.year_built}</span>
-              </div>
-            )}
-            {listing.listing_plan && (
-              <div className="detail-row">
-                <span className="detail-label">Listing Plan</span>
-                <span className="detail-value">{listing.listing_plan}</span>
-              </div>
-            )}
-            <div className="detail-row">
-              <span className="detail-label">Status</span>
-              <span className="detail-value">{listing.status.replace('_', ' ').toUpperCase()}</span>
-            </div>
-            <div className="detail-row">
-              <span className="detail-label">Listed Date</span>
-              <span className="detail-value">{new Date(listing.created_at).toLocaleDateString()}</span>
-            </div>
+            ))}
           </div>
         </section>
 
         {/* Image Breakdown */}
         {allImages.length > 0 && (
           <section className="image-breakdown">
-            <h2>Uploaded Images</h2>
+            <h2>Listing Media</h2>
             <div className="images-list">
               {allImages.map((img, idx) => (
                 <div key={idx} className="image-item">
                   <img
                     src={img.url}
-                    alt={`${img.type} ${img.number}`}
+                    alt={formatLabel(img.title)}
                     className="image-thumbnail"
                     onError={(e) => {
-                      e.target.src = '/placeholder.jpg';
+                      e.currentTarget.src = '/placeholders/apartment.svg';
                     }}
                   />
                   <div className="image-info">
-                    <p className="image-type">{img.type} {img.number}</p>
-                    <p className="image-filename">{img.filename}</p>
+                    <p className="image-type">{formatLabel(img.title)}</p>
                   </div>
                 </div>
               ))}

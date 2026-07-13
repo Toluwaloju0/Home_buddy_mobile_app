@@ -161,7 +161,7 @@ export default function BuyerProfilePasswordPage() {
             )}
 
             <div className="settings-actions">
-              <Link className="settings-back-button" href="/buyer/profile-settings">
+              <Link className="settings-back-button" href="/buyer/profile">
                 Back to profile settings
               </Link>
               <button type="submit" className="primary-button" disabled={saving}>

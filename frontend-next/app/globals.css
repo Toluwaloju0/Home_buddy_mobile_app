@@ -1476,6 +1476,174 @@ a {
   font-size: 1.2rem;
 }
 
+.shop-wizard-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.shop-wizard-hero {
+  padding: 1.5rem;
+  border: 1px solid rgba(19, 33, 38, 0.08);
+  border-radius: 1rem;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.98), rgba(244, 248, 246, 0.92)),
+    url("https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=1600&q=80");
+  background-size: cover;
+  background-position: center;
+  box-shadow: var(--shadow);
+}
+
+.shop-wizard-hero h1 {
+  margin: 0.35rem 0;
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  line-height: 1;
+  text-align: center;
+}
+
+.shop-wizard-hero .form-subtitle {
+  max-width: 42rem;
+}
+
+.shop-wizard-hero .back-button--hero {
+  font-size: 0.82rem;
+  line-height: 1.2;
+  padding: 0;
+}
+
+.shop-draft-status {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 0.8rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(23, 165, 107, 0.1);
+  color: var(--accent-strong);
+  font-weight: 700;
+  font-size: 0.86rem;
+}
+
+.shop-wizard-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.shop-wizard-steps button {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 3.5rem;
+  border: 1px solid rgba(19, 33, 38, 0.1);
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--muted);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  padding: 0.75rem;
+  text-align: left;
+}
+
+.shop-wizard-steps button span {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 50%;
+  background: rgba(19, 33, 38, 0.08);
+  color: var(--text);
+}
+
+.shop-wizard-steps button.is-active {
+  border-color: rgba(23, 165, 107, 0.4);
+  background: rgba(23, 165, 107, 0.08);
+  color: var(--text);
+}
+
+.shop-wizard-steps button.is-active span {
+  background: var(--accent);
+  color: white;
+}
+
+.shop-wizard-card {
+  min-height: 25rem;
+}
+
+.shop-media-rule {
+  margin-bottom: 1rem;
+  padding: 0.8rem 0.95rem;
+  border-radius: 0.75rem;
+  background: rgba(31, 52, 56, 0.06);
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+
+.shop-upload-grid {
+  align-items: stretch;
+}
+
+.shop-upload-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  min-height: 11rem;
+  padding: 1rem;
+  border: 1px solid rgba(19, 33, 38, 0.08);
+  border-radius: 0.8rem;
+  background: linear-gradient(180deg, rgba(247, 249, 248, 0.94), rgba(255, 255, 255, 0.98));
+}
+
+.shop-upload-card input {
+  width: 100%;
+}
+
+.shop-file-preview {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: auto;
+}
+
+.shop-file-preview img,
+.shop-file-preview span {
+  width: 100%;
+  min-height: 7rem;
+  border-radius: 0.65rem;
+  border: 1px solid rgba(19, 33, 38, 0.08);
+  background: white;
+}
+
+.shop-file-preview img {
+  height: 9rem;
+  object-fit: cover;
+  display: block;
+}
+
+.shop-file-preview span {
+  display: grid;
+  place-items: center;
+  padding: 0.75rem;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+
+.shop-file-preview button {
+  justify-self: start;
+  border: 0;
+  border-radius: 0.5rem;
+  background: rgba(19, 33, 38, 0.08);
+  color: var(--text);
+  cursor: pointer;
+  font-weight: 700;
+  padding: 0.5rem 0.75rem;
+}
+
+.shop-wizard-actions {
+  align-items: center;
+}
+
 .btn-secondary,
 .btn-primary {
   min-width: 11rem;
@@ -2092,6 +2260,33 @@ a {
   padding: 0 2rem 1rem;
 }
 
+.buyer-profile-mode-tabs {
+  display: inline-flex;
+  gap: 0.35rem;
+  padding: 0.35rem;
+  margin-bottom: 1.25rem;
+  border: 1px solid rgba(19, 33, 38, 0.1);
+  border-radius: 0.75rem;
+  background: #f7f9f8;
+}
+
+.buyer-profile-mode-tab {
+  appearance: none;
+  border: 0;
+  border-radius: 0.55rem;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-weight: 800;
+  padding: 0.7rem 1rem;
+}
+
+.buyer-profile-mode-tab--active {
+  background: white;
+  color: var(--text);
+  box-shadow: 0 8px 18px rgba(8, 15, 22, 0.07);
+}
+
 .buyer-summary-card {
   margin-bottom: 1.25rem;
 }
@@ -2271,6 +2466,41 @@ a {
   border: 1px solid rgba(226, 115, 115, 0.25);
 }
 
+.buyer-danger-card,
+.buyer-role-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  margin-top: 1.25rem;
+}
+
+.buyer-danger-card h2,
+.buyer-role-card h2 {
+  margin: 0.15rem 0 0;
+}
+
+.buyer-danger-button {
+  appearance: none;
+  border: 1px solid rgba(185, 28, 28, 0.2);
+  border-radius: 0.65rem;
+  background: #b91c1c;
+  color: white;
+  cursor: pointer;
+  font-weight: 800;
+  padding: 0.75rem 1rem;
+  white-space: nowrap;
+}
+
+.buyer-danger-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.buyer-role-action {
+  white-space: nowrap;
+}
+
 .buyer-profile-hero {
   padding-bottom: 1rem;
 }
@@ -2329,9 +2559,23 @@ a {
 
   .settings-section-title,
   .settings-actions,
+  .buyer-danger-card,
+  .buyer-role-card,
   .topbar {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .buyer-profile-mode-tabs {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .buyer-profile-mode-tab,
+  .buyer-danger-button,
+  .buyer-role-action {
+    width: 100%;
   }
 
   .settings-actions {
@@ -4739,6 +4983,21 @@ html, body {
 
   .form-actions {
     flex-direction: column;
+  }
+
+  .shop-wizard-steps {
+    grid-template-columns: 1fr;
+  }
+
+  .shop-wizard-steps button {
+    min-height: 3rem;
+  }
+
+  .shop-upload-grid,
+  .media-grid,
+  .document-grid,
+  .listing-form-grid {
+    grid-template-columns: 1fr;
   }
 
   .btn-secondary,
