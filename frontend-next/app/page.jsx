@@ -81,7 +81,7 @@ export default function HomePage() {
         <div className="hero-overlay" />
         <div className="hero-copy">
           <p className="eyebrow">Trusted real estate, built for Nigeria</p>
-          <h1>Find Your Perfect Home In Lagos Faster, Easier, and Safer</h1>
+          <h1>Find Your Perfect Home In Nigeria Faster, Easier, and Safer</h1>
           <p>
             Home Buddy Connect Limited Provides Real Estate And Property services Including Renting, Leasing, Buying, And Selling Of Verified Residential And 
             Commercial Properties, Along With Facility Management And Integrated Waste Management Solutions To Ensure Safe, Clean And Well-maintained Environments

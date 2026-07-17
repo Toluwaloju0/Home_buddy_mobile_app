@@ -159,7 +159,7 @@ export default function LoginPage() {
     <main className="login-page">
       <div className="login-card">
         <div className="login-header">
-          <h1>Join or Sign in</h1>
+          <h1>Sign in</h1>
           <button
             type="button"
             className="close-button"

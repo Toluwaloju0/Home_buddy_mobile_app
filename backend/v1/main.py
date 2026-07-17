@@ -18,7 +18,9 @@ from routes.areas_route import areas
 from routes.inspections_route import inspections
 from routes.inquiries_route import inquiries
 from routes.messages_route import messages
+from routes.buyer_route import buyer
 from utils.settings import settings
+from middlewares.storage_initiator import DBSessionMiddleware
 from database.db_engine import storage
    
 app = FastAPI(
@@ -57,10 +59,13 @@ async def startup_event():
     await storage.init_indexes()
     await storage.ping()
 
+# add the middleware for the application
+app.add_middleware(DBSessionMiddleware)
 
 app.include_router(auth)
 app.include_router(user)
 app.include_router(seller)
+app.include_router(buyer)
 app.include_router(google_auth)
 app.include_router(properties)
 app.include_router(admin)

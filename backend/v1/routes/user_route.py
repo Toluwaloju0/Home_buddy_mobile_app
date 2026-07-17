@@ -30,7 +30,6 @@ async def get_me(user_response = Depends(get_user_from_token)):
         return JSONResponse(content.to_dict(), 205)
     
     user = user_response.payload
-    print(user)
     if user.get("image_key"):
         user["image_url"] = uploader.create_url(user.get("image_key"))
         del user["image_key"]
