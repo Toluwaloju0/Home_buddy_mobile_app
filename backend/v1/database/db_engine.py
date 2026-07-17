@@ -1,6 +1,6 @@
 """ a module to define the database class for all database activities on the application """
 
-from typing import Dict
+from typing import Dict, List, Any
 from bson import ObjectId
 from argon2.exceptions import VerifyMismatchError
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -95,7 +95,7 @@ class DBStorage:
             user_id: ObjectId or string of the user id
             initial_data: optional initial payload for buyer profile
         """
-        buyers = self.__buyer
+
         doc = {
             "user_id": ObjectId(user_id) if isinstance(user_id, str) else user_id,
             "created_at": datetime.now(),
@@ -103,7 +103,7 @@ class DBStorage:
         if isinstance(initial_data, dict):
             doc.update(initial_data)
 
-        res = await buyers.insert_one(doc)
+        res = await self.__buyer.insert_one(doc)
         if res.acknowledged:
             return function_response(True, {"buyer_id": res.inserted_id})
         return function_response(False)
@@ -244,6 +244,63 @@ class DBStorage:
                 del listing["listing_media"]
             return function_response(True, results)
         return function_response(True, [])
+    
+    async def save_buyer_listing_recommendation(self, user_id: str, buyer_dict: Dict):
+        """ a method to add a buyers recommended listings settings to the database
+        Args:
+            user_id: the user id of the buyer
+            buyer_dict: the dictionary containg the buyer information
+        """
+
+        # ensure that the user id provided is available in the user table
+        if await self.__user.count_documents({"_id": ObjectId(user_id)}) != 1 or await self.__buyer.count_documents({"user_id": ObjectId(user_id)}) > 0:
+            return function_response(False)
+        buyer_dict["user_id"] = ObjectId(user_id)
+        await self.__buyer.insert_one(buyer_dict)
+        return function_response(True)
+
+    async def update_buyer_listing_recommendation(self, buyer_id: str,  buyer_dict: Dict):
+        """ a method to update the buyer listings recommendation
+        Args:
+            buyer_dict: the items to update
+        """
+
+        if not buyer_dict or buyer_dict == {}:
+            return function_response(True)
+        amenities = buyer_dict.get("amenities", None)
+        if amenities:
+            del buyer_dict["amenities"]
+            for amenity in amenities:
+                await self.__buyer.update_one({"_id": ObjectId(buyer_id)}, {"$push": {"amenities": amenity}})
+        await self.__buyer.update_one({"_id": ObjectId(buyer_id)}, {"$set": buyer_dict})
+        return function_response(True)
+
+    async def get_buyer_recommendation_settings(self, user_id: str):
+        """ a method to get the recommended listings settinbgs for a buyer
+        Args:
+            user_id: the user id of the settings
+        """
+
+        settings = await self.__buyer.find_one({"user_id": user_id}, {"user_id": 0})
+        return function_response(True, settings) if settings else function_response(False)
+    
+    @safe_db_operation
+    async def get_recommended_listings(self, buyer_recommendation_settings: Dict) -> List[Any]:
+        """Return latest listings for recommendations."""
+
+        # use the dictionary provided to get listings which suit the buyers settings
+        print(buyer_recommendation_settings)
+        return
+
+        skip = max(0, (int(page) - 1)) * int(per_page)
+        seller = await self.__seller.find_one({"user_id": ObjectId(user_id)}, {"_id": 1})
+        seller_id = seller.get("_id", "")
+
+        # get all listing not made by the current user
+        total = await self.__listings.count_documents({"seller_id": {"$ne": seller_id}})
+        cursor = self.__listings.find({"seller_id": {"$ne": seller_id}}, {}).sort("created_at", -1).skip(skip).limit(int(per_page))
+        results = await cursor.to_list(length=int(per_page))
+        return function_response(True, {"results": results, "total": total})
 
     @safe_db_operation
     async def search_seller_listings(self, seller_id: str, query_text: str):
@@ -329,20 +386,6 @@ class DBStorage:
         cursor = listings.find(query_filter).sort("created_at", -1).skip(skip).limit(int(per_page))
         results = await cursor.to_list(length=int(per_page))
 
-        return function_response(True, {"results": results, "total": total})
-
-    @safe_db_operation
-    async def get_recommended_listings(self, user_id, page: int = 1, per_page: int = 10):
-        """Return latest listings for recommendations."""
-
-        skip = max(0, (int(page) - 1)) * int(per_page)
-        seller = await self.__seller.find_one({"user_id": ObjectId(user_id)}, {"_id": 1})
-        seller_id = seller.get("_id", "")
-
-        # get all listing not made by the current user
-        total = await self.__listings.count_documents({"seller_id": {"$ne": seller_id}})
-        cursor = self.__listings.find({"seller_id": {"$ne": seller_id}}, {}).sort("created_at", -1).skip(skip).limit(int(per_page))
-        results = await cursor.to_list(length=int(per_page))
         return function_response(True, {"results": results, "total": total})
 
     @safe_db_operation

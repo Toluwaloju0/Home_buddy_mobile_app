@@ -1,10 +1,10 @@
 """ a module to create a database connection and provide access to the database storage class"""
 
-def get_db():
+from fastapi import Request
+
+def get_db(request: Request):
     """ a method to create a database connection and provide access to the database storage class
     Return: an instance of the database storage class
     """
 
-    from database.db_engine import DBStorage
-
-    return DBStorage()
+    return request.state.storage

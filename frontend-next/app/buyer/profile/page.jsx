@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import BuyerProfileLayout from './BuyerProfileLayout';
 import { API_BASE_URL, authFetch, redirectToLogin } from '../../../lib/api';
 import UserAvatar from '../../components/UserAvatar';
+import { nigeriaStates, statesWithLgas } from '../../../utils/stateList';
+import { amenitiesList } from '../../../utils/amenitiesList';
 
 const initialFormState = {
   firstName: '',
@@ -14,7 +16,72 @@ const initialFormState = {
   imageUrl: '',
 };
 
+const initialRecommendationState = {
+  state: '',
+  LGA: '',
+  max_price: '',
+  min_price: '',
+  max_size: '',
+  min_size: '',
+  amenities: [],
+  property_type: '',
+};
+
+const PROPERTY_TYPES = ['shop', 'land', 'flat', 'mini flat', 'bungalow', 'penthouse', 'duplex'];
+
 const MAX_PROFILE_IMAGE_BYTES = 1024 * 1024; // 1 MB
+
+const normalizeStateName = (stateValue) => {
+  const normalized = String(stateValue || '').trim().toLowerCase();
+  if (!normalized) return '';
+
+  return nigeriaStates.find((state) => state.toLowerCase() === normalized) || stateValue || '';
+};
+
+const normalizeLgaName = (stateValue, lgaValue) => {
+  const normalizedState = normalizeStateName(stateValue);
+  const lgas = statesWithLgas[normalizedState] || [];
+  const normalizedLga = String(lgaValue || '').trim().toLowerCase();
+  if (!normalizedLga) return '';
+
+  return lgas.find((lga) => lga.toLowerCase() === normalizedLga) || lgaValue || '';
+};
+
+const normalizeRecommendationForm = (settings) => {
+  if (!settings) {
+    return initialRecommendationState;
+  }
+
+  return {
+    state: normalizeStateName(settings.state),
+    LGA: normalizeLgaName(settings.state, settings.LGA),
+    max_price: settings.max_price ?? '',
+    min_price: settings.min_price ?? '',
+    max_size: settings.max_size ?? '',
+    min_size: settings.min_size ?? '',
+    amenities: Array.isArray(settings.amenities)
+      ? settings.amenities.flat(Infinity).map((item) => String(item || '').trim()).filter(Boolean)
+      : [],
+    property_type: settings.property_type || '',
+  };
+};
+
+const toNullableNumber = (value) => {
+  if (value === '' || value === null || value === undefined) return null;
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) ? numericValue : null;
+};
+
+const recommendationFormsEqual = (left, right) => {
+  return left.state === right.state
+    && left.LGA === right.LGA
+    && String(left.max_price ?? '') === String(right.max_price ?? '')
+    && String(left.min_price ?? '') === String(right.min_price ?? '')
+    && String(left.max_size ?? '') === String(right.max_size ?? '')
+    && String(left.min_size ?? '') === String(right.min_size ?? '')
+    && String(left.property_type ?? '') === String(right.property_type ?? '')
+    && JSON.stringify([...(left.amenities || [])].sort()) === JSON.stringify([...(right.amenities || [])].sort());
+};
 
 export default function BuyerProfileSettingsPage() {
   const router = useRouter();
@@ -28,6 +95,12 @@ export default function BuyerProfileSettingsPage() {
   const [form, setForm] = useState(initialFormState);
   const [profileImageFile, setProfileImageFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
+  const [settingsLoading, setSettingsLoading] = useState(false);
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const [recommendationExists, setRecommendationExists] = useState(false);
+  const [recommendationSettings, setRecommendationSettings] = useState(null);
+  const [recommendationForm, setRecommendationForm] = useState(initialRecommendationState);
+  const [recommendationFeedback, setRecommendationFeedback] = useState(null);
   const imageInputRef = useRef(null);
 
   const loadUser = async () => {
@@ -84,6 +157,96 @@ export default function BuyerProfileSettingsPage() {
 
     return () => URL.revokeObjectURL(objectUrl);
   }, [profileImageFile]);
+
+  useEffect(() => {
+    if (activeMode !== 'buyer' || !user) {
+      return undefined;
+    }
+
+    let mounted = true;
+
+    async function loadRecommendationSettings() {
+      setSettingsLoading(true);
+      setRecommendationFeedback(null);
+
+      try {
+        const response = await authFetch(`${API_BASE_URL}/buyer/recommended/listings/settings`, {
+          method: 'GET',
+        });
+
+        if (!response) {
+          return;
+        }
+
+        const data = await response.json().catch(() => null);
+
+        if (!mounted) return;
+
+        if (response.status === 200) {
+          if (data?.status && data?.payload) {
+            const payload = data.payload;
+            setRecommendationExists(true);
+            setRecommendationSettings(payload);
+            setRecommendationForm(normalizeRecommendationForm(payload));
+          } else {
+            setRecommendationExists(false);
+            setRecommendationSettings(null);
+            setRecommendationForm(initialRecommendationState);
+          }
+        } else {
+          setRecommendationFeedback({ type: 'error', text: data?.message || 'Unable to load recommendation settings.' });
+        }
+      } catch (error) {
+        console.error('Buyer recommendation settings load failed:', error);
+        if (mounted) {
+          setRecommendationFeedback({ type: 'error', text: 'Unable to load recommendation settings.' });
+        }
+      } finally {
+        if (mounted) {
+          setSettingsLoading(false);
+        }
+      }
+    }
+
+    loadRecommendationSettings();
+
+    return () => {
+      mounted = false;
+    };
+  }, [activeMode, user]);
+
+  const selectedStateLgas = useMemo(() => {
+    if (!recommendationForm.state) return [];
+    return statesWithLgas[recommendationForm.state] || [];
+  }, [recommendationForm.state]);
+
+  const loadedRecommendationForm = useMemo(() => normalizeRecommendationForm(recommendationSettings), [recommendationSettings]);
+
+  const recommendationIsDirty = useMemo(() => {
+    if (!recommendationExists) return false;
+    return !recommendationFormsEqual(recommendationForm, loadedRecommendationForm);
+  }, [loadedRecommendationForm, recommendationExists, recommendationForm]);
+
+  const recommendationIsComplete = useMemo(() => {
+    return Boolean(
+      recommendationForm.state.trim()
+      && recommendationForm.LGA.trim()
+      && recommendationForm.max_price !== ''
+      && recommendationForm.min_price !== ''
+      && recommendationForm.max_size !== ''
+      && recommendationForm.min_size !== ''
+      && recommendationForm.amenities.length > 0
+      && recommendationForm.property_type.trim(),
+    );
+  }, [recommendationForm]);
+
+  const recommendationSubmitLabel = recommendationExists
+    ? 'Update recommendation settings'
+    : 'Create recommendation settings';
+
+  const recommendationSubmitDisabled = settingsSaving
+    || settingsLoading
+    || (recommendationExists ? !recommendationIsDirty : !recommendationIsComplete);
 
   const displayName = useMemo(() => {
     if (!user) return 'Buyer';
@@ -218,6 +381,108 @@ export default function BuyerProfileSettingsPage() {
     }
 
     setSwitchingRole(false);
+  };
+
+  const handleRecommendationFieldChange = (field) => (event) => {
+    const value = event.target.value;
+    setRecommendationForm((current) => {
+      if (field === 'state') {
+        return { ...current, state: value, LGA: '' };
+      }
+
+      return { ...current, [field]: value };
+    });
+  };
+
+  const handleAmenityToggle = (amenity) => (event) => {
+    const checked = event.target.checked;
+
+    setRecommendationForm((current) => {
+      const currentAmenities = Array.isArray(current.amenities) ? current.amenities : [];
+
+      if (checked) {
+        if (currentAmenities.includes(amenity)) {
+          return current;
+        }
+
+        return { ...current, amenities: [...currentAmenities, amenity] };
+      }
+
+      return {
+        ...current,
+        amenities: currentAmenities.filter((item) => item !== amenity),
+      };
+    });
+  };
+
+  const handleRecommendationSubmit = async (event) => {
+    event.preventDefault();
+    setSettingsSaving(true);
+    setRecommendationFeedback(null);
+
+    const payload = recommendationExists
+      ? Object.entries({
+          state: recommendationForm.state.trim(),
+          LGA: recommendationForm.LGA.trim(),
+          max_price: toNullableNumber(recommendationForm.max_price),
+          min_price: toNullableNumber(recommendationForm.min_price),
+          max_size: toNullableNumber(recommendationForm.max_size),
+          min_size: toNullableNumber(recommendationForm.min_size),
+          amenities: recommendationForm.amenities,
+          property_type: recommendationForm.property_type.trim(),
+        }).reduce((changedValues, [key, value]) => {
+          const previousValue = loadedRecommendationForm[key];
+          const normalizedPrevious = key === 'amenities'
+            ? JSON.stringify([...(Array.isArray(previousValue) ? previousValue : [])].sort())
+            : String(previousValue ?? '');
+          const normalizedCurrent = key === 'amenities'
+            ? JSON.stringify([...(Array.isArray(value) ? value : [])].sort())
+            : String(value ?? '');
+
+          if (normalizedCurrent !== normalizedPrevious) {
+            changedValues[key] = value;
+          }
+
+          return changedValues;
+        }, {})
+      : {
+          state: recommendationForm.state.trim(),
+          LGA: recommendationForm.LGA.trim(),
+          max_price: Number(recommendationForm.max_price),
+          min_price: Number(recommendationForm.min_price),
+          max_size: Number(recommendationForm.max_size),
+          min_size: Number(recommendationForm.min_size),
+          amenities: recommendationForm.amenities,
+          property_type: recommendationForm.property_type.trim(),
+        };
+
+    try {
+      const response = await authFetch(`${API_BASE_URL}/buyer/recommended/listings/settings`, {
+        method: recommendationExists ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response) {
+        return;
+      }
+
+      const data = await response.json().catch(() => null);
+
+      if (response.status === 200 && data?.status) {
+        setRecommendationExists(true);
+        setRecommendationSettings(data.payload || payload);
+        setRecommendationForm(normalizeRecommendationForm(data.payload || payload));
+        setRecommendationFeedback({ type: 'success', text: data.message || 'Recommendation settings saved successfully.' });
+      } else {
+        setRecommendationFeedback({ type: 'error', text: data?.message || 'Unable to save recommendation settings.' });
+      }
+    } catch (error) {
+      console.error('Buyer recommendation settings save failed:', error);
+      setRecommendationFeedback({ type: 'error', text: 'Unable to save recommendation settings.' });
+    }
+
+    setSettingsSaving(false);
   };
 
   if (loadingUser) {
@@ -364,7 +629,7 @@ export default function BuyerProfileSettingsPage() {
           <div role="tabpanel">
             <section className="settings-card buyer-role-card">
               <div>
-                <p className="settings-kicker">Buyer account</p>
+                <p className="settings-kicker">Buyer called</p>
                 <h2>{(user?.role || '').toLowerCase() === 'both' ? 'Seller account is ready' : 'Become a seller'}</h2>
                 <p className="buyer-profile-note">
                   {(user?.role || '').toLowerCase() === 'both'
@@ -379,6 +644,151 @@ export default function BuyerProfileSettingsPage() {
                     ? 'Switch to seller account'
                     : 'Become a seller'}
               </button>
+            </section>
+
+            <section className="settings-card buyer-recommendation-card">
+              <div className="settings-section-title">
+                <h2>Recommended listings settings</h2>
+                <span>
+                  {recommendationExists ? 'Update the saved recommendation preferences' : 'Create a recommendation profile to get personalized listings'}
+                </span>
+              </div>
+
+              {settingsLoading ? (
+                <div className="buyer-settings-loading">Loading recommendation settings...</div>
+              ) : (
+                <form className="settings-form buyer-settings-form" onSubmit={handleRecommendationSubmit}>
+                  <div className="settings-grid settings-grid--two">
+                    <label>
+                      State
+                      <select
+                        className="form-input"
+                        value={recommendationForm.state}
+                        onChange={handleRecommendationFieldChange('state')}
+                      >
+                        <option value="">Select state</option>
+                        {nigeriaStates.map((state) => (
+                          <option key={state} value={state}>
+                            {state}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      LGA
+                      <select
+                        className="form-input"
+                        value={recommendationForm.LGA}
+                        onChange={handleRecommendationFieldChange('LGA')}
+                        disabled={!recommendationForm.state}
+                      >
+                        <option value="">{recommendationForm.state ? 'Select local government area' : 'Select a state first'}</option>
+                        {selectedStateLgas.map((lga) => (
+                          <option key={lga} value={lga}>
+                            {lga}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      Minimum price
+                      <input
+                        className="form-input"
+                        type="number"
+                        min="0"
+                        value={recommendationForm.min_price}
+                        onChange={handleRecommendationFieldChange('min_price')}
+                        placeholder="Enter minimum price"
+                      />
+                    </label>
+                    <label>
+                      Maximum price
+                      <input
+                        className="form-input"
+                        type="number"
+                        min="0"
+                        value={recommendationForm.max_price}
+                        onChange={handleRecommendationFieldChange('max_price')}
+                        placeholder="Enter maximum price"
+                      />
+                    </label>
+                    <label>
+                      Minimum size
+                      <input
+                        className="form-input"
+                        type="number"
+                        min="0"
+                        value={recommendationForm.min_size}
+                        onChange={handleRecommendationFieldChange('min_size')}
+                        placeholder="Enter minimum size"
+                      />
+                    </label>
+                    <label>
+                      Maximum size
+                      <input
+                        className="form-input"
+                        type="number"
+                        min="0"
+                        value={recommendationForm.max_size}
+                        onChange={handleRecommendationFieldChange('max_size')}
+                        placeholder="Enter maximum size"
+                      />
+                    </label>
+                    <label className="settings-grid--full">
+                      Amenities
+                      <div className="settings-grid settings-grid--three">
+                        {amenitiesList.map((amenity) => (
+                          <label key={amenity} style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                            <input
+                              type="checkbox"
+                              checked={recommendationForm.amenities.includes(amenity)}
+                              onChange={handleAmenityToggle(amenity)}
+                            />
+                            <span>{amenity.replaceAll('_', ' ')}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </label>
+                    <label className="settings-grid--full">
+                      Property type
+                      <select
+                        className="form-input"
+                        value={recommendationForm.property_type}
+                        onChange={handleRecommendationFieldChange('property_type')}
+                      >
+                        <option value="">Select property type</option>
+                        {PROPERTY_TYPES.map((propertyType) => (
+                          <option key={propertyType} value={propertyType}>
+                            {propertyType}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+
+                  {recommendationFeedback && (
+                    <div className={`buyer-feedback buyer-feedback--${recommendationFeedback.type}`} role="status">
+                      {recommendationFeedback.text}
+                    </div>
+                  )}
+
+                  {recommendationSettings && recommendationExists && (
+                    <p className="buyer-profile-note">
+                      Current saved settings loaded from the backend are ready to update.
+                    </p>
+                  )}
+
+                  <div className="settings-actions">
+                    <button type="submit" className="primary-button" disabled={recommendationSubmitDisabled}>
+                      {settingsSaving
+                        ? 'Saving...'
+                        : recommendationExists
+                          ? 'Update recommendation settings'
+                          : 'Create recommendation settings'}
+                    </button>
+                  </div>
+                </form>
+              )}
             </section>
 
             {feedback && (

@@ -57,7 +57,7 @@ export async function authFetch(input, init = {}) {
     response = await fetch(input, requestInit);
   }
 
-  if (response.status === 400) {
+  if (response.status === 401) {
     redirectToLogin();
     return null;
   }
