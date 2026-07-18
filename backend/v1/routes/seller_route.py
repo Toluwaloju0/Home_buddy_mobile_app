@@ -1,14 +1,13 @@
 """ a module to get and use seller profile routes """
 
-import json
 from datetime import datetime
-
 from bson import ObjectId
 from fastapi import APIRouter, Depends, File, Form, UploadFile, BackgroundTasks
 from fastapi.responses import JSONResponse
 from typing import Dict, List
 
-from database.db_engine import storage
+from database.get_db import get_db
+from database.db_engine import DBStorage, storage
 from middlewares.verify_user import get_user_from_token
 from models.property_model import ShopListingSchema, LandListingSchema, ApartmentListingSchema
 from utils.state_list import States_list, States_with_lgas
@@ -37,7 +36,10 @@ async def serialize_mongo_value(value):
 
 
 @seller.get("/me")
-async def get_my_seller_profile(user_response=Depends(get_user_from_token)):
+async def get_my_seller_profile(
+    user_response=Depends(get_user_from_token),
+    storage: DBStorage = Depends(get_db)
+):
     """Return the seller profile linked to the authenticated user."""
 
     if not user_response.status:
@@ -48,47 +50,26 @@ async def get_my_seller_profile(user_response=Depends(get_user_from_token)):
         content = api_response(False, "The access token is expired, refresh and try again")
         return JSONResponse(content.to_dict(), 401)
 
-    user = user_response.payload
-    seller_response = await storage.get_seller_by_user_id(str(user.get("_id")))
+    seller_response = await storage.get_seller_by_user_id(str(user_response.payload.get("_id")))
     if not seller_response.status:
         content = api_response(False, "Seller profile not found")
         return JSONResponse(content.to_dict(), 401)
 
-    seller_profile = seller_response.payload
-    seller_profile = await serialize_mongo_value(seller_profile)
-
-    content = api_response(True, "The seller profile has been retrieved successfully", seller_profile)
+    content = api_response(True, "The seller profile has been retrieved successfully", seller_response.payload)
     return JSONResponse(content.to_dict())
-
 
 @seller.put("/profile")
 async def update_my_seller_profile(
-    first_name: str | None = Form(None),
-    last_name: str | None = Form(None),
-    phone_number: str | None = Form(None),
-    date_of_birth: str | None = Form(None),
-    gender: str | None = Form(None),
-    residential_address: str | None = Form(None),
     about_me: str | None = Form(None),
-    business_type: str | None = Form(None),
-    business_address: str | None = Form(None),
-    years_of_experience: str | None = Form(None),
-    company_name: str | None = Form(None),
     cac_registration_number: str | None = Form(None),
-    company_website: str | None = Form(None),
-    national_id_type: str | None = Form(None),
-    id_number: str | None = Form(None),
     account_name: str | None = Form(None),
     bank_name: str | None = Form(None),
     account_number: str | None = Form(None),
-    save_mode: str | None = Form("draft"),
-    profile_image: UploadFile | None = File(None),
-    proof_of_address: UploadFile | None = File(None),
-    id_front: UploadFile | None = File(None),
-    id_back: UploadFile | None = File(None),
     user_response=Depends(get_user_from_token),
 ):
     """Update the authenticated seller profile and the linked user profile."""
+
+    return
 
     if not user_response.status:
         content = api_response(False, "The access token provided is not valid")
@@ -175,6 +156,20 @@ async def update_my_seller_profile(
     content = api_response(True, "Seller profile updated successfully", payload)
     return JSONResponse(content.to_dict())
 
+@seller.post("/verify")
+def verify_seller(
+    id_front: UploadFile,
+    id_back: UploadFile,
+    user_response = Depends(get_user_from_token),
+    storrage: DBStorage = Depends(get_db),
+):
+    """ a endpoint for sellers to submit a verification request using their provided id card front and back
+    Args:
+        id_front: the front of the id card
+        id_back: the back of the id card
+    """
+
+    return
 
 @seller.get("/dashboard/stats")
 async def get_seller_dashboard_stats(user_response=Depends(get_user_from_token)):
@@ -886,36 +881,3 @@ async def submit_land_listing(
 
     content = api_response(True, "Land Listing submitted successfully and is pending admin approval")
     return JSONResponse(content.to_dict())
-
-
-# @seller.get("/listings/{listing_id}")
-# async def get_listing_detail(listing_id: str, user_response=Depends(get_user_from_token)):
-#     """Retrieve details of a specific listing."""
-
-#     if not user_response.status:
-#         content = api_response(False, "The access token provided is not valid")
-#         return JSONResponse(content.to_dict(), 205)
-
-#     if not user_response.payload:
-#         content = api_response(False, "The access token is expired, refresh and try again")
-#         return JSONResponse(content.to_dict(), 401)
-
-#     user = user_response.payload
-#     seller_id = str(user.get("_id"))
-
-#     listing_response = await storage.get_listing_by_id(listing_id)
-#     if not listing_response.status or not listing_response.payload:
-#         content = api_response(False, "Listing not found")
-#         return JSONResponse(content.to_dict(), 404)
-
-#     listing = listing_response.payload
-
-#     # Verify the listing belongs to this seller
-#     if str(listing.get("seller_id")) != seller_id and str(listing.get("seller_id", {}).get("$oid")) != seller_id:
-#         content = api_response(False, "You do not have access to this listing")
-#         return JSONResponse(content.to_dict(), 403)
-
-#     serialized_listing = await serialize_mongo_value(listing)
-
-#     content = api_response(True, "Listing retrieved successfully", serialized_listing)
-#     return JSONResponse(content.to_dict())

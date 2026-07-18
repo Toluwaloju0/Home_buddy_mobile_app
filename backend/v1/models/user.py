@@ -5,7 +5,7 @@ import enum
 from pydantic import BaseModel
 
 from models.base_model import Basemodel
-from database.db_engine import storage
+from database.db_engine import DBStorage
 from utils.responses import function_response
 
 class UserCreate(BaseModel):
@@ -58,12 +58,3 @@ class User(Basemodel):
         super().__init__()
         for key, val in kwargs.items():
             setattr(self, key, val)
-
-    async def save(self):
-        """ a method to save the class to the database"""
-
-        save_user_response = await storage.save_user(**self.to_dict())
-
-        if not save_user_response.status:
-            return function_response(False)
-        return save_user_response

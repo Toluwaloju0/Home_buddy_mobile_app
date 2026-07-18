@@ -87,51 +87,51 @@ class DBStorage:
         user_id = result.inserted_id
         return function_response(True, {"user_id": user_id})
 
-    @safe_db_operation
-    async def create_buyer_profile(self, user_id: str | ObjectId, initial_data: Dict | None = None):
-        """Create a buyer profile/document linked to the user.
+    # @safe_db_operation
+    # async def create_buyer_profile(self, user_id: str | ObjectId, initial_data: Dict | None = None):
+    #     """Create a buyer profile/document linked to the user.
 
-        Args:
-            user_id: ObjectId or string of the user id
-            initial_data: optional initial payload for buyer profile
-        """
+    #     Args:
+    #         user_id: ObjectId or string of the user id
+    #         initial_data: optional initial payload for buyer profile
+    #     """
 
-        doc = {
-            "user_id": ObjectId(user_id) if isinstance(user_id, str) else user_id,
-            "created_at": datetime.now(),
-        }
-        if isinstance(initial_data, dict):
-            doc.update(initial_data)
+    #     doc = {
+    #         "user_id": ObjectId(user_id) if isinstance(user_id, str) else user_id,
+    #         "created_at": datetime.now(),
+    #     }
+    #     if isinstance(initial_data, dict):
+    #         doc.update(initial_data)
 
-        res = await self.__buyer.insert_one(doc)
-        if res.acknowledged:
-            return function_response(True, {"buyer_id": res.inserted_id})
-        return function_response(False)
+    #     res = await self.__buyer.insert_one(doc)
+    #     if res.acknowledged:
+    #         return function_response(True, {"buyer_id": res.inserted_id})
+    #     return function_response(False)
 
-    @safe_db_operation
-    async def create_seller_profile(self, user_id: str | ObjectId, initial_data: Dict | None = None):
-        """Create a seller profile/document linked to the user.
+    # @safe_db_operation
+    # async def create_seller_profile(self, user_id: str | ObjectId, initial_data: Dict | None = None):
+    #     """Create a seller profile/document linked to the user.
 
-        Args:
-            user_id: ObjectId or string of the user id
-            initial_data: optional initial payload for seller profile
-        """
-        sellers = self.__seller
-        seller_profile = Seller(user_id=ObjectId(user_id) if isinstance(user_id, str) else user_id)
-        doc = seller_profile.to_dict()
-        if isinstance(initial_data, dict):
-            doc.update(initial_data)
+    #     Args:
+    #         user_id: ObjectId or string of the user id
+    #         initial_data: optional initial payload for seller profile
+    #     """
+    #     sellers = self.__seller
+    #     seller_profile = Seller(user_id=ObjectId(user_id) if isinstance(user_id, str) else user_id)
+    #     doc = seller_profile.to_dict()
+    #     if isinstance(initial_data, dict):
+    #         doc.update(initial_data)
 
-        houses_sold = int(doc.get("houses_sold") or 0)
-        is_verified = bool(doc.get("is_verified"))
-        doc["houses_sold"] = houses_sold
-        doc["is_verified"] = is_verified
-        doc["level"] = await self.get_seller_level(is_verified=is_verified, houses_sold=houses_sold)
+    #     houses_sold = int(doc.get("houses_sold") or 0)
+    #     is_verified = bool(doc.get("is_verified"))
+    #     doc["houses_sold"] = houses_sold
+    #     doc["is_verified"] = is_verified
+    #     doc["level"] = await self.get_seller_level(is_verified=is_verified, houses_sold=houses_sold)
 
-        res = await sellers.insert_one(doc)
-        if res.acknowledged:
-            return function_response(True, {"seller_id": res.inserted_id})
-        return function_response(False)
+    #     res = await sellers.insert_one(doc)
+    #     if res.acknowledged:
+    #         return function_response(True, {"seller_id": res.inserted_id})
+    #     return function_response(False)
 
     @safe_db_operation
     async def get_seller_by_user_id(self, user_id: str):
@@ -652,7 +652,7 @@ class DBStorage:
         return a response with the user if a user is found
         """
 
-        user = await self.__user.find_one({"email": email})
+        user = await self.__user.find_one({"email": email.lower()})
         if not user:
             return function_response(False)
 
@@ -745,6 +745,8 @@ class DBStorage:
             user_id (str): a string containing the user id to be deleted
         """
         await self.__user.delete_many({"_id": ObjectId(user_id)})
+        await self.__buyer.delete_many({"user_id": ObjectId(user_id)})
+        await self.__seller.delete_many({"user_id": ObjectId(user_id)})
 
     @safe_db_operation
     async def save_refresh_token(self, refresh_token_object: Dict):
@@ -837,7 +839,7 @@ class DBStorage:
             email (str): the token to be deleted from the database
         """
 
-        await self.__otp_code.delete_many({"email": email})
+        await self.__otp_code.delete_many({"email": email.lower()})
 
     @safe_db_operation
     async def save_message(self, message_data: dict):

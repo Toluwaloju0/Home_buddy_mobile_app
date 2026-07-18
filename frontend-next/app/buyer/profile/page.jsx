@@ -332,7 +332,7 @@ export default function BuyerProfileSettingsPage() {
     setFeedback(null);
 
     try {
-      const response = await authFetch(`${API_BASE_URL}/user/me/delete`, {
+      const response = await authFetch(`${API_BASE_URL}/user/me`, {
         method: 'DELETE',
       });
 
