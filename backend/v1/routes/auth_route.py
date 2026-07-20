@@ -179,7 +179,7 @@ async def verify_otp_code(otp_code: str, user_response = Depends(get_user_from_t
     user = user_response.payload
     otp_email = otp_email_response.payload.get("email")
     
-    if user.get("email") != otp_email:
+    if user.get("email").lower() != otp_email.lower():
         content = api_response(False, "This OTP code is not for your email address")
         return JSONResponse(content.to_dict(), 500)
     
@@ -200,7 +200,7 @@ async def resend_otp_code(user_response=Depends(get_user_from_token)):
     """ a function to resend an otp code to the user"""
     
     if not user_response.status:
-        content = api_response(False, "The access token provided is not valid")
+        content = api_response(False, "The user is unauthenticated, please login to continue using this service")
         return JSONResponse(content.to_dict(), 400)
     
     if not user_response.payload:
