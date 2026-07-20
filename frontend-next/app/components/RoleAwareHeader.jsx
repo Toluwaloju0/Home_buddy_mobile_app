@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { API_BASE_URL } from '../../lib/api';
+import { API_BASE_URL, authFetch } from '../../lib/api';
 import BuyerHeader from './BuyerHeader';
 import LandingHeader from './LandingHeader';
 import SellerHeader from './SellerHeader';
@@ -15,10 +15,13 @@ export default function RoleAwareHeader({ fallbackTagline = 'Verified housing pl
 
     async function loadCurrentUser() {
       try {
-        const response = await fetch(`${API_BASE_URL}/user/me`, {
+        const response = await authFetch(`${API_BASE_URL}/user/me`, {
           method: 'GET',
-          credentials: 'include',
         });
+
+        if (!response) {
+          return;
+        }
 
         const data = await response.json().catch(() => null);
 

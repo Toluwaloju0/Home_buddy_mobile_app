@@ -106,9 +106,11 @@ export default function BuyerPage() {
 
     async function loadRecommended() {
       try {
-        const res = await fetch(`${API_BASE_URL}/properties/recommended?per_page=12`);
+        const res = await authFetch(`${API_BASE_URL}/properties/recommended?per_page=12`, {
+          method: 'GET',
+        });
         const data = await res.json().catch(() => null);
-        if (mounted && res.ok && data?.payload?.listings) {
+        if (mounted && res?.ok && data?.payload?.listings) {
           setRecommendedHomes(data.payload.listings);
         }
       } catch (err) {

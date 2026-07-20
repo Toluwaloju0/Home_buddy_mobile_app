@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { API_BASE_URL, authFetch } from '@/lib/api';
 import AdminHeader from '../components/AdminHeader';
 
 export default function AdminDashboard() {
@@ -16,12 +17,14 @@ export default function AdminDashboard() {
 
     const loadDashboard = async () => {
       try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/admin/dashboard/stats`,
-          {
-            credentials: 'include',
-          }
-        );
+        const response = await authFetch(`${API_BASE_URL}/admin/dashboard/stats`, {
+          credentials: 'include',
+        });
+
+        if (!response) {
+          router.replace('/admin/login');
+          return;
+        }
 
         const data = await response.json().catch(() => null);
 
