@@ -9,10 +9,29 @@ export default function SellerHeader({ user: providedUser, loadingUser: provided
   const router = useRouter();
   const menuRef = useRef(null);
   const pinnedRef = useRef(false);
+  const verificationRedirectInFlightRef = useRef(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [switchingRole, setSwitchingRole] = useState(false);
   const [loadedUser, setLoadedUser] = useState(null);
   const [loadingOwnUser, setLoadingOwnUser] = useState(providedUser === undefined);
+
+  const enforceVerification = async (resolvedUser) => {
+    if (!resolvedUser || resolvedUser.is_verified !== false || verificationRedirectInFlightRef.current) {
+      return;
+    }
+
+    verificationRedirectInFlightRef.current = true;
+
+    try {
+      await authFetch(`${API_BASE_URL}/auth/otp/resend`, { method: 'GET' });
+    } catch (error) {
+      console.error('OTP resend failed before verification redirect:', error);
+    } finally {
+      if (typeof window !== 'undefined' && window.location.pathname !== '/verify/otp') {
+        router.replace('/verify/otp');
+      }
+    }
+  };
 
   useEffect(() => {
     if (providedUser !== undefined) return undefined;
@@ -25,6 +44,7 @@ export default function SellerHeader({ user: providedUser, loadingUser: provided
         const data = await response?.json().catch(() => null);
 
         if (mounted && response?.status === 200 && data?.payload) {
+          await enforceVerification(data.payload);
           setLoadedUser(data.payload);
         }
       } finally {
@@ -43,6 +63,12 @@ export default function SellerHeader({ user: providedUser, loadingUser: provided
 
   const user = providedUser === undefined ? loadedUser : providedUser;
   const loadingUser = providedUser === undefined ? loadingOwnUser : providedLoadingUser;
+
+  useEffect(() => {
+    if (!user) return;
+
+    enforceVerification(user);
+  }, [user]);
 
   useEffect(() => {
     if (typeof document === 'undefined') return undefined;
@@ -230,7 +256,7 @@ export default function SellerHeader({ user: providedUser, loadingUser: provided
           <button type="button" className="profile-dropdown-item" role="menuitem" onClick={() => router.push('/seller')}>Dashboard</button>
           <button type="button" className="profile-dropdown-item" role="menuitem" onClick={() => router.push('/seller/listings')}>My Listings</button>
           <button type="button" className="profile-dropdown-item" role="menuitem" onClick={() => router.push('/seller/messages')}>Messages</button>
-          <button type="button" className="profile-dropdown-item" role="menuitem" onClick={() => router.push('/seller/profile-settings')}>Profile Settings</button>
+          <button type="button" className="profile-dropdown-item" role="menuitem" onClick={() => router.push('/seller/profile')}>Profile Settings</button>
           <button type="button" className="profile-dropdown-item" role="menuitem" onClick={() => router.push('/seller/listings/new')}>Add Listing</button>
           <button type="button" className="profile-dropdown-item" role="menuitem" onClick={handleLogout}>Log out</button>
         </div>

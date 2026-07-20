@@ -146,7 +146,8 @@ async def update_email(
     update_response = await storage.update_user_by_id(user.get("_id"), email=email, is_verified=False)
     if not update_response.status:
         content = api_response(False, "The update failed")
-    content = api_response(True, "The email was reset successfully. Verify your email address to continue", payload=update_response.payload)
+    else:
+        content = api_response(True, "The email was reset successfully. Verify your email address to continue")
     return JSONResponse(content.to_dict())
 
 
@@ -176,32 +177,13 @@ async def switch_role(
         content = api_response(False, "Invalid role requested")
         return JSONResponse(content.to_dict(), 400)
 
-    user_doc = user_response.payload
-    user_id = str(user_doc.get("_id"))
-
     # Persist 'both' role for the user so they can act as both buyer and seller
-    update_resp = await storage.update_user_by_id(user_id, role=UserRole.BOTH.value)
+    update_resp = await storage.update_user_by_id(user_response.payload.get("_id", None), role=UserRole.BOTH)
     if not update_resp.status:
         content = api_response(False, "Failed to update user role")
         return JSONResponse(content.to_dict(), 500)
 
-    # Ensure the requested profile document exists
-    if target_role == UserRole.SELLER.value:
-        seller_resp = await storage.get_seller_by_user_id(user_id)
-        if not seller_resp.status:
-            created = await storage.create_seller_profile(user_id)
-            if not created.status:
-                content = api_response(False, "Failed to create seller profile")
-                return JSONResponse(content.to_dict(), 500)
-    else:
-        buyer_resp = await storage.get_buyer_by_user_id(user_id)
-        if not buyer_resp.status:
-            created = await storage.create_buyer_profile(user_id)
-            if not created.status:
-                content = api_response(False, "Failed to create buyer profile")
-                return JSONResponse(content.to_dict(), 500)
-
-    content = api_response(True, "Role switch successful", payload={"role": target_role})
+    content = api_response(True, "Role switch successful")
     return JSONResponse(content.to_dict())
 
 @user.put("/me/update")

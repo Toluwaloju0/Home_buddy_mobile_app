@@ -45,7 +45,7 @@ class EmailSender:
 
         code = await get_otp_code()
 
-        otp_code_obj = OtpCode(email_address, code)
+        otp_code_obj = OtpCode(email_address.lower(), code)
         save_otp_response = await storage.save_otp_code(otp_code_obj.to_dict())
         if not save_otp_response.status:
             return function_response(False)

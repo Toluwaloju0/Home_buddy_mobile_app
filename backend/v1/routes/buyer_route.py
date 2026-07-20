@@ -1,9 +1,7 @@
 """a module to define the buyer route for the buyer to update his recommended settings"""
 
-from bson import ObjectId
-from fastapi import APIRouter, Depends, File, Form, UploadFile, BackgroundTasks
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
-from typing import Dict, List
 
 from database.get_db import get_db
 from database.db_engine import DBStorage

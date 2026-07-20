@@ -44,7 +44,7 @@ async def register(user_data: UserRegister):
     hashed_password = ph.hash(user_data.password) if user_data.password else None
 
     user = User(
-        email=email,
+        email=email.lower(),
         password=hashed_password,
         first_name=user_data.first_name,
         last_name=user_data.last_name,
@@ -54,31 +54,12 @@ async def register(user_data: UserRegister):
     )
 
     # Save user to database
-    save_user_response = await user.save()
+    save_user_response = await storage.save_user(**user.to_dict())
     if not save_user_response.status:
         content = api_response(False, "Failed to create account. Please try again.")
         return JSONResponse(content.to_dict(), 406)
 
-    user_id = save_user_response.payload.get("user_id")
-
-    # Create buyer/seller profile documents for the user
-    try:
-        # Normalize role value (can be enum or string)
-        try:
-            role_val = user.role.lower() if isinstance(user.role, str) else user.role.value.lower()
-        except Exception:
-            role_val = str(user.role).lower()
-
-        if role_val == "buyer":
-            profile_resp = await storage.create_buyer_profile(user_id)
-            if not profile_resp.status:
-                print(f"⚠️ Failed to create buyer profile for user {user_id}")
-        elif role_val == "seller":
-            profile_resp = await storage.create_seller_profile(user_id)
-            if not profile_resp.status:
-                print(f"⚠️ Failed to create seller profile for user {user_id}")
-    except Exception as e:
-        print("⚠️ Error creating role profile:", e)
+    user_id = save_user_response.payload.get("user_id", None)
 
     # Send OTP
     email_send_response = await email_sender.send_otp_mail(email)
@@ -205,9 +186,6 @@ async def verify_otp_code(otp_code: str, user_response = Depends(get_user_from_t
     # if both email correspond update the email address to become a verified user
     await storage.update_user_by_id(user.get("_id"), is_verified=True)
 
-    if user.get("role") == UserRole.SELLER.value:
-        await storage.update_seller_by_user_id(str(user.get("_id")), is_verified=True)
-
     # fetch updated sanitized user
     updated_user_resp = await storage.get_user_by_id(str(user.get("_id")))
     updated_user = updated_user_resp.payload if updated_user_resp.status else user
@@ -232,17 +210,14 @@ async def resend_otp_code(user_response=Depends(get_user_from_token)):
     user = user_response.payload
 
     if user.get("is_verified"):
-        print("⚠️  User already verified")
         content = api_response(True, "You are already verified")
         return JSONResponse(content.to_dict())
     
     email_send_response = await email_sender.send_otp_mail(user.get("email"))
     if not email_send_response.status:
-        print("❌ Failed to send OTP")
         content = api_response(False, "Failed to send OTP. Please try again later.")
         return JSONResponse(content.to_dict(), 500)
     
-    print(f"✅ OTP resent to: {user.get('email')}")
     content = api_response(True, "New OTP sent to your email")
     return JSONResponse(content.to_dict())
 
