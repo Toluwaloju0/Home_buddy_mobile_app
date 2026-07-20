@@ -39,7 +39,7 @@ app.add_middleware(
         "*"
     ],
     allow_credentials=True,  # IMPORTANT: Required for cookies
-    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"],
     allow_headers=["*"],  # Allow all headers
 )
 
@@ -78,4 +78,4 @@ app.include_router(messages)
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", port=settings.backend_port, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=settings.backend_port, reload=True)
