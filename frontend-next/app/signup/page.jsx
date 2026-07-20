@@ -3,6 +3,7 @@
 import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { API_BASE_URL } from '@/lib/api';
 
 function SignupContent() {
   const router = useRouter();
@@ -23,24 +24,21 @@ function SignupContent() {
     setLoading(true);
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/auth/register`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email,
-            password,
-            first_name: firstName,
-            last_name: lastName,
-            role,
-            phone_number: phoneNumber || null,
-          }),
-          credentials: 'include',
-        }
-      );
+      const response = await fetch(`${API_BASE_URL}/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          first_name: firstName,
+          last_name: lastName,
+          role,
+          phone_number: phoneNumber || null,
+        }),
+        credentials: 'include',
+      });
 
       const data = await response.json().catch(() => null);
       const backendMessage = data?.message || response.statusText || `Error: ${response.status}`;

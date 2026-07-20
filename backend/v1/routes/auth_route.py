@@ -82,8 +82,8 @@ async def register(user_data: UserRegister):
     )
 
     response = JSONResponse(content.to_dict())
-    response.set_cookie("access_token", access_token_response.payload.get("access_token"))
-    response.set_cookie("refresh_token", refresh_token_response.payload.get("refresh_token"))
+    response.set_cookie("access_token", access_token_response.payload.get("access_token"), httponly=True, samesite="none", secure=True)
+    response.set_cookie("refresh_token", refresh_token_response.payload.get("refresh_token"), httponly=True, samesite="none", secure=True)
 
     return response
 
@@ -118,15 +118,15 @@ async def login(user_data: UserCreate):
 
         content = api_response(True, "OTP sent to your email", saved_user)
         response = JSONResponse(content.to_dict())
-        response.set_cookie("access_token", access_token_response.payload.get("access_token"))
-        response.set_cookie("refresh_token", refresh_token_response.payload.get("refresh_token"))
+        response.set_cookie("access_token", access_token_response.payload.get("access_token"), httponly=True, samesite="none", secure=True)
+        response.set_cookie("refresh_token", refresh_token_response.payload.get("refresh_token"), httponly=True, samesite="none", secure=True)
         return response
 
     # Successful password login — return sanitized user payload
     content = api_response(True, "Log in successful", saved_user)
     response = JSONResponse(content.to_dict())
-    response.set_cookie("access_token", access_token_response.payload.get("access_token"))
-    response.set_cookie("refresh_token", refresh_token_response.payload.get("refresh_token"))
+    response.set_cookie("access_token", access_token_response.payload.get("access_token"), httponly=True, samesite="none", secure=True)
+    response.set_cookie("refresh_token", refresh_token_response.payload.get("refresh_token"), httponly=True, samesite="none", secure=True)
     return response
 
 @auth.get("/token/refresh")
@@ -149,8 +149,8 @@ async def refresh_access_token(request: Request):
     # get the user id and create a new access and refresh token for the user
     content = api_response(True, "A new access Token has been created succefully")
     response = JSONResponse(content.to_dict())
-    response.set_cookie("access_token", access_token_response.payload.get("access_token"))
-    response.set_cookie("refresh_token", refresh_token_response.payload.get("refresh_token"))
+    response.set_cookie("access_token", access_token_response.payload.get("access_token"), httponly=True, samesite="none", secure=True)
+    response.set_cookie("refresh_token", refresh_token_response.payload.get("refresh_token"), httponly=True, samesite="none", secure=True)
     return response
 
 
@@ -179,7 +179,7 @@ async def verify_otp_code(otp_code: str, user_response = Depends(get_user_from_t
     user = user_response.payload
     otp_email = otp_email_response.payload.get("email")
     
-    if user.get("email") != otp_email:
+    if user.get("email").lower() != otp_email.lower():
         content = api_response(False, "This OTP code is not for your email address")
         return JSONResponse(content.to_dict(), 500)
     
@@ -200,7 +200,7 @@ async def resend_otp_code(user_response=Depends(get_user_from_token)):
     """ a function to resend an otp code to the user"""
     
     if not user_response.status:
-        content = api_response(False, "The access token provided is not valid")
+        content = api_response(False, "The user is unauthenticated, please login to continue using this service")
         return JSONResponse(content.to_dict(), 400)
     
     if not user_response.payload:
@@ -249,8 +249,8 @@ async def admin_login(user_data: UserCreate):
 
     content = api_response(True, "Admin login successful", saved_user)
     response = JSONResponse(content.to_dict())
-    response.set_cookie("access_token", access_token_response.payload.get("access_token"))
-    response.set_cookie("refresh_token", refresh_token_response.payload.get("refresh_token"))
+    response.set_cookie("access_token", access_token_response.payload.get("access_token"), httponly=True, samesite="none", secure=True)
+    response.set_cookie("refresh_token", refresh_token_response.payload.get("refresh_token"), httponly=True, samesite="none", secure=True)
     return response
 
 

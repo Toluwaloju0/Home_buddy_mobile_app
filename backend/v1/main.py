@@ -36,7 +36,8 @@ uploads_dir.mkdir(parents=True, exist_ok=True)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "*"
+        "http://localhost:3000",
+        "https://home-buddy-mobile-app.vercel.app/"
     ],
     allow_credentials=True,  # IMPORTANT: Required for cookies
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"],
