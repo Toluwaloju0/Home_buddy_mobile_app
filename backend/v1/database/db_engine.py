@@ -3,7 +3,7 @@
 from typing import Dict, List, Any
 from bson import ObjectId
 from argon2.exceptions import VerifyMismatchError
-from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo import AsyncMongoClient
 from datetime import datetime
 import logging
 
@@ -43,7 +43,7 @@ class DBStorage:
         """
 
         mongo_uri = settings.mongo_uri
-        self.__client = AsyncIOMotorClient(
+        self.__client = AsyncMongoClient(
             mongo_uri,
             serverSelectionTimeoutMS=5000,
             connectTimeoutMS=5000,

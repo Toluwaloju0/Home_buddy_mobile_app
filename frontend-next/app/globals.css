@@ -58,6 +58,154 @@ a {
   border-bottom: 1px solid rgba(19, 33, 38, 0.06);
 }
 
+.landing-topbar {
+  align-items: center;
+  gap: 1rem 1.25rem;
+}
+
+.landing-header-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+}
+
+.landing-brand-lockup {
+  min-width: 0;
+}
+
+.landing-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+}
+
+.landing-nav-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.landing-nav-item {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.landing-nav-item-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.landing-nav-main-button,
+.landing-nav-arrow-button,
+.landing-nav-link {
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.6rem;
+  transition: background 160ms ease, color 160ms ease;
+}
+
+.landing-nav-main-button:hover,
+.landing-nav-arrow-button:hover,
+.landing-nav-link:hover {
+  background: rgba(19, 33, 38, 0.06);
+}
+
+.landing-nav-arrow-button {
+  padding-inline: 0.45rem;
+  font-size: 0.8rem;
+}
+
+.landing-nav-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.landing-nav-link--disabled {
+  cursor: default;
+  opacity: 0.78;
+}
+
+.landing-dropdown {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  left: 0;
+  min-width: 10rem;
+  padding: 0.45rem;
+  border-radius: 0.85rem;
+  background: white;
+  border: 1px solid rgba(19, 33, 38, 0.1);
+  box-shadow: var(--shadow);
+  display: none;
+  z-index: 40;
+}
+
+.landing-dropdown--open {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.landing-dropdown-item {
+  width: 100%;
+  text-align: left;
+  padding: 0.65rem 0.75rem;
+  border: 0;
+  background: transparent;
+  border-radius: 0.55rem;
+  font: inherit;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.landing-dropdown-item:hover {
+  background: rgba(23, 165, 107, 0.08);
+  color: var(--accent-strong);
+}
+
+.landing-mobile-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(19, 33, 38, 0.12);
+  background: white;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: var(--text);
+}
+
+.landing-mobile-menu {
+  display: none;
+}
+
+.landing-mobile-auth {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.landing-auth-actions {
+  flex-shrink: 0;
+}
+
 .brand-lockup {
   display: flex;
   align-items: center;
@@ -2585,6 +2733,62 @@ a {
   .buyer-feedback {
     margin: 1rem 0 0;
   }
+
+  .landing-topbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .landing-header-main {
+    width: 100%;
+  }
+
+  .landing-nav {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .landing-nav-center,
+  .landing-auth-actions {
+    display: none;
+  }
+
+  .landing-mobile-toggle {
+    display: inline-flex;
+    flex-shrink: 0;
+  }
+
+  .landing-mobile-menu {
+    display: none;
+    flex-direction: column;
+    gap: 0.7rem;
+    width: 100%;
+    padding-top: 0.5rem;
+  }
+
+  .landing-nav--open .landing-mobile-menu {
+    display: flex;
+  }
+
+  .landing-nav-item--mobile {
+    width: 100%;
+  }
+
+  .landing-nav-item--mobile .landing-nav-item-row {
+    width: 100%;
+  }
+
+  .landing-nav-link--mobile,
+  .landing-mobile-auth .join-button {
+    width: 100%;
+  }
+
+  .landing-dropdown {
+    position: static;
+    min-width: 0;
+    margin-top: 0.4rem;
+  }
 }
 
 .why-section,
@@ -4540,6 +4744,42 @@ html, body {
 
 .topbar .join-button--secondary:hover {
   background: #26383c;
+}
+
+.landing-topbar .join-button {
+  padding: 0.55rem 1rem;
+}
+
+.landing-topbar .join-button--secondary {
+  background: var(--surface-strong);
+}
+
+@media (min-width: 961px) {
+  .landing-nav-item:hover .landing-dropdown {
+    display: grid;
+    gap: 0.3rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .landing-topbar {
+    padding: 0.85rem 1rem;
+  }
+
+  .landing-header-main .brand-name {
+    font-size: 0.98rem;
+  }
+
+  .landing-header-main .brand-tagline {
+    font-size: 0.66rem;
+  }
+
+  .landing-nav-link,
+  .landing-nav-main-button,
+  .landing-nav-arrow-button,
+  .landing-mobile-auth .join-button {
+    min-height: 2.75rem;
+  }
 }
 
 .cta-band .join-button {

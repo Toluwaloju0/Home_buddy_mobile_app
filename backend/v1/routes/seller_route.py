@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, File, Form, UploadFile, BackgroundTasks
 from fastapi.responses import JSONResponse
 from typing import Dict, List
 
+from models.seller_model import Seller
 from database.get_db import get_db
 from database.db_engine import DBStorage, storage
 from middlewares.verify_user import get_user_from_token
@@ -53,19 +54,14 @@ async def get_my_seller_profile(
     seller_response = await storage.get_seller_by_user_id(str(user_response.payload.get("_id")))
     if not seller_response.status:
         content = api_response(False, "Seller profile not found")
-        return JSONResponse(content.to_dict(), 401)
-
-    content = api_response(True, "The seller profile has been retrieved successfully", seller_response.payload)
+    else:
+        content = api_response(True, "The seller profile has been retrieved successfully", seller_response.payload)
     return JSONResponse(content.to_dict())
 
 @seller.put("/profile")
 async def update_my_seller_profile(
-    about_me: str | None = Form(None),
-    cac_registration_number: str | None = Form(None),
-    account_name: str | None = Form(None),
-    bank_name: str | None = Form(None),
-    account_number: str | None = Form(None),
     user_response=Depends(get_user_from_token),
+    storage: DBStorage = Depends(get_db)
 ):
     """Update the authenticated seller profile and the linked user profile."""
 
