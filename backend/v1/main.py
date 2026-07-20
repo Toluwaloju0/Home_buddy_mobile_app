@@ -39,7 +39,7 @@ app.add_middleware(
         "*"
     ],
     allow_credentials=True,  # IMPORTANT: Required for cookies
-    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"],
     allow_headers=["*"],  # Allow all headers
 )
 
