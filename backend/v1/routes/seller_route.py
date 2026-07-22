@@ -79,7 +79,6 @@ async def create_seller_profile(
         content = api_response(False, "This endpoint is for sellers only")
         return JSONResponse(content.to_dict(), 400)
 
-    print(seller)
     if not seller.id_type:
         content = api_response(False, "The means of identification must be provided")
         return JSONResponse(content.to_dict(), 400)
@@ -99,7 +98,7 @@ async def create_seller_profile(
     seller_dict["is_verified"] = False
 
     save_profile_response = await storage.save_seller_profile(seller_dict)
-    if not save_profile_response.payload:
+    if not save_profile_response.status:
         content = api_response(False, "The seller profile data failed to save")
     else:
         content = api_response(True, "The seller profile is saved successfully")
@@ -148,7 +147,7 @@ async def verify_seller(
     id_front: UploadFile,
     id_back: UploadFile,
     user_response = Depends(get_user_from_token),
-    storrage: DBStorage = Depends(get_db),
+    storage: DBStorage = Depends(get_db),
 ):
     """ a endpoint for sellers to submit a verification request using their provided id card front and back
     Args:
@@ -174,14 +173,17 @@ async def verify_seller(
         return JSONResponse(content.to_dict(), 400)
     
     # set background tasks to upload the images and save the key to the database
-    background_tasks.add_task(uploader.upload_seller_verification, user_response.payload.get("_id"), id_front, id_back, storage)
+    background_tasks.add_task(uploader.upload_seller_verification, user_response.payload.get("_id"), id_front, id_back)
     await storage.update_seller_by_user_id(user_response.payload.get("_id"), {"is_verified": "pending"})
 
     content = api_response(True, "the update has been queued, awaiting admin approval")
     return JSONResponse(content.to_dict())
 
 @seller.get("/dashboard/stats")
-async def get_seller_dashboard_stats(user_response=Depends(get_user_from_token)):
+async def get_seller_dashboard_stats(
+    storage: DBStorage = Depends(get_db),
+    user_response=Depends(get_user_from_token)
+):
     """Return seller dashboard stats for listings, enquiries, inspections and deals."""
 
     if not user_response.status:
@@ -541,10 +543,10 @@ async def submit_apartment_listing(
     # upload the provided image to the bucket for save keeping
     for key, value in apartment_media.items():
         if not value: continue
-        background_task.add_task(uploader.upload_listing_media, listing_id, key, value, storage)
+        background_task.add_task(uploader.upload_listing_media, listing_id, key, value)
     for key, value in ownership_media.items():
         if not value: continue
-        background_task.add_task(uploader.upload_listing_media, listing_id, key, value, storage)
+        background_task.add_task(uploader.upload_listing_media, listing_id, key, value)
 
     content = api_response(True, "Listing submitted successfully and is pending admin approval")
     return JSONResponse(content.to_dict())
@@ -741,10 +743,10 @@ async def submit_shop_listing(
     # upload the provided image to the bucket for save keeping
     for key, value in shop_media.items():
         if not value: continue
-        background_task.add_task(uploader.upload_listing_media, listing_id, key, value, storage)
+        background_task.add_task(uploader.upload_listing_media, listing_id, key, value)
     for key, value in ownership_media.items():
         if not value: continue
-        background_task.add_task(uploader.upload_listing_media, listing_id, key, value, storage)
+        background_task.add_task(uploader.upload_listing_media, listing_id, key, value)
 
     content = api_response(True, "Listing submitted successfully")
     return JSONResponse(content.to_dict())
@@ -888,7 +890,7 @@ async def submit_land_listing(
     land_media = {"proof_of_ownership": proof_of_ownership, "land_image": land_image, "land_video": land_video}
     for key, value in land_media.items():
         if not value: continue
-        background_tasks.add_task(uploader.upload_listing_media, listing_id, key, value, storage)
+        background_tasks.add_task(uploader.upload_listing_media, listing_id, key, value)
 
     content = api_response(True, "Land Listing submitted successfully and is pending admin approval")
     return JSONResponse(content.to_dict())

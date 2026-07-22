@@ -15,6 +15,30 @@ const initialFormState = {
   imageUrl: '',
 };
 
+const initialSellerFormState = {
+  aboutMe: '',
+  idType: '',
+  idNumber: '',
+  accountName: '',
+  bankName: '',
+  accountNumber: '',
+};
+
+const initialSellerEditFormState = {
+  aboutMe: '',
+  bankName: '',
+  accountNumber: '',
+};
+
+const sellerFieldLabels = {
+  about_me: 'About me',
+  id_type: 'ID type',
+  id_number: 'ID number',
+  account_name: 'Account name',
+  bank_name: 'Bank name',
+  account_number: 'Account number',
+};
+
 const MAX_PROFILE_IMAGE_BYTES = 1024 * 1024; // 1 MB
 
 const footerPrimaryLinks = [
@@ -157,11 +181,208 @@ function GeneralInformationSection({
   );
 }
 
-function SellerInformationSection({ user, switchingRole, onSwitchToBuyer, feedback }) {
+function SellerInformationSection({
+  user,
+  sellerProfile,
+  sellerForm,
+  sellerEditForm,
+  hasSellerProfileChanges,
+  loadingSellerProfile,
+  creatingSellerProfile,
+  updatingSellerProfile,
+  switchingRole,
+  onSwitchToBuyer,
+  onSellerFieldChange,
+  onSellerEditFieldChange,
+  onCreateSellerProfile,
+  onUpdateSellerProfile,
+  feedback,
+}) {
   const hasBuyerAccess = (user?.role || '').toLowerCase() === 'both';
+  const readOnlySellerProfileFields = [
+    ['id_type', sellerProfile?.id_type],
+    ['id_number', sellerProfile?.id_number],
+    ['account_name', sellerProfile?.account_name],
+  ];
+  const verificationStatus = String(sellerProfile?.is_verified ?? '').toLowerCase();
 
   return (
     <div role="tabpanel">
+      <section className="settings-card seller-profile-card">
+        <div className="settings-section-title">
+          <div>
+            <p className="settings-kicker">Seller onboarding</p>
+            <h2>Seller Profile</h2>
+          </div>
+          <span>Your seller identity and payout details</span>
+        </div>
+
+        {loadingSellerProfile ? (
+          <div className="settings-loading settings-loading--inline">Loading seller profile...</div>
+        ) : sellerProfile ? (
+          <>
+            <form className="seller-profile-edit-form" onSubmit={onUpdateSellerProfile}>
+              <div className="settings-grid settings-grid--two">
+              <label className="settings-grid--full seller-profile-edit-field">
+                About me
+                <textarea
+                  className="form-input form-textarea"
+                  value={sellerEditForm.aboutMe}
+                  onChange={onSellerEditFieldChange('aboutMe')}
+                  placeholder="Tell buyers a little about you"
+                  required
+                />
+              </label>
+              {readOnlySellerProfileFields.map(([key, value]) => (
+                <div className="seller-profile-detail" key={key}>
+                  <span>{sellerFieldLabels[key]}</span>
+                  <strong>{value || 'Not provided'}</strong>
+                </div>
+              ))}
+              <label className="seller-profile-edit-field">
+                Bank name
+                <input
+                  className="form-input"
+                  type="text"
+                  value={sellerEditForm.bankName}
+                  onChange={onSellerEditFieldChange('bankName')}
+                  placeholder="Enter bank name"
+                  required
+                />
+              </label>
+              <label className="seller-profile-edit-field">
+                Account number
+                <input
+                  className="form-input"
+                  type="text"
+                  inputMode="numeric"
+                  value={sellerEditForm.accountNumber}
+                  onChange={onSellerEditFieldChange('accountNumber')}
+                  placeholder="Enter account number"
+                  required
+                />
+              </label>
+              </div>
+              {hasSellerProfileChanges && (
+                <div className="settings-actions seller-profile-create-actions">
+                  <button type="submit" className="primary-button" disabled={updatingSellerProfile}>
+                    {updatingSellerProfile ? 'Updating seller profile...' : 'Update seller profile'}
+                  </button>
+                </div>
+              )}
+            </form>
+            {verificationStatus === 'false' && (
+              <div className="seller-verification-cta">
+                <div>
+                  <p className="settings-kicker">Seller verification</p>
+                  <h3>Verify your seller role</h3>
+                  <p>Upload the front and back of your identification document to unlock verified seller status.</p>
+                </div>
+                <Link className="primary-button" href="/seller/profile/verify">Verify seller role</Link>
+              </div>
+            )}
+            {verificationStatus === 'pending' && (
+              <div className="seller-verification-cta seller-verification-cta--pending">
+                <div>
+                  <p className="settings-kicker">Seller verification</p>
+                  <h3>Verification is pending</h3>
+                  <p>Your documents are being reviewed. We’ll update your seller status when the review is complete.</p>
+                </div>
+                <button type="button" className="primary-button" disabled>Review pending</button>
+              </div>
+            )}
+          </>
+        ) : (
+          <form className="seller-profile-create-form" onSubmit={onCreateSellerProfile}>
+            <div className="seller-profile-empty-state">
+              <div className="seller-profile-empty-icon" aria-hidden="true">✓</div>
+              <div>
+                <h3>Create your seller profile</h3>
+                <p>
+                  Add your verification and payout information so your seller account is ready for listings and payments.
+                </p>
+              </div>
+            </div>
+            <div className="settings-grid settings-grid--two">
+              <label className="settings-grid--full">
+                About Me
+                <textarea
+                  className="form-input form-textarea"
+                  value={sellerForm.aboutMe}
+                  onChange={onSellerFieldChange('aboutMe')}
+                  placeholder="Tell buyers a little about you"
+                  required
+                />
+              </label>
+              <label>
+                ID Type
+                <select
+                  className="form-input"
+                  value={sellerForm.idType}
+                  onChange={onSellerFieldChange('idType')}
+                  required
+                >
+                  <option value="">Select identification type</option>
+                  <option value="nin">NIN</option>
+                  <option value="voters card">Voters card</option>
+                  <option value="drivers license">Drivers license</option>
+                </select>
+              </label>
+              <label>
+                ID Number
+                <input
+                  className="form-input"
+                  type="text"
+                  value={sellerForm.idNumber}
+                  onChange={onSellerFieldChange('idNumber')}
+                  placeholder="Enter your ID number"
+                  required
+                />
+              </label>
+              <label>
+                Account Name
+                <input
+                  className="form-input"
+                  type="text"
+                  value={sellerForm.accountName}
+                  onChange={onSellerFieldChange('accountName')}
+                  placeholder="Enter account name"
+                  required
+                />
+              </label>
+              <label>
+                Bank Name
+                <input
+                  className="form-input"
+                  type="text"
+                  value={sellerForm.bankName}
+                  onChange={onSellerFieldChange('bankName')}
+                  placeholder="Enter bank name"
+                  required
+                />
+              </label>
+              <label>
+                Account Number
+                <input
+                  className="form-input"
+                  type="text"
+                  inputMode="numeric"
+                  value={sellerForm.accountNumber}
+                  onChange={onSellerFieldChange('accountNumber')}
+                  placeholder="Enter account number"
+                  required
+                />
+              </label>
+            </div>
+            <div className="settings-actions seller-profile-create-actions">
+              <button type="submit" className="primary-button" disabled={creatingSellerProfile}>
+                {creatingSellerProfile ? 'Creating seller profile...' : 'Create seller profile'}
+              </button>
+            </div>
+          </form>
+        )}
+      </section>
+
       <section className="settings-card buyer-role-card">
         <div>
           <p className="settings-kicker">Buyer access</p>
@@ -203,9 +424,16 @@ export default function SellerProfileSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [switchingRole, setSwitchingRole] = useState(false);
+  const [loadingSellerProfile, setLoadingSellerProfile] = useState(true);
+  const [creatingSellerProfile, setCreatingSellerProfile] = useState(false);
+  const [updatingSellerProfile, setUpdatingSellerProfile] = useState(false);
   const [activeMode, setActiveMode] = useState('general');
   const [feedback, setFeedback] = useState(null);
+  const [sellerFeedback, setSellerFeedback] = useState(null);
   const [form, setForm] = useState(initialFormState);
+  const [sellerForm, setSellerForm] = useState(initialSellerFormState);
+  const [sellerEditForm, setSellerEditForm] = useState(initialSellerEditFormState);
+  const [sellerProfile, setSellerProfile] = useState(null);
   const [profileImageFile, setProfileImageFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
   const imageInputRef = useRef(null);
@@ -238,11 +466,55 @@ export default function SellerProfileSettingsPage() {
     setLoadingUser(false);
   };
 
+  const loadSellerProfile = async () => {
+    setLoadingSellerProfile(true);
+
+    try {
+      const response = await authFetch(`${API_BASE_URL}/seller/me`, {
+        method: 'GET',
+      });
+
+      if (!response) {
+        setSellerFeedback({ type: 'error', text: 'Unable to load seller profile. Please try again.' });
+        setSellerProfile(null);
+        return;
+      }
+
+      const data = await response.json().catch(() => null);
+
+      if (response.status === 200 && data?.status) {
+        const payload = data.payload || null;
+        setSellerProfile(payload);
+        setSellerEditForm({
+          aboutMe: payload?.about_me || '',
+          bankName: payload?.bank_name || '',
+          accountNumber: payload?.account_number || '',
+        });
+        setSellerFeedback(null);
+      } else if (response.status === 200 && data?.status === false) {
+        setSellerProfile(null);
+        setSellerEditForm(initialSellerEditFormState);
+        setSellerFeedback(null);
+      } else {
+        setSellerProfile(null);
+        setSellerEditForm(initialSellerEditFormState);
+        setSellerFeedback({ type: 'error', text: data?.message || 'Unable to load seller profile. Please try again.' });
+      }
+    } catch (error) {
+      console.error('Seller profile load failed:', error);
+      setSellerProfile(null);
+      setSellerEditForm(initialSellerEditFormState);
+      setSellerFeedback({ type: 'error', text: 'Unable to load seller profile. Please try again.' });
+    } finally {
+      setLoadingSellerProfile(false);
+    }
+  };
+
   useEffect(() => {
     let mounted = true;
 
     async function init() {
-      await loadUser();
+      await Promise.all([loadUser(), loadSellerProfile()]);
       if (!mounted) return;
     }
 
@@ -251,6 +523,12 @@ export default function SellerProfileSettingsPage() {
     return () => {
       mounted = false;
     };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('section') === 'seller') {
+      setActiveMode('seller');
+    }
   }, []);
 
   useEffect(() => {
@@ -276,9 +554,39 @@ export default function SellerProfileSettingsPage() {
 
   const imageSource = previewUrl || form.imageUrl;
 
+  const sellerProfileChanges = useMemo(() => {
+    if (!sellerProfile) return {};
+
+    const changes = {};
+    const currentAboutMe = sellerProfile.about_me || '';
+    const currentBankName = sellerProfile.bank_name || '';
+    const currentAccountNumber = sellerProfile.account_number || '';
+    const nextAboutMe = sellerEditForm.aboutMe.trim();
+    const nextBankName = sellerEditForm.bankName.trim();
+    const nextAccountNumber = sellerEditForm.accountNumber.trim();
+
+    if (nextAboutMe !== currentAboutMe) changes.about_me = nextAboutMe;
+    if (nextBankName !== currentBankName) changes.bank_name = nextBankName;
+    if (nextAccountNumber !== currentAccountNumber) changes.account_number = nextAccountNumber;
+
+    return changes;
+  }, [sellerEditForm, sellerProfile]);
+
+  const hasSellerProfileChanges = Object.keys(sellerProfileChanges).length > 0;
+
   const handleFieldChange = (field) => (event) => {
     const value = event.target.value;
     setForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const handleSellerFieldChange = (field) => (event) => {
+    const value = event.target.value;
+    setSellerForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const handleSellerEditFieldChange = (field) => (event) => {
+    const value = event.target.value;
+    setSellerEditForm((current) => ({ ...current, [field]: value }));
   };
 
   const handleImageChange = (event) => {
@@ -400,6 +708,86 @@ export default function SellerProfileSettingsPage() {
     setSwitchingRole(false);
   };
 
+  const handleCreateSellerProfile = async (event) => {
+    event.preventDefault();
+    setCreatingSellerProfile(true);
+    setSellerFeedback(null);
+
+    const payload = {
+      about_me: sellerForm.aboutMe.trim(),
+      id_type: sellerForm.idType,
+      id_number: sellerForm.idNumber.trim(),
+      account_name: sellerForm.accountName.trim(),
+      bank_name: sellerForm.bankName.trim(),
+      account_number: sellerForm.accountNumber.trim(),
+    };
+
+    if (Object.values(payload).some((value) => !value)) {
+      setSellerFeedback({ type: 'error', text: 'Please provide all seller profile information.' });
+      setCreatingSellerProfile(false);
+      return;
+    }
+
+    try {
+      const response = await authFetch(`${API_BASE_URL}/seller/me`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response?.json().catch(() => null);
+
+      if (response?.status === 200 && data?.status) {
+        setSellerFeedback({ type: 'success', text: data.message || 'Seller profile created successfully.' });
+        setSellerForm(initialSellerFormState);
+        await loadSellerProfile();
+      } else {
+        setSellerFeedback({ type: 'error', text: data?.message || 'Unable to create seller profile. Please try again.' });
+      }
+    } catch (error) {
+      console.error('Seller profile create failed:', error);
+      setSellerFeedback({ type: 'error', text: 'Unable to create seller profile. Please try again.' });
+    }
+
+    setCreatingSellerProfile(false);
+  };
+
+  const handleUpdateSellerProfile = async (event) => {
+    event.preventDefault();
+    if (!hasSellerProfileChanges || updatingSellerProfile) return;
+
+    setUpdatingSellerProfile(true);
+    setSellerFeedback(null);
+
+    if (Object.values(sellerProfileChanges).some((value) => !value)) {
+      setSellerFeedback({ type: 'error', text: 'Please provide a value for each edited seller profile field.' });
+      setUpdatingSellerProfile(false);
+      return;
+    }
+
+    try {
+      const response = await authFetch(`${API_BASE_URL}/seller/me`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sellerProfileChanges),
+      });
+
+      const data = await response?.json().catch(() => null);
+
+      if (response?.status === 200 && data?.status) {
+        setSellerFeedback({ type: 'success', text: data.message || 'Seller profile updated successfully.' });
+        await loadSellerProfile();
+      } else {
+        setSellerFeedback({ type: 'error', text: data?.message || 'Unable to update seller profile. Please try again.' });
+      }
+    } catch (error) {
+      console.error('Seller profile update failed:', error);
+      setSellerFeedback({ type: 'error', text: 'Unable to update seller profile. Please try again.' });
+    }
+
+    setUpdatingSellerProfile(false);
+  };
+
   if (loadingUser) {
     return (
       <main className="settings-page-shell buyer-profile-shell">
@@ -461,9 +849,20 @@ export default function SellerProfileSettingsPage() {
         ) : (
           <SellerInformationSection
             user={user}
+            sellerProfile={sellerProfile}
+            sellerForm={sellerForm}
+            sellerEditForm={sellerEditForm}
+            hasSellerProfileChanges={hasSellerProfileChanges}
+            loadingSellerProfile={loadingSellerProfile}
+            creatingSellerProfile={creatingSellerProfile}
+            updatingSellerProfile={updatingSellerProfile}
             switchingRole={switchingRole}
             onSwitchToBuyer={handleBuyerAction}
-            feedback={feedback}
+            onSellerFieldChange={handleSellerFieldChange}
+            onSellerEditFieldChange={handleSellerEditFieldChange}
+            onCreateSellerProfile={handleCreateSellerProfile}
+            onUpdateSellerProfile={handleUpdateSellerProfile}
+            feedback={sellerFeedback}
           />
         )}
       </div>

@@ -38,7 +38,7 @@ class S3Uploader:
         self.access_key = cfg.aws_access_key_id
         self.secret_key = cfg.aws_secret_access_key
 
-    def upload_listing_media(self, listing_id: str, media_name: str, media: UploadFile, storage: DBStorage):
+    def upload_listing_media(self, listing_id: str, media_name: str, media: UploadFile):
         """ a method to upload a listing to amazon s3 bucket and get the result of the ai fraud detector scan
         Args:
             listing_id: the id of the seller having the listing
@@ -48,6 +48,8 @@ class S3Uploader:
 
         if not media:
             return
+
+        storage = DBStorage()
         
         key = f"listings/{listing_id}/{media_name}.{media.filename.split(".")[-1]}"
 
@@ -159,12 +161,14 @@ class S3Uploader:
             print(e)
             logger.error(e)
 
-    def upload_seller_verification(self, user_id, id_front, id_back, storage: DBStorage):
+    def upload_seller_verification(self, user_id, id_front, id_back):
         """ a method to upload seller verification images for admin review
         Args:
             id_front: the front of the id
             id_back: the back of the id
         """
+
+        storage = DBStorage()
 
         front_key = f"verify/{user_id}/id_front.{id_front.filename.split('.')[-1]}"
         back_key = f"verify/{user_id}/id_back.{id_back.filename.split('.')[-1]}"

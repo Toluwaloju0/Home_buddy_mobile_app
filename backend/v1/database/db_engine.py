@@ -349,7 +349,7 @@ class DBStorage:
         if await self.__seller.count_documents({"user_id": ObjectId(user_id)}) != 1:
             return function_response(False)
         
-        await self.__seller.update_one({"user_id": ObjectId(user_id)}, {"$se": update_dict})
+        await self.__seller.update_one({"user_id": ObjectId(user_id)}, {"$set": update_dict})
         return function_response(True)
 
     @safe_db_operation

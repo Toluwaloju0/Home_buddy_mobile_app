@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { API_BASE_URL, authFetch, redirectToLogin } from '../../lib/api';
 import SellerHeader from '../components/SellerHeader';
@@ -19,6 +20,8 @@ export default function SellerPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
+  const [loadingSellerProfile, setLoadingSellerProfile] = useState(true);
+  const [hasSellerProfile, setHasSellerProfile] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -46,6 +49,31 @@ export default function SellerPage() {
     }
 
     loadUser();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadSellerProfile() {
+      try {
+        const response = await authFetch(`${API_BASE_URL}/seller/me`, { method: 'GET' });
+        const data = await response?.json().catch(() => null);
+
+        if (!mounted) return;
+        setHasSellerProfile(response?.status === 200 && data?.status === true && Boolean(data?.payload));
+      } catch (error) {
+        console.error('Seller dashboard profile check failed:', error);
+        if (mounted) setHasSellerProfile(false);
+      } finally {
+        if (mounted) setLoadingSellerProfile(false);
+      }
+    }
+
+    loadSellerProfile();
 
     return () => {
       mounted = false;
@@ -91,6 +119,16 @@ export default function SellerPage() {
   return (
     <main className="page-shell seller-page-shell">
       <SellerHeader user={user} loadingUser={loadingUser} />
+
+      {!loadingSellerProfile && !hasSellerProfile && (
+        <div className="seller-profile-dashboard-alert" role="status">
+          <div>
+            <strong>Complete your seller profile</strong>
+            <p>Create your seller profile and provide your payment details before listing properties.</p>
+          </div>
+          <Link className="action-button" href="/seller/profile?section=seller">Create seller profile</Link>
+        </div>
+      )}
 
       <section className="hero">
         <div className="hero-overlay" />

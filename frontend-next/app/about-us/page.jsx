@@ -4,7 +4,7 @@ export default function AboutUsPage() {
   return (
     <InfoPageLayout
       title="About Us"
-      lead="Home Buddy is a modern real estate platform helping people find verified homes easily, safely and stress-fre. We combine smart technology with trusted property solutions to simplify housing, reduce fraud, and improve the way people live."
+      lead="Home Buddy is a modern real estate platform helping people find verified homes easily, safely and stress-free. We combine smart technology with trusted property solutions to simplify housing, reduce fraud, and improve the way people live."
       highlights={['Verified Listings', 'Role-Based Dashboards', 'Trust-First Process', 'Trusted Living', 'Smart Real Estate']}
       sections={[
         {
