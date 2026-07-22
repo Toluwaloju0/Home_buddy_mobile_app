@@ -68,7 +68,7 @@ a {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  width: 100%;
+  width: 50%;
 }
 
 .landing-brand-lockup {
@@ -92,22 +92,10 @@ a {
   flex-wrap: wrap;
 }
 
-.landing-nav-item {
-  position: relative;
-  display: inline-flex;
-  flex-direction: column;
-  align-items: stretch;
-}
-
-.landing-nav-item-row {
+.landing-nav-link {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-}
-
-.landing-nav-main-button,
-.landing-nav-arrow-button,
-.landing-nav-link {
+  justify-content: center;
   border: 0;
   background: transparent;
   color: var(--text);
@@ -119,63 +107,13 @@ a {
   transition: background 160ms ease, color 160ms ease;
 }
 
-.landing-nav-main-button:hover,
-.landing-nav-arrow-button:hover,
 .landing-nav-link:hover {
   background: rgba(19, 33, 38, 0.06);
-}
-
-.landing-nav-arrow-button {
-  padding-inline: 0.45rem;
-  font-size: 0.8rem;
-}
-
-.landing-nav-link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .landing-nav-link--disabled {
   cursor: default;
   opacity: 0.78;
-}
-
-.landing-dropdown {
-  position: absolute;
-  top: calc(100% + 0.35rem);
-  left: 0;
-  min-width: 10rem;
-  padding: 0.45rem;
-  border-radius: 0.85rem;
-  background: white;
-  border: 1px solid rgba(19, 33, 38, 0.1);
-  box-shadow: var(--shadow);
-  display: none;
-  z-index: 40;
-}
-
-.landing-dropdown--open {
-  display: grid;
-  gap: 0.3rem;
-}
-
-.landing-dropdown-item {
-  width: 100%;
-  text-align: left;
-  padding: 0.65rem 0.75rem;
-  border: 0;
-  background: transparent;
-  border-radius: 0.55rem;
-  font: inherit;
-  font-weight: 600;
-  color: var(--text);
-  cursor: pointer;
-}
-
-.landing-dropdown-item:hover {
-  background: rgba(23, 165, 107, 0.08);
-  color: var(--accent-strong);
 }
 
 .landing-mobile-toggle {
@@ -295,154 +233,6 @@ a {
   margin: 0;
   padding: 1.5rem 2rem 2rem;
   box-sizing: border-box;
-}
-
-.seller-topbar {
-  overflow: visible;
-}
-
-.seller-user-menu {
-  position: relative;
-}
-
-.profile-trigger {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  border: 0;
-  background: transparent;
-  color: #16252a;
-  cursor: pointer;
-  font-weight: 700;
-  padding: 0.35rem 0.5rem;
-  border-radius: 0.55rem;
-}
-
-.profile-trigger:hover {
-  background: rgba(19, 33, 38, 0.06);
-}
-
-.profile-icon,
-.profile-dropdown-avatar {
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 999px;
-  background:
-    radial-gradient(circle at 45% 30%, #f7d4bf 0 35%, #6e4e42 36% 53%, #2d3c45 54% 100%);
-}
-
-  .profile-avatar-shell,
-  .profile-dropdown-avatar-shell {
-    display: block;
-    border-radius: 999px;
-  }
-
-  .profile-avatar-shell {
-    width: 1.75rem;
-    height: 1.75rem;
-  }
-
-  .profile-dropdown-avatar-shell {
-    width: 3.6rem;
-    height: 3.6rem;
-  }
-
-  .user-avatar {
-    position: relative;
-    flex-shrink: 0;
-    overflow: hidden;
-    background: linear-gradient(135deg, #e6ecef, #cfd8dc);
-    color: #314047;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    line-height: 1;
-  }
-
-  .user-avatar--sm {
-    width: 1.75rem;
-    height: 1.75rem;
-    border-radius: 999px;
-  }
-
-  .user-avatar--md {
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: 999px;
-  }
-
-  .user-avatar--lg {
-    width: 3.6rem;
-    height: 3.6rem;
-    border-radius: 999px;
-  }
-
-  .user-avatar__image {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-
-  .user-avatar__fallback {
-    font-size: 0.72rem;
-  }
-
-  .user-avatar--lg .user-avatar__fallback {
-    font-size: 1rem;
-  }
-
-.profile-name {
-  font-size: 0.92rem;
-}
-
-.profile-caret {
-  color: #5d6b70;
-  font-size: 0.72rem;
-}
-
-.profile-dropdown {
-  position: absolute;
-  top: calc(100% + 0.6rem);
-  right: 0;
-  width: 20rem;
-  border-radius: 1rem;
-  background: #f4f5f5;
-  border: 1px solid rgba(19, 33, 38, 0.1);
-  box-shadow: var(--shadow);
-  padding: 1rem;
-  z-index: 35;
-}
-
-.profile-dropdown-header {
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
-  font-size: 2rem;
-  font-weight: 800;
-  margin-bottom: 1rem;
-}
-
-.profile-dropdown-avatar {
-  width: 3.6rem;
-  height: 3.6rem;
-}
-
-.profile-dropdown-item {
-  width: 100%;
-  text-align: left;
-  border: 0;
-  background: transparent;
-  color: #7b8685;
-  font-size: 2rem;
-  line-height: 1.15;
-  padding: 0.95rem 0;
-  cursor: pointer;
-}
-
-.profile-dropdown-item:hover {
-  color: #2f3c3f;
 }
 
 .join-button {
@@ -1058,9 +848,8 @@ a {
 
 /* About / Mission / Vision styling */
 .about-section {
-  padding: 3rem 2rem;
-  background: linear-gradient(180deg, rgba(255,255,255,0.6), transparent 40%);
-  /* removed top/bottom dividing lines for a cleaner look */
+  padding: 3rem 1.25rem;
+  background: transparent;
 }
 
 .about-section h2 {
@@ -2735,18 +2524,19 @@ a {
   }
 
   .landing-topbar {
-    flex-direction: column;
-    align-items: stretch;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 0.75rem;
   }
 
   .landing-header-main {
     width: 100%;
+    align-items: flex-start;
+    justify-content: space-between;
   }
 
   .landing-nav {
-    flex-direction: column;
-    align-items: stretch;
-    width: 100%;
+    width: auto;
   }
 
   .landing-nav-center,
@@ -2757,14 +2547,26 @@ a {
   .landing-mobile-toggle {
     display: inline-flex;
     flex-shrink: 0;
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 60;
   }
 
   .landing-mobile-menu {
     display: none;
     flex-direction: column;
     gap: 0.7rem;
-    width: 100%;
-    padding-top: 0.5rem;
+    position: fixed;
+    top: 4rem;
+    right: 1rem;
+    width: min(22rem, calc(100vw - 2rem));
+    padding: 0.85rem;
+    border-radius: 0.95rem;
+    background: white;
+    border: 1px solid rgba(19, 33, 38, 0.1);
+    box-shadow: var(--shadow);
+    z-index: 55;
   }
 
   .landing-nav--open .landing-mobile-menu {
@@ -2801,24 +2603,30 @@ a {
 }
 
 .reason-row {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 1rem;
+  display: flex;
+  flex-wrap: nowrap;          /* never break to a new line */
+  justify-content: center;    /* center as a group */
+  align-items: flex-start;
+  gap: clamp(0.4rem, 2vw, 2rem);
   margin-top: 2rem;
+  width: 100%;
 }
 
 .reason-item {
   display: grid;
   justify-items: center;
-  gap: 0.8rem;
+  gap: clamp(0.35rem, 1vw, 0.8rem);
   color: #1b282c;
-  font-size: 0.95rem;
+  font-size: clamp(0.6rem, 1.6vw, 0.95rem);
   font-weight: 700;
+  min-width: 0;                /* required so items can shrink below content size */
+  flex: 1 1 0;                 /* grow to fill wide screens, shrink on narrow ones */
+  max-width: 9rem;             /* stop items getting absurdly wide on huge screens */
 }
 
 .reason-icon {
-  width: 3rem;
-  height: 3rem;
+  width: clamp(1.8rem, 6vw, 3rem);
+  height: clamp(1.8rem, 6vw, 3rem);
   border-radius: 999px;
   background: rgba(23, 165, 107, 0.15);
   box-shadow: inset 0 0 0 1px rgba(23, 165, 107, 0.25);
@@ -2826,6 +2634,16 @@ a {
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  flex-shrink: 0;
+}
+
+.reason-item span {
+  white-space: normal;         /* allow wrapping instead of forcing one line */
+  overflow-wrap: break-word;   /* break long words if needed so they don't overflow */
+  word-break: break-word;
+  text-align: center;
+  line-height: 1.2;
+  max-width: 100%;             /* stay within the item's own width, never spill into neighbor */
 }
 
 .reason-icon-image {
@@ -2950,7 +2768,52 @@ a {
   font-size: 0.9rem;
 }
 
-/* Seller page: profile dropdown styles */
+/* Seller page: header layout — brand | centered nav | right-side actions */
+.topbar.seller-topbar {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 1rem;
+  overflow: visible;
+  flex-wrap: nowrap;
+}
+
+.seller-topbar .brand-lockup {
+  grid-column: 1;
+  justify-self: start;
+  min-width: 0;
+}
+
+.seller-topbar .landing-nav-center {
+  grid-column: 2;
+  display: flex;
+  justify-self: center;
+  justify-content: center;
+  gap: 0.35rem;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+.seller-topbar .landing-nav-link {
+  white-space: nowrap;
+}
+
+.seller-topbar-actions {
+  grid-column: 3;
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.seller-topbar .landing-mobile-toggle {
+  display: none;
+}
+
+.seller-topbar .landing-mobile-menu {
+  display: none;
+}
+
 .seller-user-menu {
   position: relative;
   display: inline-block;
@@ -3008,7 +2871,7 @@ a {
   position: absolute;
   right: 0;
   top: calc(100% + 0.5rem);
-  min-width: 14.5rem;
+  width: min(20rem, calc(100vw - 1rem));
   background: #fff;
   border-radius: 0.6rem;
   box-shadow: 0 10px 30px rgba(8, 15, 22, 0.12);
@@ -3055,6 +2918,97 @@ a {
 
 .profile-dropdown-item:hover {
   background: rgba(19, 33, 38, 0.03);
+}
+
+/* Consolidation for Tablet and Phone Views */
+@media (max-width: 1240px) {
+  header.topbar.seller-topbar {
+    display: grid !important;
+    /* Divide screen into 3 mathematically equal columns */
+    grid-template-columns: 1fr 1fr 1fr !important; 
+    width: 100% !important;
+    padding: 0.5rem 1rem !important;
+    gap: 0 !important;
+    align-items: center !important;
+    box-sizing: border-box !important;
+  }
+
+  /* 1. LEFT: Brand Icon only (Hide text) */
+  .seller-topbar .brand-lockup {
+    grid-column: 1 / 2 !important;
+    justify-self: start !important;
+  }
+  .seller-topbar .brand-lockup .brand-name, 
+  .seller-topbar .brand-lockup .brand-tagline {
+    display: none !important; /* Removes name and tagline as requested */
+  }
+
+  /* 2. CENTER: Mobile Toggle (Hamburger) */
+  .seller-topbar .landing-nav-center { 
+    display: none !important; /* Hide horizontal text links */
+  }
+  
+  .seller-topbar .landing-mobile-toggle {
+    display: flex !important;
+    grid-column: 2 / 3 !important;
+    justify-self: center !important;
+    position: static !important; /* Remove the "fixed" positioning */
+    width: 2.6rem !important;
+    height: 2.6rem !important;
+    margin: 0 !important;
+  }
+
+  /* 3. RIGHT: Profile Avatar */
+  .seller-topbar .seller-user-menu {
+    grid-column: 3 / 4 !important;
+    justify-self: end !important;
+    position: relative !important;
+  }
+
+  /* Hide the text next to avatar for a cleaner look on tab/phone */
+  .seller-topbar .profile-name,
+  .seller-topbar .profile-caret {
+    display: none !important;
+  }
+
+  /* 4. FIX DROPDOWN OVERFLOW (Anchors to right edge) */
+  .seller-topbar .profile-dropdown {
+    position: absolute !important;
+    right: 0 !important; /* Anchors to the right edge of avatar */
+    left: auto !important; /* Prevents spilling to the right */
+    top: calc(100% + 10px) !important;
+    width: 220px !important;
+    max-width: 80vw !important;
+    font-size: 0.85rem !important; /* Smaller text for profile items */
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15) !important;
+  }
+
+  /* 5. NAV MENU DROPDOWN (Hamburger Menu) */
+  .seller-topbar .landing-mobile-menu {
+    position: absolute !important;
+    top: 100% !important;
+    left: 10px !important;
+    right: 10px !important;
+    width: calc(100vw - 20px) !important;
+    border-radius: 1rem !important;
+    background: white !important;
+    padding: 0.5rem !important;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+    z-index: 1000 !important;
+  }
+
+  .seller-topbar .landing-nav-link--mobile {
+    font-size: 0.82rem !important; /* Smaller text for menu button links */
+    padding: 0.6rem 1rem !important;
+    text-align: center !important;
+  }
+}
+
+/* Ensure nothing overrides the 3-column layout at the smallest sizes */
+@media (max-width: 700px) {
+    header.topbar.seller-topbar {
+        grid-template-columns: 1fr 1fr 1fr !important;
+    }
 }
 
 .phone-mock {
@@ -4887,42 +4841,6 @@ html, body {
 .info-card--mint .card-image,
 .info-card--dark .card-image {
   filter: saturate(1.02) contrast(1);
-}
-
-.reason-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 1rem;
-  margin-top: 2rem;
-}
-
-.reason-item {
-  text-align: center;
-  gap: 0.6rem;
-  font-weight: 700;
-  color: var(--text);
-}
-
-.reason-icon {
-  width: 3.4rem;
-  height: 3.4rem;
-  border-radius: 14px;
-  background: linear-gradient(135deg, rgba(15, 118, 110, 0.08), rgba(14, 118, 110, 0.06));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: inset 0 -2px 12px rgba(12, 28, 22, 0.02);
-}
-
-.reason-icon-image {
-  width: 48%;
-  height: 48%;
-  opacity: 0.96;
-}
-
-.about-section {
-  padding: 3rem 1.25rem;
-  background: transparent;
 }
 
 .mission, .vision {

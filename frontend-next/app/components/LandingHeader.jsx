@@ -2,89 +2,18 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-
-const menuItems = [
-  {
-    key: 'buy',
-    label: 'Buy',
-    role: 'buyer',
-    items: ['Apartment', 'Land', 'Shop'],
-  },
-  {
-    key: 'rent',
-    label: 'Rent',
-    role: 'buyer',
-    items: ['Apartment', 'Land', 'Shop'],
-  },
-  {
-    key: 'sell',
-    label: 'Sell',
-    role: 'seller',
-    items: ['Apartment', 'Land', 'Shop'],
-  },
-];
 
 export default function LandingHeader() {
-  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [openDropdown, setOpenDropdown] = useState(null);
 
   const navLinkClassName = useMemo(() => 'landing-nav-link', []);
 
-  const goToSignup = (role) => {
-    router.push(`/signup?role=${role}`);
-    setMobileMenuOpen(false);
-    setOpenDropdown(null);
-  };
-
-  const toggleDropdown = (key) => {
-    setOpenDropdown((current) => (current === key ? null : key));
-  };
-
   const handleMobileMenuToggle = () => {
     setMobileMenuOpen((current) => !current);
-    setOpenDropdown(null);
   };
 
-  const renderMenuItem = (item, mobile = false) => {
-    const isOpen = openDropdown === item.key;
-
-    return (
-      <div key={item.key} className={`landing-nav-item ${mobile ? 'landing-nav-item--mobile' : ''}`}>
-        <div className="landing-nav-item-row">
-          <button
-            type="button"
-            className="landing-nav-main-button"
-            onClick={() => goToSignup(item.role)}
-          >
-            {item.label}
-          </button>
-          <button
-            type="button"
-            className="landing-nav-arrow-button"
-            onClick={() => toggleDropdown(item.key)}
-            aria-expanded={isOpen}
-            aria-label={`Toggle ${item.label} options`}
-          >
-            ▾
-          </button>
-        </div>
-
-        <div className={`landing-dropdown ${isOpen ? 'landing-dropdown--open' : ''}`}>
-          {item.items.map((choice) => (
-            <button
-              key={choice}
-              type="button"
-              className="landing-dropdown-item"
-              onClick={() => goToSignup(item.role)}
-            >
-              {choice}
-            </button>
-          ))}
-        </div>
-      </div>
-    );
+  const handleNavClick = () => {
+    setMobileMenuOpen(false);
   };
 
   return (
@@ -111,7 +40,17 @@ export default function LandingHeader() {
 
       <nav className={`landing-nav ${mobileMenuOpen ? 'landing-nav--open' : ''}`} aria-label="Primary navigation">
         <div className="landing-nav-center">
-          {menuItems.map((item) => renderMenuItem(item))}
+          <Link className={navLinkClassName} href="/signup?role=buyer">
+            Buy
+          </Link>
+
+          <Link className={navLinkClassName} href="/signup?role=buyer">
+            Rent
+          </Link>
+
+          <Link className={navLinkClassName} href="/signup?role=seller">
+            Sell
+          </Link>
 
           <Link className={navLinkClassName} href="/search">
             Search
@@ -127,14 +66,24 @@ export default function LandingHeader() {
             Login
           </Link>
           <Link className="join-button join-button--secondary" href="/signup">
-            Signup
+            Sign up
           </Link>
         </div>
 
         <div className="landing-mobile-menu" aria-label="Mobile navigation links">
-          {menuItems.map((item) => renderMenuItem(item, true))}
+          <Link className="landing-nav-link landing-nav-link--mobile" href="/signup?role=buyer" onClick={handleNavClick}>
+            Buy
+          </Link>
 
-          <Link className="landing-nav-link landing-nav-link--mobile" href="/search" onClick={() => setMobileMenuOpen(false)}>
+          <Link className="landing-nav-link landing-nav-link--mobile" href="/signup?role=buyer" onClick={handleNavClick}>
+            Rent
+          </Link>
+
+          <Link className="landing-nav-link landing-nav-link--mobile" href="/signup?role=seller" onClick={handleNavClick}>
+            Sell
+          </Link>
+
+          <Link className="landing-nav-link landing-nav-link--mobile" href="/search" onClick={handleNavClick}>
             Search
           </Link>
 
@@ -143,11 +92,11 @@ export default function LandingHeader() {
           </button>
 
           <div className="landing-mobile-auth">
-            <Link className="join-button" href="/login" onClick={() => setMobileMenuOpen(false)}>
+            <Link className="join-button" href="/login" onClick={handleNavClick}>
               Login
             </Link>
-            <Link className="join-button join-button--secondary" href="/signup" onClick={() => setMobileMenuOpen(false)}>
-              Signup
+            <Link className="join-button join-button--secondary" href="/signup" onClick={handleNavClick}>
+              Sign up
             </Link>
           </div>
         </div>

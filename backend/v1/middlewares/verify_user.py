@@ -11,10 +11,8 @@ async def get_user_from_token(request: Request):
 
 
     access_token = request.cookies.get("access_token")
-    print(access_token, "The access token from the cookie")
 
     user_response = await token_manager.verify_access_token(access_token)
-    print(user_response, "The user response from the token manager")
     return user_response
 
 

@@ -181,11 +181,11 @@ export default function HomePage() {
         <h2>Start your next move today</h2>
         <p>Buy, Rent, or Sell with Confidence</p>
         <div className="auth-action-group auth-action-group--center" aria-label="Account actions">
-          <a className="join-button join-button--center" href="/signup">
-            Join
-          </a>
           <a className="join-button join-button--center join-button--secondary" href="/login">
-            Sign in
+            Login
+          </a>
+          <a className="join-button join-button--center" href="/signup">
+            Sign up
           </a>
         </div>
       </section>
