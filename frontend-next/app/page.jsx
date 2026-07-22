@@ -23,10 +23,9 @@ const featureCards = [
 ];
 
 const reasons = [
-  { key: 'verified', label: 'Verified listings', icon: '/icons/verified.svg' },
-  { key: 'escrow', label: 'Escrow payment', icon: '/icons/escrow.svg' },
-  { key: 'insights', label: 'Lagos insights', icon: '/icons/insights.svg' },
-  { key: 'facility', label: 'Facility management', icon: '/icons/facility.svg' },
+  { key: 'verified', label: 'Verified listings', icon: '/icons/verified.svg', href: '/search' },
+  { key: 'escrow', label: 'Escrow payment', icon: '/icons/escrow.svg', href: '/services' },
+  { key: 'facility', label: 'Facility management', icon: '/icons/facility.svg', href: '/services' },
 ];
 
 const properties = [
@@ -67,6 +66,7 @@ const testimonials = [
   },
 ];
 
+import Link from 'next/link';
 import SearchBar from './components/SearchBar';
 import SearchPopout from './components/SearchPopout';
 import FeaturedProperties from './components/FeaturedProperties';
@@ -114,14 +114,14 @@ export default function HomePage() {
 
       <section className="why-section">
         <h2>Why Choose Home Buddy Connect Limited</h2>
-        <div className="reason-row" aria-hidden="true">
+        <div className="reason-row">
           {reasons.map((reason) => (
-            <div className="reason-item" key={reason.key}>
+            <Link className="reason-item" href={reason.href} key={reason.key}>
               <div className="reason-icon" aria-hidden="true">
                 <img src={reason.icon} alt="" className="reason-icon-image" />
               </div>
               <span>{reason.label}</span>
-            </div>
+            </Link>
           ))}
         </div>
       </section>

@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from bson import ObjectId
-from fastapi import APIRouter, Depends, File, Form, UploadFile, BackgroundTasks
+from fastapi import APIRouter, Depends, File, Form, UploadFile, BackgroundTasks, Body
 from fastapi.responses import JSONResponse
 from typing import Dict, List
 
@@ -58,102 +58,93 @@ async def get_my_seller_profile(
         content = api_response(True, "The seller profile has been retrieved successfully", seller_response.payload)
     return JSONResponse(content.to_dict())
 
-@seller.put("/profile")
-async def update_my_seller_profile(
-    user_response=Depends(get_user_from_token),
+@seller.post("/me")
+async def create_seller_profile(
+    seller: Seller,
+    user_response = Depends(get_user_from_token),
     storage: DBStorage = Depends(get_db)
 ):
-    """Update the authenticated seller profile and the linked user profile."""
-
-    return
+    """a endpoint to create a user seller profile in the backend
+    Args:
+        seller: the seller attribute to be created
+    """
 
     if not user_response.status:
         content = api_response(False, "The access token provided is not valid")
-        return JSONResponse(content.to_dict(), 401)
-
+        return JSONResponse(content.to_dict(), 205)
     if not user_response.payload:
         content = api_response(False, "The access token is expired, refresh and try again")
+        return JSONResponse(content.to_dict(), 401)
+    if user_response.payload.get("role", "") not in ["seller", "both"]:
+        content = api_response(False, "This endpoint is for sellers only")
+        return JSONResponse(content.to_dict(), 400)
+
+    print(seller)
+    if not seller.id_type:
+        content = api_response(False, "The means of identification must be provided")
+        return JSONResponse(content.to_dict(), 400)
+    if not seller.id_type.lower() in ["nin", "voters card", "drivers license"]:
+        content = api_response(False, "Incorrect identification type")
+        return JSONResponse(content.to_dict(), 400)
+    if seller.id_type.lower() in ["nin", "voters_card"] and not seller.id_number:
+        content = api_response(False, "The number of the provided identification type must be provided")
+        return JSONResponse(content.to_dict(), 400)
+    if not seller.account_name or not seller.bank_name or not seller.account_number:
+        content = api_response(False, "The account details must be provided for payments")
+        return JSONResponse(content.to_dict(), 400)
+    
+    # create the seller dictionary and upload it to the database
+    seller_dict = seller.model_dump()
+    seller_dict["user_id"] = ObjectId(user_response.payload.get("_id"))
+    seller_dict["is_verified"] = False
+
+    save_profile_response = await storage.save_seller_profile(seller_dict)
+    if not save_profile_response.payload:
+        content = api_response(False, "The seller profile data failed to save")
+    else:
+        content = api_response(True, "The seller profile is saved successfully")
+    return JSONResponse(content.to_dict())
+
+@seller.put("/me")
+async def update_my_seller_profile(
+    about_me: str | None = Body(),
+    bank_name: str | None = Body(),
+    account_number: str | None = Body(),
+    user_response=Depends(get_user_from_token),
+    storage: DBStorage = Depends(get_db)
+):
+    """Update the authenticated seller profile and the linked user profile.
+    Args:
+        about_me: to update the seller description
+        bank_name: to update the bank name of the seller
+        account_number: to update the account number of the seller
+    """
+
+    if not user_response.status:
+        content = api_response(False, "The access token provided is not valid")
         return JSONResponse(content.to_dict(), 205)
+    if not user_response.payload:
+        content = api_response(False, "The access token is expired, refresh and try again")
+        return JSONResponse(content.to_dict(), 401)
+    if user_response.payload.get("role", "") not in ["seller", "both"]:
+        content = api_response(False, "This endpoint is for sellers only")
+        return JSONResponse(content.to_dict(), 400)
 
-    user = user_response.payload
-    user_id = str(user.get("_id"))
+    update_dict = {}
+    if about_me: update_dict["about_me"] = about_me
+    if bank_name: update_dict["bank_name"] = bank_name
+    if account_number: update_dict["account_number"] = account_number
 
-    seller_response = await storage.get_seller_by_user_id(user_id)
-    if not seller_response.status:
-        await storage.create_seller_profile(user_id)
-
-    user_updates = {}
-    if first_name:
-        user_updates["first_name"] = first_name.strip()
-    if last_name:
-        user_updates["last_name"] = last_name.strip()
-    if phone_number:
-        user_updates["phone_number"] = phone_number.strip()
-
-    if profile_image:
-        existing_profile_key = uploader.extract_s3_key_from_url(user.get("image_url")) or user.get("image_key")
-        profile_image_response = await uploader.replace_profile_image(profile_image, user_id, existing_profile_key)
-        if profile_image_response.status:
-            user_updates["image_url"] = profile_image_response.payload.get("url")
-            user_updates["image_key"] = profile_image_response.payload.get("key")
-            print("An update happened to the profile image", profile_image_response.payload)
-
-    if user_updates:
-        await storage.update_user_by_id(user_id, **user_updates)
-
-    seller_updates = {
-        "date_of_birth": date_of_birth,
-        "gender": gender,
-        "residential_address": residential_address,
-        "about_me": about_me,
-        "business_type": business_type,
-        "business_address": business_address,
-        "years_of_experience": years_of_experience,
-        "company_name": company_name,
-        "cac_registration_number": cac_registration_number,
-        "company_website": company_website,
-        "national_id_type": national_id_type,
-        "id_number": id_number,
-        "account_name": account_name,
-        "bank_name": bank_name,
-        "account_number": account_number,
-        "status": save_mode or "draft",
-    }
-
-    seller_updates = {key: value for key, value in seller_updates.items() if value not in (None, "")}
-
-    if proof_of_address:
-        proof_response = await uploader.upload_verification_image(proof_of_address, user_id, "proof-of-address")
-        if proof_response.status:
-            seller_updates["proof_of_address_url"] = proof_response.payload.get("url")
-
-    if id_front:
-        id_front_response = await uploader.upload_verification_image(id_front, user_id, "id-front")
-        if id_front_response.status:
-            seller_updates["id_front_url"] = id_front_response.payload.get("url")
-
-    if id_back:
-        id_back_response = await uploader.upload_verification_image(id_back, user_id, "id-back")
-        if id_back_response.status:
-            seller_updates["id_back_url"] = id_back_response.payload.get("url")
-
-    seller_updates["updated_at"] = datetime.now()
-
-    if seller_updates:
-        await storage.update_seller_by_user_id(user_id, **seller_updates)
-
-    updated_user = await storage.get_user_by_id(user_id)
-    updated_seller = await storage.get_seller_by_user_id(user_id)
-
-    payload = {
-        "user": await serialize_mongo_value(updated_user.payload if updated_user.status else user),
-        "seller": await serialize_mongo_value(updated_seller.payload if updated_seller.status else seller_updates),
-    }
-    content = api_response(True, "Seller profile updated successfully", payload)
+    update_response = await storage.update_seller_by_user_id(user_response.payload.get("_id"), update_dict)
+    if not update_response.status:
+        content = api_response(False, "The update failed to complete")
+        return JSONResponse(content.to_dict(), 400)
+    content = api_response(True, "Update complete successfully")
     return JSONResponse(content.to_dict())
 
 @seller.post("/verify")
-def verify_seller(
+async def verify_seller(
+    background_tasks: BackgroundTasks,
     id_front: UploadFile,
     id_back: UploadFile,
     user_response = Depends(get_user_from_token),
@@ -165,7 +156,29 @@ def verify_seller(
         id_back: the back of the id card
     """
 
-    return
+    if not user_response.status:
+        content = api_response(False, "The access token provided is not valid")
+        return JSONResponse(content.to_dict(), 205)
+    if not user_response.payload:
+        content = api_response(False, "The access token is expired, refresh and try again")
+        return JSONResponse(content.to_dict(), 401)
+    if user_response.payload.get("role", "") not in ["seller", "both"]:
+        content = api_response(False, "This endpoint is for sellers only")
+        return JSONResponse(content.to_dict(), 400)
+
+    if not id_front.filename.endswith((".jpeg", ".png", ".jpg")) or not id_back.filename.endswith((".jpeg", ".png", ".jpg")):
+        content = api_response(False, "Provide images of the id card back and front")
+        return JSONResponse(content.to_dict(), 400)
+    if id_front.size > 2 * (1024 ** 2) or id_back.size > 2 * (1024 ** 2):
+        content = api_response(False, "The size of the images must be lower than 2 MB")
+        return JSONResponse(content.to_dict(), 400)
+    
+    # set background tasks to upload the images and save the key to the database
+    background_tasks.add_task(uploader.upload_seller_verification, user_response.payload.get("_id"), id_front, id_back, storage)
+    await storage.update_seller_by_user_id(user_response.payload.get("_id"), {"is_verified": "pending"})
+
+    content = api_response(True, "the update has been queued, awaiting admin approval")
+    return JSONResponse(content.to_dict())
 
 @seller.get("/dashboard/stats")
 async def get_seller_dashboard_stats(user_response=Depends(get_user_from_token)):
@@ -224,7 +237,7 @@ async def get_my_listings(
         if not listing_response.status:
             content = api_response(False, "Listing not found")
             return JSONResponse(content.to_dict(), 404)
-        content = api_response(True, "The listing has been retrieved successfully", await serialize_mongo_value(listing_response.payload))
+        content = api_response(True, "The listing has been retrieved successfully", listing_response.payload)
         return JSONResponse(content.to_dict())
 
 
@@ -234,9 +247,8 @@ async def get_my_listings(
         return JSONResponse(content.to_dict(), 500)
 
     listings = listings_response.payload
-    serialized_listings = [await serialize_mongo_value(listing) for listing in listings]
 
-    content = api_response(True, "Listings retrieved successfully", serialized_listings)
+    content = api_response(True, "Listings retrieved successfully", listings)
     return JSONResponse(content.to_dict())
 
 
@@ -271,7 +283,8 @@ async def submit_apartment_listing(
     approved_building_plan: UploadFile | None = File(None),
     estate_dues_receipt: list[UploadFile] = File([]),
     occupancy_permit: UploadFile | None = File(None),
-    user_response=Depends(get_user_from_token)
+    user_response=Depends(get_user_from_token),
+    storage: DBStorage = Depends(get_db)
 ):
     """
     The endpoint to upload an apartment of any type apart from a shop or land to the home buddy database
@@ -528,10 +541,10 @@ async def submit_apartment_listing(
     # upload the provided image to the bucket for save keeping
     for key, value in apartment_media.items():
         if not value: continue
-        background_task.add_task(uploader.upload_listing_media, listing_id, key, value)
+        background_task.add_task(uploader.upload_listing_media, listing_id, key, value, storage)
     for key, value in ownership_media.items():
         if not value: continue
-        background_task.add_task(uploader.upload_listing_media, listing_id, key, value)
+        background_task.add_task(uploader.upload_listing_media, listing_id, key, value, storage)
 
     content = api_response(True, "Listing submitted successfully and is pending admin approval")
     return JSONResponse(content.to_dict())
@@ -561,6 +574,7 @@ async def submit_shop_listing(
     structural_integrity_report: UploadFile | None = File(None),
     occupancy_permit: UploadFile | None = File(None),
     user_response=Depends(get_user_from_token),
+    storage: DBStorage = Depends(get_db)
 ):
     """
     Upload listing media to S3, save a shop listing, and mark it pending review.
@@ -727,10 +741,10 @@ async def submit_shop_listing(
     # upload the provided image to the bucket for save keeping
     for key, value in shop_media.items():
         if not value: continue
-        background_task.add_task(uploader.upload_listing_media, listing_id, key, value)
+        background_task.add_task(uploader.upload_listing_media, listing_id, key, value, storage)
     for key, value in ownership_media.items():
         if not value: continue
-        background_task.add_task(uploader.upload_listing_media, listing_id, key, value)
+        background_task.add_task(uploader.upload_listing_media, listing_id, key, value, storage)
 
     content = api_response(True, "Listing submitted successfully")
     return JSONResponse(content.to_dict())
@@ -753,6 +767,7 @@ async def submit_land_listing(
     land_video: UploadFile | None = File(None),
     proof_of_ownership: UploadFile | None = File(None),
     user_response=Depends(get_user_from_token),
+    storage: DBStorage = Depends(get_db)
 ):
     """
     Endpoint to submit a land listing for admin approval by a seller
@@ -873,7 +888,7 @@ async def submit_land_listing(
     land_media = {"proof_of_ownership": proof_of_ownership, "land_image": land_image, "land_video": land_video}
     for key, value in land_media.items():
         if not value: continue
-        background_tasks.add_task(uploader.upload_listing_media, listing_id, key, value)
+        background_tasks.add_task(uploader.upload_listing_media, listing_id, key, value, storage)
 
     content = api_response(True, "Land Listing submitted successfully and is pending admin approval")
     return JSONResponse(content.to_dict())

@@ -400,28 +400,44 @@ export default function BuyerPage() {
           </div>
         </section>
 
-        <footer className="buyer-footer">
-          <div className="footer-brand">
-            <div className="brand-lockup brand-lockup--footer" aria-label="Home Buddy Connect Limited">
-              <img src="/home_buddy_logo.png" alt="Home Buddy Connect Limited" className="brand-logo" />
-              <div>
-                <div className="brand-name">Home Buddy Connect Limited</div>
-                <div className="brand-tagline">Verified housing platform</div>
+        <footer className="footer">
+          <div className="footer-top">
+            <div className="footer-brand">
+              <div className="brand-lockup brand-lockup--footer" aria-label="Home Buddy Connect Limited">
+                <img src="/home_buddy_logo.png" alt="Home Buddy Connect Limited" className="brand-logo" />
+                <div>
+                  <div className="brand-name">Home Buddy Connect Limited</div>
+                  <div className="brand-tagline">Verified housing platform</div>
+                </div>
               </div>
+              <p>
+                A trusted real estate platform for verified property discovery, seller onboarding, and role-based
+                dashboards.
+              </p>
             </div>
-            <p>
-              Secure property discovery, clearer communication, and a better buying experience for every verified
-              user.
-            </p>
+
+            <nav className="footer-links" aria-label="Footer navigation">
+              <ul className="footer-column">
+                <li><Link href="/contact">Contact</Link></li>
+                <li><Link href="/about-us">About Us</Link></li>
+                <li><Link href="/services">Our Services</Link></li>
+                <li><Link href="/login">Login</Link></li>
+                <li><Link href="/signup">Register</Link></li>
+                <li><Link href="/support">Support</Link></li>
+              </ul>
+              <ul className="footer-column">
+                <li><Link href="/terms">Terms</Link></li>
+                <li><Link href="/privacy-policy">Privacy Policy</Link></li>
+                <li><Link href="/faq">FAQ</Link></li>
+                <li><Link href="/sitemap">Sitemap</Link></li>
+                <li><Link href="/careers">Careers</Link></li>
+              </ul>
+            </nav>
           </div>
 
-          <nav className="buyer-footer-links" aria-label="Footer navigation">
-            <Link href="/contact">Contact</Link>
-            <Link href="/services">Services</Link>
-            <Link href="/privacy-policy">Privacy</Link>
-            <Link href="/terms">Terms</Link>
-            <Link href="/faq">FAQ</Link>
-          </nav>
+          <div className="footer-bottom">
+            <div className="footer-copy">© 2026 Home Buddy Connect Limited. All rights reserved.</div>
+          </div>
         </footer>
       </div>
     </main>

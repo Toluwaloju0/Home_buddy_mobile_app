@@ -7,7 +7,6 @@ from pymongo import AsyncMongoClient
 from datetime import datetime
 import logging
 
-from models.seller_model import Seller
 from utils.responses import function_response
 from utils.password import ph
 from utils.settings import settings
@@ -87,52 +86,236 @@ class DBStorage:
         user_id = result.inserted_id
         return function_response(True, {"user_id": user_id})
 
-    # @safe_db_operation
-    # async def create_buyer_profile(self, user_id: str | ObjectId, initial_data: Dict | None = None):
-    #     """Create a buyer profile/document linked to the user.
+    @safe_db_operation
+    async def get_user_by_email(self, email: str, password: str|None = None):
+        """ a method to get the user from the database using the user email address
+        Args:
+            email (str): the email address of the user to get from the database
+        return a response with the user if a user is found
+        """
 
-    #     Args:
-    #         user_id: ObjectId or string of the user id
-    #         initial_data: optional initial payload for buyer profile
-    #     """
+        user = await self.__user.find_one({"email": email.lower()})
+        if not user:
+            return function_response(False)
 
-    #     doc = {
-    #         "user_id": ObjectId(user_id) if isinstance(user_id, str) else user_id,
-    #         "created_at": datetime.now(),
-    #     }
-    #     if isinstance(initial_data, dict):
-    #         doc.update(initial_data)
+        # If no password provided, return the user record for OTP flow
+        if password is None:
+            return function_response(True, user)
 
-    #     res = await self.__buyer.insert_one(doc)
-    #     if res.acknowledged:
-    #         return function_response(True, {"buyer_id": res.inserted_id})
-    #     return function_response(False)
+        # If user has no password set, password login is not possible
+        stored_password = user.get("password")
+        if not stored_password:
+            return function_response(False)
 
-    # @safe_db_operation
-    # async def create_seller_profile(self, user_id: str | ObjectId, initial_data: Dict | None = None):
-    #     """Create a seller profile/document linked to the user.
+        # verify that the password passed is the correct one
+        try:
+            ph.verify(stored_password, password)
+            return function_response(True, user)
+        except VerifyMismatchError:
+            return function_response(False)
 
-    #     Args:
-    #         user_id: ObjectId or string of the user id
-    #         initial_data: optional initial payload for seller profile
-    #     """
-    #     sellers = self.__seller
-    #     seller_profile = Seller(user_id=ObjectId(user_id) if isinstance(user_id, str) else user_id)
-    #     doc = seller_profile.to_dict()
-    #     if isinstance(initial_data, dict):
-    #         doc.update(initial_data)
+    @safe_db_operation
+    async def find_user_by_email(self, email: str):
+        """ a method to find a user by email without verifying password
+        Returns a FunctionResponse with payload as the user dict if found
+        """
 
-    #     houses_sold = int(doc.get("houses_sold") or 0)
-    #     is_verified = bool(doc.get("is_verified"))
-    #     doc["houses_sold"] = houses_sold
-    #     doc["is_verified"] = is_verified
-    #     doc["level"] = await self.get_seller_level(is_verified=is_verified, houses_sold=houses_sold)
+        from services.s3_uploader import uploader
 
-    #     res = await sellers.insert_one(doc)
-    #     if res.acknowledged:
-    #         return function_response(True, {"seller_id": res.inserted_id})
-    #     return function_response(False)
+        user = await self.__user.find_one({"email": email})
+        if not user:
+            return function_response(False)
+        # do not expose password
+        user.pop("password", None)
+        if user.get("image_url"):
+            user["image_url"] = await uploader.resolve_accessible_s3_url(user.get("image_url"), user.get("image_key"))
+        return function_response(True, user)
 
+    @safe_db_operation
+    async def get_user_by_id(self, user_id: str):
+        """ a method to get the user by the user id
+        Args:
+            user_id (str): the user id to use in location a user
+        Returns a response containing the user
+        """
+
+        user = await self.__user.find_one({"_id": ObjectId(user_id)})
+
+        if not user:
+            return function_response(False)
+        del user["password"]
+        return function_response(True, user)
+        
+    @safe_db_operation
+    async def update_user_by_id(self, user_id: str, **kwargs):
+        """ a method to update the given user by the provided user id
+        Args:
+            user_id (str): the user id to be affected
+            kwargs: the arguments to be updated on the document
+        """
+
+        update_result = await self.__user.update_one({"_id": ObjectId(user_id)}, {"$set": kwargs})
+        if not update_result.acknowledged:
+            return function_response(False)
+        return function_response(True) # change this to return the data gotten from the database
+        
+    @safe_db_operation
+    async def update_password(self, user_id: str, old_password: str, new_password: str):
+        """ a method to update the user password to a new one
+        Args:
+            user_id: the user id of the user
+            old_password: the old password of the user
+            new_password: the password to change to
+        """
+
+        user = await self.__user.find_one({"_id": ObjectId(user_id)})
+        if not user:
+            return function_response(False)
+
+        try:
+            ph.verify(user.get("password"), old_password)
+        except VerifyMismatchError:
+            return function_response(False)
+        
+        await self.__user.update_one({"_id": ObjectId(user_id)}, {"$set": {"password": ph.hash(new_password)}})
+        return function_response(True)
+
+    @safe_db_operation
+    async def delete_user(self, user_id: str):
+        """ a methodn to delete a  user from the database
+        Args:
+            user_id (str): a string containing the user id to be deleted
+        """
+        await self.__user.delete_many({"_id": ObjectId(user_id)})
+        await self.__buyer.delete_many({"user_id": ObjectId(user_id)})
+        await self.__seller.delete_many({"user_id": ObjectId(user_id)})
+
+    @safe_db_operation
+    async def save_refresh_token(self, refresh_token_object: Dict):
+        """ a method to save the refresh token and the email to the database
+        Args:
+            token (str): the token to be saved
+            user_id (str): the user_id associated with the token
+        """
+
+        # delete any saved refresh token of the user
+        await self.delete_refresh_token(refresh_token_object.get("user_id"))
+
+        refresh_token = await self.__refresh_token.insert_one(refresh_token_object)
+        if refresh_token.acknowledged:
+            return function_response(True)
+        return function_response(False)
+    
+    @safe_db_operation
+    async def delete_refresh_token(self, user_id):
+        """ a method to delete the refresh token associated with the email
+        Args:
+            email (str): the email or the associated refresh token
+        """
+        await self.__refresh_token.delete_many({"user_id": user_id})
+
+    @safe_db_operation
+    async def get_refresh_token(self, refresh_token: str):
+        """ a method to verify the refresh token
+        Args:
+            token (str): the refresh_token
+        Return the user_id associated with the refresh token if found
+        """
+
+        refresh_dict = await self.__refresh_token.find_one({"token": refresh_token})
+        if not refresh_dict:
+            return function_response(False)
+        # delete the token to enforce single-use refresh tokens
+        await self.__refresh_token.delete_many({"token": refresh_token})
+
+        return function_response(True, {"user_id": refresh_dict.get("user_id")})
+    
+    @safe_db_operation
+    async def save_otp_code(self, otp_dict: Dict):
+        """ a method to save the provided otp code for each user
+        Args:
+            email (str): the email address to save the otp code in
+            otp_code (str): the code to save
+        Return a bool for successful save or not
+        """
+
+        previous_otp_dict = await self.__otp_code.find_one({"email": otp_dict.get("email")})
+
+        if previous_otp_dict:
+            if previous_otp_dict.get("count") == 3:
+                # the required request for otp validation is passed the user should wait for 10 minuites before requesting again
+
+                return function_response(False)
+
+            await self.__otp_code.update_one(
+                {"email": otp_dict.get("email")},
+                {"$set": {"code": otp_dict.get("code"), "count": previous_otp_dict.get("count") + 1}}
+            )
+        else:
+            await self.__otp_code.insert_one(otp_dict)
+        return function_response(True)
+    
+    @safe_db_operation
+    async def get_code_email(self, code: str):
+        """ a method to get the email address associated with a code
+        Args:
+            code (str): the otp code of the user
+        Return the email address upon successful retrival
+        """
+
+        otp_dict = await self.__otp_code.find_one({"code": code})
+        if otp_dict:
+            await self.delete_otp_code(otp_dict.get("email"))
+            return function_response(True, otp_dict)
+        return function_response(False)
+    
+    @safe_db_operation
+    async def delete_otp_code(self, email: str):
+        """ a method to delete the otp code of the user
+        Args:
+            email (str): the token to be deleted from the database
+        """
+
+        await self.__otp_code.delete_many({"email": email.lower()})
+
+    @safe_db_operation
+    async def get_buyer_by_user_id(self, user_id: str):
+        """Get a buyer profile document by its linked user id."""
+        buyer = await self.__buyer.find_one({"user_id": ObjectId(user_id)}, {"user_id": 0})
+        if not buyer:
+            return function_response(False)
+        return function_response(True, buyer)
+    
+    async def save_buyer_listing_recommendation(self, user_id: str, buyer_dict: Dict):
+        """ a method to add a buyers recommended listings settings to the database
+        Args:
+            user_id: the user id of the buyer
+            buyer_dict: the dictionary containg the buyer information
+        """
+
+        # ensure that the user id provided is available in the user table
+        if await self.__user.count_documents({"_id": ObjectId(user_id)}) != 1 or await self.__buyer.count_documents({"user_id": ObjectId(user_id)}) > 0:
+            return function_response(False)
+        buyer_dict["user_id"] = ObjectId(user_id)
+        await self.__buyer.insert_one(buyer_dict)
+        return function_response(True)
+
+    async def update_buyer_listing_recommendation(self, buyer_id: str,  buyer_dict: Dict):
+        """ a method to update the buyer listings recommendation
+        Args:
+            buyer_dict: the items to update
+        """
+
+        if not buyer_dict or buyer_dict == {}:
+            return function_response(True)
+        amenities = buyer_dict.get("amenities", None)
+        if amenities:
+            del buyer_dict["amenities"]
+            for amenity in amenities:
+                await self.__buyer.update_one({"_id": ObjectId(buyer_id)}, {"$push": {"amenities": amenity}})
+        await self.__buyer.update_one({"_id": ObjectId(buyer_id)}, {"$set": buyer_dict})
+        return function_response(True)
+    
     @safe_db_operation
     async def get_seller_by_user_id(self, user_id: str):
         """Get a seller profile document by its linked user id."""
@@ -140,14 +323,34 @@ class DBStorage:
         if not seller:
             return function_response(False)
         return function_response(True, seller)
+    
+    async def save_seller_profile(self, seller_dict: Dict):
+        """ a mehthod to save a seller information to the database
+        Args:
+            seller_dict: a dictionary containing the seller informaion
+        """
 
-    @safe_db_operation
-    async def get_buyer_by_user_id(self, user_id: str):
-        """Get a buyer profile document by its linked user id."""
-        buyer = await self.__buyer.find_one({"user_id": ObjectId(user_id)})
-        if not buyer:
+        if await self.__seller.count_documents({"user_id": ObjectId(seller_dict.get("user_id"))}) > 0:
             return function_response(False)
-        return function_response(True, buyer)
+
+        await self.__seller.insert_one(seller_dict)
+        return function_response(True)
+    
+    async def update_seller_by_user_id(self, user_id, update_dict):
+        """ a method to update the seller account using the provided user id
+        Args:
+            user_id: the user id of the seller
+            update_dict: the items to update in the document
+        """
+
+        if not update_dict or update_dict == {}:
+            return function_response(True)
+        
+        if await self.__seller.count_documents({"user_id": ObjectId(user_id)}) != 1:
+            return function_response(False)
+        
+        await self.__seller.update_one({"user_id": ObjectId(user_id)}, {"$se": update_dict})
+        return function_response(True)
 
     @safe_db_operation
     async def create_listing_submission(self, listing_document: Dict):
@@ -244,45 +447,6 @@ class DBStorage:
                 del listing["listing_media"]
             return function_response(True, results)
         return function_response(True, [])
-    
-    async def save_buyer_listing_recommendation(self, user_id: str, buyer_dict: Dict):
-        """ a method to add a buyers recommended listings settings to the database
-        Args:
-            user_id: the user id of the buyer
-            buyer_dict: the dictionary containg the buyer information
-        """
-
-        # ensure that the user id provided is available in the user table
-        if await self.__user.count_documents({"_id": ObjectId(user_id)}) != 1 or await self.__buyer.count_documents({"user_id": ObjectId(user_id)}) > 0:
-            return function_response(False)
-        buyer_dict["user_id"] = ObjectId(user_id)
-        await self.__buyer.insert_one(buyer_dict)
-        return function_response(True)
-
-    async def update_buyer_listing_recommendation(self, buyer_id: str,  buyer_dict: Dict):
-        """ a method to update the buyer listings recommendation
-        Args:
-            buyer_dict: the items to update
-        """
-
-        if not buyer_dict or buyer_dict == {}:
-            return function_response(True)
-        amenities = buyer_dict.get("amenities", None)
-        if amenities:
-            del buyer_dict["amenities"]
-            for amenity in amenities:
-                await self.__buyer.update_one({"_id": ObjectId(buyer_id)}, {"$push": {"amenities": amenity}})
-        await self.__buyer.update_one({"_id": ObjectId(buyer_id)}, {"$set": buyer_dict})
-        return function_response(True)
-
-    async def get_buyer_recommendation_settings(self, user_id: str):
-        """ a method to get the recommended listings settinbgs for a buyer
-        Args:
-            user_id: the user id of the settings
-        """
-
-        settings = await self.__buyer.find_one({"user_id": user_id}, {"user_id": 0})
-        return function_response(True, settings) if settings else function_response(False)
     
     @safe_db_operation
     async def get_recommended_listings(self, buyer_recommendation_settings: Dict) -> List[Any]:
@@ -643,203 +807,6 @@ class DBStorage:
 
         del admin["password"]
         return function_response(True, admin)
-    
-    @safe_db_operation
-    async def get_user_by_email(self, email: str, password: str|None = None):
-        """ a method to get the user from the database using the user email address
-        Args:
-            email (str): the email address of the user to get from the database
-        return a response with the user if a user is found
-        """
-
-        user = await self.__user.find_one({"email": email.lower()})
-        if not user:
-            return function_response(False)
-
-        # If no password provided, return the user record for OTP flow
-        if password is None:
-            return function_response(True, user)
-
-        # If user has no password set, password login is not possible
-        stored_password = user.get("password")
-        if not stored_password:
-            return function_response(False)
-
-        # verify that the password passed is the correct one
-        try:
-            ph.verify(stored_password, password)
-            return function_response(True, user)
-        except VerifyMismatchError:
-            return function_response(False)
-
-    @safe_db_operation
-    async def find_user_by_email(self, email: str):
-        """ a method to find a user by email without verifying password
-        Returns a FunctionResponse with payload as the user dict if found
-        """
-
-        from services.s3_uploader import uploader
-
-        user = await self.__user.find_one({"email": email})
-        if not user:
-            return function_response(False)
-        # do not expose password
-        user.pop("password", None)
-        if user.get("image_url"):
-            user["image_url"] = await uploader.resolve_accessible_s3_url(user.get("image_url"), user.get("image_key"))
-        return function_response(True, user)
-
-    @safe_db_operation
-    async def get_user_by_id(self, user_id: str):
-        """ a method to get the user by the user id
-        Args:
-            user_id (str): the user id to use in location a user
-        Returns a response containing the user
-        """
-
-        user = await self.__user.find_one({"_id": ObjectId(user_id)})
-
-        if not user:
-            return function_response(False)
-        del user["password"]
-        return function_response(True, user)
-        
-    @safe_db_operation
-    async def update_user_by_id(self, user_id: str, **kwargs):
-        """ a method to update the given user by the provided user id
-        Args:
-            user_id (str): the user id to be affected
-            kwargs: the arguments to be updated on the document
-        """
-
-        update_result = await self.__user.update_one({"_id": ObjectId(user_id)}, {"$set": kwargs})
-        if not update_result.acknowledged:
-            return function_response(False)
-        return function_response(True) # change this to return the data gotten from the database
-        
-    @safe_db_operation
-    async def update_password(self, user_id: str, old_password: str, new_password: str):
-        """ a method to update the user password to a new one
-        Args:
-            user_id: the user id of the user
-            old_password: the old password of the user
-            new_password: the password to change to
-        """
-
-        user = await self.__user.find_one({"_id": ObjectId(user_id)})
-        if not user:
-            return function_response(False)
-
-        try:
-            ph.verify(user.get("password"), old_password)
-        except VerifyMismatchError:
-            return function_response(False)
-        
-        await self.__user.update_one({"_id": ObjectId(user_id)}, {"$set": {"password": ph.hash(new_password)}})
-        return function_response(True)
-
-    @safe_db_operation
-    async def delete_user(self, user_id: str):
-        """ a methodn to delete a  user from the database
-        Args:
-            user_id (str): a string containing the user id to be deleted
-        """
-        await self.__user.delete_many({"_id": ObjectId(user_id)})
-        await self.__buyer.delete_many({"user_id": ObjectId(user_id)})
-        await self.__seller.delete_many({"user_id": ObjectId(user_id)})
-
-    @safe_db_operation
-    async def save_refresh_token(self, refresh_token_object: Dict):
-        """ a method to save the refresh token and the email to the database
-        Args:
-            token (str): the token to be saved
-            user_id (str): the user_id associated with the token
-        """
-
-        # delete any saved refresh token of the user
-        await self.delete_refresh_token(refresh_token_object.get("user_id"))
-
-        refresh_token = await self.__refresh_token.insert_one(refresh_token_object)
-        if refresh_token.acknowledged:
-            return function_response(True)
-        return function_response(False)
-    
-    @safe_db_operation
-    async def delete_refresh_token(self, user_id):
-        """ a method to delete the refresh token associated with the email
-        Args:
-            email (str): the email or the associated refresh token
-        """
-        await self.__refresh_token.delete_many({"user_id": user_id})
-
-    @safe_db_operation
-    async def delete_refresh_token_by_token(self, token: str):
-        """Delete a refresh token document by its token string."""
-        await self.__refresh_token.delete_many({"token": token})
-
-    @safe_db_operation
-    async def get_refresh_token(self, refresh_token: str):
-        """ a method to verify the refresh token
-        Args:
-            token (str): the refresh_token
-        Return the user_id associated with the refresh token if found
-        """
-
-        refresh_dict = await self.__refresh_token.find_one({"token": refresh_token})
-        if not refresh_dict:
-            return function_response(False)
-        # delete the token to enforce single-use refresh tokens
-        await self.delete_refresh_token_by_token(refresh_token)
-
-        return function_response(True, {"user_id": refresh_dict.get("user_id")})
-    
-    @safe_db_operation
-    async def save_otp_code(self, otp_dict: Dict):
-        """ a method to save the provided otp code for each user
-        Args:
-            email (str): the email address to save the otp code in
-            otp_code (str): the code to save
-        Return a bool for successful save or not
-        """
-
-        previous_otp_dict = await self.__otp_code.find_one({"email": otp_dict.get("email")})
-
-        if previous_otp_dict:
-            if previous_otp_dict.get("count") == 3:
-                # the required request for otp validation is passed the user should wait for 10 minuites before requesting again
-
-                return function_response(False)
-
-            result = await self.__otp_code.update_one(
-                {"email": otp_dict.get("email")},
-                {"$set": {"code": otp_dict.get("code"), "count": previous_otp_dict.get("count") + 1}}
-            )
-        else:
-            result = await self.__otp_code.insert_one(otp_dict)
-        return function_response(True)
-    
-    @safe_db_operation
-    async def get_code_email(self, code: str):
-        """ a method to get the email address associated with a code
-        Args:
-            code (str): the otp code of the user
-        Return the email address upon successful retrival
-        """
-
-        otp_dict = await self.__otp_code.find_one({"code": code})
-        if otp_dict:
-            await self.delete_otp_code(otp_dict.get("email"))
-            return function_response(True, otp_dict)
-        return function_response(False)
-    
-    @safe_db_operation
-    async def delete_otp_code(self, email: str):
-        """ a method to delete the otp code of the user
-        Args:
-            email (str): the token to be deleted from the database
-        """
-
-        await self.__otp_code.delete_many({"email": email.lower()})
 
     @safe_db_operation
     async def save_message(self, message_data: dict):

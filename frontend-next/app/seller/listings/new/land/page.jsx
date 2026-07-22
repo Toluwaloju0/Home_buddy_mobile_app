@@ -635,6 +635,9 @@ export default function LandListingPage() {
               <div className="shop-media-rule">
                 At least one land image or video is required. Proof of ownership is also required.
               </div>
+              <div className="shop-media-rule">
+                Media uploaded here for ownership verification will only be seen by admins for verification purposes.
+              </div>
               <div className="media-grid shop-upload-grid">
                 {fileFields.map(renderFileCard)}
               </div>

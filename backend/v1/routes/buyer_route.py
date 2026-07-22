@@ -164,7 +164,7 @@ async def get_recommended_listings_settings(
         return JSONResponse(content.to_dict(), 205)
 
     # get the settings for the user from the database
-    settings_response = await storage.get_buyer_recommendation_settings(user_response.payload.get("_id", None))
+    settings_response = await storage.get_buyer_by_user_id(user_response.payload.get("_id", None))
 
     if not settings_response.status:
         content = api_response(False, "An error occured when getting the recommended settings create a new one or update the former one")

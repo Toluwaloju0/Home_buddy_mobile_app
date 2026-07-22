@@ -662,6 +662,9 @@ export default function ShopListingPage() {
                 <h2>Ownership documents</h2>
                 <span>Proof of ownership is required. Other supporting files can strengthen the claim.</span>
               </div>
+              <div className="shop-media-rule">
+                Media uploaded here for ownership verification will only be seen by admins for verification purposes.
+              </div>
               <div className="document-grid shop-upload-grid">
                 {documentFields.map(renderFileCard)}
               </div>
