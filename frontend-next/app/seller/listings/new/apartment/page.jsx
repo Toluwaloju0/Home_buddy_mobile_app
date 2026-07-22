@@ -780,6 +780,9 @@ export default function ApartmentListingPage() {
                 <h2>Verification documents</h2>
                 <span>Proof of ownership is required. Other documents are optional.</span>
               </div>
+              <div className="shop-media-rule">
+                Media uploaded here for ownership verification will only be seen by admins for verification purposes.
+              </div>
               <div className="document-grid shop-upload-grid">
                 {documentFields.map((field) => renderFileCard(field.key, field.label, {
                   required: field.required,

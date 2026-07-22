@@ -23,7 +23,7 @@ async def get_me(user_response = Depends(get_user_from_token)):
 
     if not user_response.status:
         content = api_response(False, "The access token provided is not valid")
-        return JSONResponse(content.to_dict(), 400)
+        return JSONResponse(content.to_dict(), 401)
     
     if not user_response.payload:
         content = api_response(False, "The access token is expired, refresh and try again")

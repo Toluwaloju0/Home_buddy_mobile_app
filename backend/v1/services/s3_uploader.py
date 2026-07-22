@@ -38,7 +38,7 @@ class S3Uploader:
         self.access_key = cfg.aws_access_key_id
         self.secret_key = cfg.aws_secret_access_key
 
-    def upload_listing_media(self, listing_id: str, media_name: str, media: UploadFile):
+    def upload_listing_media(self, listing_id: str, media_name: str, media: UploadFile, storage: DBStorage):
         """ a method to upload a listing to amazon s3 bucket and get the result of the ai fraud detector scan
         Args:
             listing_id: the id of the seller having the listing
@@ -154,6 +154,34 @@ class S3Uploader:
             client.upload_fileobj(uploaded_file.file, self.bucket_name, object_key)
 
             return object_key
+
+        except Exception as e:
+            print(e)
+            logger.error(e)
+
+    def upload_seller_verification(self, user_id, id_front, id_back, storage: DBStorage):
+        """ a method to upload seller verification images for admin review
+        Args:
+            id_front: the front of the id
+            id_back: the back of the id
+        """
+
+        front_key = f"verify/{user_id}/id_front.{id_front.filename.split('.')[-1]}"
+        back_key = f"verify/{user_id}/id_back.{id_back.filename.split('.')[-1]}"
+
+        # upload the file to the s3 bucket
+        try:
+            client = boto3.client(
+                "s3", region_name=self.aws_region,
+                aws_access_key_id=self.access_key,
+                aws_secret_access_key=self.secret_key
+            )
+            client.upload_fileobj(id_front.file, self.bucket_name, front_key)
+            client.upload_fileobj(id_back.file, self.bucket_name, back_key)
+
+            # ensure the images are not ai generated images
+
+            asyncio.run(storage.update_seller_by_user_id(user_id, {"id_front_key": front_key, "id_back_key": back_key}))
 
         except Exception as e:
             print(e)

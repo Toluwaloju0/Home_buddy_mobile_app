@@ -29,7 +29,7 @@ async def register(user_data: UserRegister):
         return JSONResponse(content.to_dict(), 406)
 
     # check if user already exists
-    existing_user = await storage.find_user_by_email(email)
+    existing_user = await storage.find_user_by_email(email.lower())
     if existing_user.status:
         content = api_response(False, "A user with this email already exists")
         return JSONResponse(content.to_dict(), 409)
