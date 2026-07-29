@@ -17,25 +17,6 @@ from services.s3_uploader import uploader
 
 seller = APIRouter(prefix="/seller", tags=["Seller"])
 
-async def serialize_mongo_value(value):
-    """Convert Mongo-specific values into JSON-safe primitives."""
-
-    if isinstance(value, ObjectId):
-        return str(value)
-    if isinstance(value, datetime):
-        return value.isoformat()
-    if isinstance(value, dict):
-        if "url" in value and ("key" in value or "image_type" in value or "image_number" in value):
-            resolved_url = await uploader.resolve_accessible_s3_url(value.get("url"), value.get("key"))
-            updated_value = dict(value)
-            updated_value["url"] = resolved_url
-            return {key: await serialize_mongo_value(item) for key, item in updated_value.items()}
-        return {key: await serialize_mongo_value(item) for key, item in value.items()}
-    if isinstance(value, list):
-        return [await serialize_mongo_value(item) for item in value]
-    return value
-
-
 @seller.get("/me")
 async def get_my_seller_profile(
     user_response=Depends(get_user_from_token),
@@ -45,11 +26,11 @@ async def get_my_seller_profile(
 
     if not user_response.status:
         content = api_response(False, "The access token provided is not valid")
-        return JSONResponse(content.to_dict(), 205)
+        return JSONResponse(content.to_dict(), 401)
 
     if not user_response.payload:
         content = api_response(False, "The access token is expired, refresh and try again")
-        return JSONResponse(content.to_dict(), 401)
+        return JSONResponse(content.to_dict(), 205)
 
     seller_response = await storage.get_seller_by_user_id(str(user_response.payload.get("_id")))
     if not seller_response.status:
@@ -71,10 +52,10 @@ async def create_seller_profile(
 
     if not user_response.status:
         content = api_response(False, "The access token provided is not valid")
-        return JSONResponse(content.to_dict(), 205)
+        return JSONResponse(content.to_dict(), 401)
     if not user_response.payload:
         content = api_response(False, "The access token is expired, refresh and try again")
-        return JSONResponse(content.to_dict(), 401)
+        return JSONResponse(content.to_dict(), 205)
     if user_response.payload.get("role", "") not in ["seller", "both"]:
         content = api_response(False, "This endpoint is for sellers only")
         return JSONResponse(content.to_dict(), 400)
@@ -121,10 +102,10 @@ async def update_my_seller_profile(
 
     if not user_response.status:
         content = api_response(False, "The access token provided is not valid")
-        return JSONResponse(content.to_dict(), 205)
+        return JSONResponse(content.to_dict(), 401)
     if not user_response.payload:
         content = api_response(False, "The access token is expired, refresh and try again")
-        return JSONResponse(content.to_dict(), 401)
+        return JSONResponse(content.to_dict(), 205)
     if user_response.payload.get("role", "") not in ["seller", "both"]:
         content = api_response(False, "This endpoint is for sellers only")
         return JSONResponse(content.to_dict(), 400)
@@ -156,11 +137,11 @@ async def verify_seller(
     """
 
     if not user_response.status:
-        content = api_response(False, "The access token provided is not valid")
+        content = api_response(False, "The 401 token provided is not valid")
         return JSONResponse(content.to_dict(), 205)
     if not user_response.payload:
         content = api_response(False, "The access token is expired, refresh and try again")
-        return JSONResponse(content.to_dict(), 401)
+        return JSONResponse(content.to_dict(), 205)
     if user_response.payload.get("role", "") not in ["seller", "both"]:
         content = api_response(False, "This endpoint is for sellers only")
         return JSONResponse(content.to_dict(), 400)
