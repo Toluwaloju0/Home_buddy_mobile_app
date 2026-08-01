@@ -158,7 +158,7 @@ export default function LoginPage() {
           <button
             type="button"
             className="close-button"
-            onClick={() => router.back()}
+            onClick={() => router.push('/')}
             aria-label="Close"
           >
             ×

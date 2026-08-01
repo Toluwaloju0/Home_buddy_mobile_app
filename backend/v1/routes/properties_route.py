@@ -113,41 +113,41 @@ async def browse_rentals(page: int = Query(1, ge=1)):
     content = api_response(True, "Rental listings", {"listings": results, "meta": meta})
     return JSONResponse(content.to_dict())
 
-@properties.get("/recommended", summary="Recommended listings")
-async def recommended_listings(user_response=Depends(get_user_from_token), page: int = 1, per_page: int = 6):
-    """Return a paginated list of recommended/latest listings."""
+# @properties.get("/recommended", summary="Recommended listings")
+# async def recommended_listings(user_response=Depends(get_user_from_token), page: int = 1, per_page: int = 6):
+#     """Return a paginated list of recommended/latest listings."""
 
-    if not user_response.status:
-        content = api_response(False, "The access token provided is not valid")
-        return JSONResponse(content.to_dict(), 401)
+#     if not user_response.status:
+#         content = api_response(False, "The access token provided is not valid")
+#         return JSONResponse(content.to_dict(), 401)
 
-    if not user_response.payload:
-        content = api_response(False, "The access token is expired, refresh and try again")
-        return JSONResponse(content.to_dict(), 205)
+#     if not user_response.payload:
+#         content = api_response(False, "The access token is expired, refresh and try again")
+#         return JSONResponse(content.to_dict(), 205)
     
-    # get the database response for all the listings present for this page
+#     # get the database response for all the listings present for this page
 
-    db_response = await storage.get_recommended_listings(user_response.payload.get("_id"), page, per_page)
-    if not db_response.status:
-        content = api_response(False, "Failed to fetch recommended listings")
-        return JSONResponse(content.to_dict(), 500)
+#     db_response = await storage.get_recommended_listings(user_response.payload.get("_id"), page, per_page)
+#     if not db_response.status:
+#         content = api_response(False, "Failed to fetch recommended listings")
+#         return JSONResponse(content.to_dict(), 500)
 
-    payload = db_response.payload or {}
-    results = payload.get("results", [])
-    total = payload.get("total", len(results))
+#     payload = db_response.payload or {}
+#     results = payload.get("results", [])
+#     total = payload.get("total", len(results))
 
-    for listing in results:
-        if isinstance(listing, dict) and listing.get("_id"):
-            listing["_id"] = str(listing["_id"])
-        if isinstance(listing, dict) and listing.get("seller_id"):
-            try:
-                listing["seller_id"] = str(listing["seller_id"])
-            except Exception:
-                pass
+#     for listing in results:
+#         if isinstance(listing, dict) and listing.get("_id"):
+#             listing["_id"] = str(listing["_id"])
+#         if isinstance(listing, dict) and listing.get("seller_id"):
+#             try:
+#                 listing["seller_id"] = str(listing["seller_id"])
+#             except Exception:
+#                 pass
 
-    meta = {"page": int(page), "per_page": int(per_page), "total": total}
-    content = api_response(True, "Got Recommended listings", {"listings": results, "meta": meta})
-    return JSONResponse(jsonable_encoder(content.to_dict()))
+#     meta = {"page": int(page), "per_page": int(per_page), "total": total}
+#     content = api_response(True, "Got Recommended listings", {"listings": results, "meta": meta})
+#     return JSONResponse(jsonable_encoder(content.to_dict()))
 
 @properties.get("/{property_id}", summary="Get property by id")
 async def get_property(property_id: str, user_response=Depends(get_user_from_token)):
@@ -171,19 +171,5 @@ async def get_property(property_id: str, user_response=Depends(get_user_from_tok
         content = api_response(False, "Listing not found")
         return JSONResponse(content.to_dict(), 404)
 
-    listing = listing_resp.payload
-    if listing.get("_id"):
-        listing["_id"] = str(listing["_id"])
-    if listing.get("seller_id"):
-        del listing["seller_id"]
-    if listing.get("updated_at"):
-        listing["updated_at"] = listing["updated_at"].isoformat()
-    if listing.get("created_at"):
-        listing["created_at"] = listing["created_at"].isoformat()
-    if listing.get("reviewed_at"):
-        del listing["reviewed_at"]
-    if listing.get("reviewed_by"):
-        del listing["reviewed_by"]
-
-    content = api_response(True, "Listing retrieved", listing)
+    content = api_response(True, "Listing retrieved", listing_resp.payload)
     return JSONResponse(content.to_dict())
