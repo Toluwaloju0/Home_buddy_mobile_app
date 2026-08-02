@@ -147,6 +147,12 @@ export default function BuyerProfileSettingsPage() {
   }, []);
 
   useEffect(() => {
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('section') === 'buyer') {
+      setActiveMode('buyer');
+    }
+  }, []);
+
+  useEffect(() => {
     if (!profileImageFile) {
       setPreviewUrl('');
       return undefined;
@@ -170,7 +176,7 @@ export default function BuyerProfileSettingsPage() {
       setRecommendationFeedback(null);
 
       try {
-        const response = await authFetch(`${API_BASE_URL}/buyer/recommended/listings/settings`, {
+        const response = await authFetch(`${API_BASE_URL}/buyer/me`, {
           method: 'GET',
         });
 

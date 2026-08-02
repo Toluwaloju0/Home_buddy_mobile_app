@@ -13,6 +13,30 @@ from utils.state_list import States_list, States_with_lgas
 
 buyer = APIRouter(prefix="/buyer", tags=["Buyers"], dependencies=[Depends(get_user_from_token)])
 
+@buyer.get("/me")
+async def get_recommended_listings_settings(
+    user_response = Depends(get_user_from_token),
+    storage: DBStorage = Depends(get_db)
+):
+    """ a function to get the recommended listings settings of the buyer """
+
+    if not user_response.status:
+        content = api_response(False, "Unauthenticated user detected", None)
+        return JSONResponse(content.to_dict(), 401)
+    if not user_response.payload:
+        content = api_response(False, "Refresh the access token")
+        return JSONResponse(content.to_dict(), 205)
+
+    # get the settings for the user from the database
+    settings_response = await storage.get_buyer_by_user_id(user_response.payload.get("_id", None))
+
+    if not settings_response.status:
+        content = api_response(False, "No recommended settings, create a new one or update the former one")
+        return JSONResponse(content.to_dict(), 400)
+    
+    content = api_response(True, "The recommended listings settings have been retrieved successfully", settings_response.payload or None)
+    return JSONResponse(content.to_dict())
+
 @buyer.post("/recommended/listings/settings")
 async def update_recommended_listings_settings(
     buyer: Buyer,
@@ -45,9 +69,9 @@ async def update_recommended_listings_settings(
     if buyer.max_size <= buyer.min_size:
         content = api_response(False, "The maximum size must be greater than the minimum size")
         return JSONResponse(content.to_dict(), 400)
-    if buyer.property_type.lower() not in ["shop", "land", "flat", "mini flat", "bunglow", "penthouse", "duplex"]:
+    if buyer.property_type.lower() not in ["shop", "land", "flat", "mini flat", "bungalow", "penthouse", "duplex"]:
         content = api_response(False, "The property type is not available")
-        return JSONResponse(content.to_dict())
+        return JSONResponse(content.to_dict(), 400)
     
     buyer_response = await storage.save_buyer_listing_recommendation(user_response.payload.get("_id"), buyer.model_dump())
 
@@ -77,7 +101,7 @@ async def update_recommended_listings_settings(
         content = api_response(False, "Refresh the access token")
         return JSONResponse(content.to_dict(), 205)
 
-    buyer_listing_response = await storage.get_buyer_recommendation_settings(user_response.payload.get("_id"))
+    buyer_listing_response = await storage.get_buyer_by_user_id(user_response.payload.get("_id"))
     if not buyer_listing_response.status:
         content = api_response(False, "create a recommended settings list before making any changes to it")
         return JSONResponse(content.to_dict(), 400)
@@ -149,29 +173,6 @@ async def update_recommended_listings_settings(
     content = api_response(True, "The update has completed") if update_response.status else api_response(False, "The update has failed")
     return JSONResponse(content.to_dict())
 
-@buyer.get("/recommended/listings/settings")
-async def get_recommended_listings_settings(
-    user_response = Depends(get_user_from_token),
-    storage: DBStorage = Depends(get_db)
-):
-    """ a function to get the recommended listings settings of the buyer """
-
-    if not user_response.status:
-        content = api_response(False, "Unauthenticated user detected", None)
-        return JSONResponse(content.to_dict(), 401)
-    if not user_response.payload:
-        content = api_response(False, "Refresh the access token")
-        return JSONResponse(content.to_dict(), 205)
-
-    # get the settings for the user from the database
-    settings_response = await storage.get_buyer_by_user_id(user_response.payload.get("_id", None))
-
-    if not settings_response.status:
-        content = api_response(False, "An error occured when getting the recommended settings create a new one or update the former one")
-    else:
-        content = api_response(True, "The recommended listings settings have been retrieved successfully", settings_response.payload or None)
-    return JSONResponse(content.to_dict())
-
 @buyer.get("/recommended")
 async def get_recommended_listings(
     user_response = Depends(get_user_from_token),
@@ -187,15 +188,14 @@ async def get_recommended_listings(
         return JSONResponse(content.to_dict(), 205)
 
     # get the recommended listings settings for the buyer from the database
-    settings_response = await storage.get_buyer_recommendation_settings(user_response.payload.get("_id"))
+    settings_response = await storage.get_buyer_by_user_id(user_response.payload.get("_id"))
     if not settings_response.status or not settings_response.payload:
         content = api_response(False, "Create a recommendation setting for your house listing")
         return JSONResponse(content.to_dict())
-    recommended_listings_response = await storage.get_recommended_listings(settings_response.payload)
-    return
+    recommended_listings_response = await storage.get_recommended_listings(user_response.payload.get("_id"), settings_response.payload)
 
-    if not recommended_listings_response.status:
-        content = api_response(False, "An error occured when getting the recommended listings create a new one or update the former one")
-    else:
-        content = api_response(True, "The recommended listings have been retrieved successfully", recommended_listings_response.payload or None)
+    if not recommended_listings_response.payload:
+        content = api_response(False, "No property to get")
+        return JSONResponse(content.to_dict(), 400)
+    content = api_response(True, "Recommended listigs gotten successfully", recommended_listings_response.payload)
     return JSONResponse(content.to_dict())

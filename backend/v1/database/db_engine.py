@@ -315,7 +315,76 @@ class DBStorage:
                 await self.__buyer.update_one({"_id": ObjectId(buyer_id)}, {"$push": {"amenities": amenity}})
         await self.__buyer.update_one({"_id": ObjectId(buyer_id)}, {"$set": buyer_dict})
         return function_response(True)
+
+    @safe_db_operation
+    async def get_recommended_listings(self, user_id, buyer_recommendation_settings: Dict) -> List[Any]:
+        """Return latest listings for recommendations."""
+
+        # use the dictionary provided to get listings which suit the buyers settings
+        from services.s3_uploader import uploader
+
+        # create a mini function to create the filter value for min and max price
+        def get_price_value(min_price: int, max_price: int):
+            """ a mini function to get the value for the price to add to the filter
+            Args:
+                min_price: the minimum price
+                max_price: the max price
+            """
+
+            min_price = min_price - 10000 if min_price - 10000 > 0 else 0
+            max_price = max_price + 10000
+
+            return {"$gte": min_price, "$lte": max_price}
+
+        # create a mini function to create the filter value for min and max sizes
+        def get_size_value(min_size: int, max_size: int):
+                """ a mini function to get the value for the sizee to add to the filter
+                Args:
+                    min_size: the minimum size
+                    max_size: the max size
+                """
     
+                min_size = min_size - 100 if min_size - 100 > 0 else 0
+                max_size = max_size + 100
+    
+                return {"$gte": min_size, "$lte": max_size}
+
+        # check if the user has a seller account
+        seller_id = await self.__seller.find_one({"user_id": user_id}, {"_id": 1})
+
+        # create the filter to use
+        filter = {}
+        if seller_id: filter["seller_id"] = {"$ne": seller_id}
+        filter["state"] = {"$regex": buyer_recommendation_settings.get("state", "")}
+        filter["LGA"] = {"$regex": buyer_recommendation_settings.get("LGA")}
+        filter["property_type"] = buyer_recommendation_settings.get("property_type")
+        filter["price"] = get_price_value(buyer_recommendation_settings.get("min_price", 0), buyer_recommendation_settings.get("max_price", 0))
+        filter["size"] = get_size_value(buyer_recommendation_settings.get("min_size", 0), buyer_recommendation_settings.get("max_size", 0))
+        if buyer_recommendation_settings["property_type"].lower() not in ["land", "shop"]:
+            filter["other_amenities"] = {"$all": buyer_recommendation_settings.get("amenities") if buyer_recommendation_settings.get("amenities") else []}
+
+        properties_list = await self.__listings.find(filter, {"verification_media": 0}).to_list()
+
+        # delete a filter specification and try the query again
+        while len(properties_list) <= 10:
+            if filter.get("other_amenities"): del filter["other_amenities"]
+            elif filter.get("size"): del filter["size"]
+            elif filter.get("price"): del filter["price"]
+            elif filter.get("LGA"): del filter["LGA"]
+            elif filter.get("state"): del filter["state"]
+            else: break
+
+            properties_list.extend(await self.__listings.find(filter, {"_id": 1, "description": 1, "listing_media": 1, "property_type": 1, "title": 1, "price": 1, "state": 1}).to_list())
+
+        for listing in properties_list:
+            for media in listing.get("listing_media", []):
+                for key, value in media.items():
+                    media[key] = uploader.create_url(value.get("key"))
+                    if key == "key":
+                        media = uploader.create_url(value)
+
+        return function_response(True, properties_list) if properties_list else function_response(False)
+
     @safe_db_operation
     async def get_seller_by_user_id(self, user_id: str):
         """Get a seller profile document by its linked user id."""
@@ -349,7 +418,7 @@ class DBStorage:
         if await self.__seller.count_documents({"user_id": ObjectId(user_id)}) != 1:
             return function_response(False)
         
-        await self.__seller.update_one({"user_id": ObjectId(user_id)}, {"$se": update_dict})
+        await self.__seller.update_one({"user_id": ObjectId(user_id)}, {"$set": update_dict})
         return function_response(True)
 
     @safe_db_operation
@@ -448,24 +517,6 @@ class DBStorage:
             return function_response(True, results)
         return function_response(True, [])
     
-    @safe_db_operation
-    async def get_recommended_listings(self, buyer_recommendation_settings: Dict) -> List[Any]:
-        """Return latest listings for recommendations."""
-
-        # use the dictionary provided to get listings which suit the buyers settings
-        print(buyer_recommendation_settings)
-        return
-
-        skip = max(0, (int(page) - 1)) * int(per_page)
-        seller = await self.__seller.find_one({"user_id": ObjectId(user_id)}, {"_id": 1})
-        seller_id = seller.get("_id", "")
-
-        # get all listing not made by the current user
-        total = await self.__listings.count_documents({"seller_id": {"$ne": seller_id}})
-        cursor = self.__listings.find({"seller_id": {"$ne": seller_id}}, {}).sort("created_at", -1).skip(skip).limit(int(per_page))
-        results = await cursor.to_list(length=int(per_page))
-        return function_response(True, {"results": results, "total": total})
-
     @safe_db_operation
     async def search_seller_listings(self, seller_id: str, query_text: str):
         """Search listings for a seller by title, description, or location."""

@@ -13,6 +13,19 @@ const propertyFilters = [
   { key: 'shortlet', label: 'Short let' },
 ];
 
+const getListingImage = (listing) => {
+  const type = String(listing.property_type || '').toLowerCase();
+  const mediaKey = type === 'shop' ? 'shop_exterior' : type === 'land' ? 'land_image' : 'exterior';
+  const placeholder = type === 'shop' ? '/placeholders/shop.svg' : type === 'land' ? '/placeholders/land.svg' : '/placeholders/apartment.svg';
+  const media = (listing.listing_media || []).find((item) => item?.[mediaKey]);
+  const value = media?.[mediaKey];
+
+  if (typeof value === 'string' && value) return value;
+  if (value?.url) return value.url;
+  if (value?.key) return value.key;
+  return placeholder;
+};
+
 
 export default function BuyerPage() {
   const router = useRouter();
@@ -21,6 +34,8 @@ export default function BuyerPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [propertyType, setPropertyType] = useState('all');
   const [budget, setBudget] = useState('all');
+  const [loadingBuyerProfile, setLoadingBuyerProfile] = useState(true);
+  const [hasBuyerProfile, setHasBuyerProfile] = useState(false);
 
   const [recommendedHomes, setRecommendedHomes] = useState([]);
   const [savedHomes, setSavedHomes] = useState([]);
@@ -73,6 +88,29 @@ export default function BuyerPage() {
     };
   }, [router]);
 
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadBuyerProfile() {
+      try {
+        const response = await authFetch(`${API_BASE_URL}/buyer/me`, { method: 'GET' });
+        if (!mounted) return;
+        setHasBuyerProfile(response?.status === 200);
+      } catch (error) {
+        console.error('Buyer dashboard profile check failed:', error);
+        if (mounted) setHasBuyerProfile(false);
+      } finally {
+        if (mounted) setLoadingBuyerProfile(false);
+      }
+    }
+
+    loadBuyerProfile();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const displayName = useMemo(() => {
     if (!user) return 'Loading';
 
@@ -100,22 +138,22 @@ export default function BuyerPage() {
     });
   }, [recommendedHomes, budget, propertyType, searchQuery]);
 
-  // Fetch public recommended listings once
   useEffect(() => {
     let mounted = true;
 
     async function loadRecommended() {
       try {
-        const res = await authFetch(`${API_BASE_URL}/properties/recommended?per_page=12`, {
+        const res = await authFetch(`${API_BASE_URL}/buyer/recommended`, {
           method: 'GET',
         });
         const data = await res.json().catch(() => null);
-        if (mounted && res?.ok && data?.payload?.listings) {
-          setRecommendedHomes(data.payload.listings);
+        if (mounted && res?.status === 200 && data?.status === true && Array.isArray(data.payload)) {
+          setRecommendedHomes(data.payload);
+        } else if (mounted) {
+          setRecommendedHomes([]);
         }
       } catch (err) {
-        // ignore for now
-        // console.error('Failed to load recommended listings', err);
+        if (mounted) setRecommendedHomes([]);
       }
     }
 
@@ -201,6 +239,16 @@ export default function BuyerPage() {
   return (
     <main className="dashboard-page buyer-dashboard-page">
       <BuyerHeader user={user} loadingUser={loadingUser} tagline="Buyer dashboard" />
+
+      {!loadingBuyerProfile && !hasBuyerProfile && (
+        <div className="seller-profile-dashboard-alert buyer-profile-dashboard-alert" role="status">
+          <div>
+            <strong>Complete your buyer profile</strong>
+            <p>Create a buyer profile and provide your preferences to get the best experience.</p>
+          </div>
+          <Link className="action-button" href="/buyer/profile?section=buyer">Create buyer profile</Link>
+        </div>
+      )}
 
       <div className="dashboard-container buyer-dashboard-container">
         <section className="buyer-hero">
@@ -292,12 +340,21 @@ export default function BuyerPage() {
           <div className="property-grid">
             {visibleHomes.map((home) => {
               const key = home._id || home.id;
-              const img = home.image || (home.images && home.images[0]) || (home.media && home.media.images && home.media.images[0]) || '/home_buddy_logo.png';
+              const img = getListingImage(home);
               const category = home.category || home.property_type || '';
               const price = home.price || home.price_display || home.rent || '';
 
               return (
-                <article className="buyer-property-card" key={key}>
+                <article
+                  className="buyer-property-card"
+                  key={key}
+                  role="link"
+                  tabIndex={0}
+                  onClick={() => router.push(`/buyer/listings/${key}`)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') router.push(`/buyer/listings/${key}`);
+                  }}
+                >
                   <img src={img} alt={home.title || 'Property'} className="buyer-property-image" />
                   <div className="buyer-property-body">
                     <div className="buyer-property-topline">

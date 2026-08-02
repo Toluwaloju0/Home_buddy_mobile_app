@@ -1,16 +1,29 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { API_BASE_URL, authFetch } from '../../lib/api';
 import UserAvatar from './UserAvatar';
 
+const buyerMenuItems = [
+  { label: 'Shop', href: '/buyer/shop' },
+  { label: 'Land', href: '/buyer/land' },
+  { label: 'Apartments', href: '/buyer/apartments' },
+  { label: 'Agents', href: '/buyer/agents' },
+  { label: 'Buy', href: '/buyer'},
+  { label: 'Rent', href: '/buyer'}
+];
+
 export default function BuyerHeader({ user: providedUser, loadingUser: providedLoadingUser = false, tagline = 'Buyer dashboard' }) {
   const router = useRouter();
   const menuRef = useRef(null);
+  const mobileMenuRef = useRef(null);
+  const mobileMenuToggleRef = useRef(null);
   const pinnedRef = useRef(false);
   const verificationRedirectInFlightRef = useRef(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [switchingRole, setSwitchingRole] = useState(false);
   const [loadedUser, setLoadedUser] = useState(null);
   const [loadingOwnUser, setLoadingOwnUser] = useState(providedUser === undefined);
@@ -83,9 +96,14 @@ export default function BuyerHeader({ user: providedUser, loadingUser: providedL
     };
 
     const handlePointerDown = (event) => {
-      if (!menuRef.current || menuRef.current.contains(event.target)) return;
-      setDropdownOpen(false);
-      pinnedRef.current = false;
+      if (!menuRef.current?.contains(event.target)) {
+        setDropdownOpen(false);
+        pinnedRef.current = false;
+      }
+
+      if (!mobileMenuRef.current?.contains(event.target) && !mobileMenuToggleRef.current?.contains(event.target)) {
+        setMobileMenuOpen(false);
+      }
     };
 
     const handleKeyDown = (event) => {
@@ -177,7 +195,7 @@ export default function BuyerHeader({ user: providedUser, loadingUser: providedL
   };
 
   return (
-    <header className="topbar buyer-topbar">
+    <header className="topbar seller-topbar buyer-topbar">
       <button
         type="button"
         className="brand-lockup brand-lockup--clickable"
@@ -192,12 +210,27 @@ export default function BuyerHeader({ user: providedUser, loadingUser: providedL
         </div>
       </button>
 
-      <div className="topbar-tags buyer-topbar-tags" aria-label="Buyer quick links">
-        <a href="#recommendations">Recommendations</a>
-        <a href="#saved-homes">Saved Homes</a>
-        <a href="#requests">Inspections</a>
-        <a href="#messages">Messages</a>
-      </div>
+      <nav className="landing-nav-center" aria-label="Buyer marketplace">
+        {buyerMenuItems.map((item) => (
+          <Link key={`${item.label}-${item.href}`} className="landing-nav-link" href={item.href}>
+            {item.label}
+          </Link>
+        ))}
+      </nav>
+
+      <button
+        ref={mobileMenuToggleRef}
+        type="button"
+        className="landing-mobile-toggle"
+        onClick={() => {
+          setDropdownOpen(false);
+          setMobileMenuOpen((open) => !open);
+        }}
+        aria-expanded={mobileMenuOpen}
+        aria-label="Open buyer menu"
+      >
+        <span>☰</span>
+      </button>
 
       <div className="seller-user-menu" ref={menuRef}>
         <button
@@ -273,6 +306,16 @@ export default function BuyerHeader({ user: providedUser, loadingUser: providedL
           <button type="button" className="profile-dropdown-item" role="menuitem" onClick={handleLogout}>Log out</button>
         </div>
       </div>
+
+      {mobileMenuOpen && (
+        <div ref={mobileMenuRef} className="landing-mobile-menu">
+          {buyerMenuItems.map((item) => (
+            <Link key={`${item.label}-${item.href}`} href={item.href} className="landing-nav-link landing-nav-link--mobile" onClick={() => setMobileMenuOpen(false)}>
+              {item.label}
+            </Link>
+          ))}
+        </div>
+      )}
     </header>
   );
 }

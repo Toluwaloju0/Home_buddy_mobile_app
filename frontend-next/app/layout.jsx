@@ -1,4 +1,5 @@
 import './globals.css';
+import TawkChat from '@/components/TawkChat';
 
 export const metadata = {
   title: 'Home Buddy Connect Limited',
@@ -10,12 +11,17 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }) {
+  const tawkUri = process.env.TAWK_URI;
+
   return (
     <html lang="en">
       <head>
         <link rel="icon" href="/home_buddy_icon.ico" />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <TawkChat tawkUri={tawkUri} />
+      </body>
     </html>
   );
 }
