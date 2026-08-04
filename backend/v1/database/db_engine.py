@@ -122,7 +122,7 @@ class DBStorage:
 
         from services.s3_uploader import uploader
 
-        user = await self.__user.find_one({"email": email})
+        user = await self.__user.find_one({"email": email.lower()})
         if not user:
             return function_response(False)
         # do not expose password

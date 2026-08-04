@@ -8,6 +8,7 @@ functions that previously lived as top-level functions.
 import asyncio
 import boto3
 import logging
+import requests
 
 from botocore.exceptions import BotoCoreError, ClientError
 from fastapi import UploadFile
@@ -160,6 +161,35 @@ class S3Uploader:
         except Exception as e:
             print(e)
             logger.error(e)
+
+    def upload_image_from_public_url(self, user_id, public_url):
+        """ a method to upload an image from a public url to the amazon bucket and return the key
+        Args:
+            public_url: the url to the image to upload
+        """
+
+        if not public_url:
+            return None
+        
+        object_key = f"profile/{user_id}"
+
+        response = requests.get(public_url, stream=True)
+        if response.status_code != 200:
+            return None
+
+         # upload the file to the s3 bucket
+        try:
+            client = boto3.client(
+                "s3", region_name=self.aws_region,
+                aws_access_key_id=self.access_key,
+                aws_secret_access_key=self.secret_key
+            )
+            client.upload_fileobj(response.raw, self.bucket_name, object_key)
+
+            return object_key
+        except Exception as e:
+            print(e)
+            return None
 
     def upload_seller_verification(self, user_id, id_front, id_back):
         """ a method to upload seller verification images for admin review
