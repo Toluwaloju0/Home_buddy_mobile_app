@@ -30,6 +30,7 @@ const initialForm = {
   property_type: 'shop',
   price: '',
   is_negotiable: true,
+  for_sell: '',
   size_square_meters: '',
   description: '',
   state: '',
@@ -377,8 +378,8 @@ export default function ShopListingPage() {
 
   const validateStep = (stepIndex = activeStep) => {
     if (stepIndex === 0) {
-      if (!form.title.trim() || !form.price || !form.size_square_meters.trim() || !form.description.trim()) {
-        return 'Complete the title, price, shop size, and description.';
+      if (!form.title.trim() || !form.price || !form.size_square_meters.trim() || !form.description.trim() || !form.for_sell) {
+        return 'Complete the title, price, listing purpose, shop size, and description.';
       }
       if (!Number.isInteger(Number(form.price)) || Number(form.price) <= 0) {
         return 'Price must be a whole number greater than zero.';
@@ -456,6 +457,7 @@ export default function ShopListingPage() {
       payload.append('description', form.description.trim());
       payload.append('bathroom', form.bathroom ? 'true' : 'false');
       payload.append('is_negotiable', form.is_negotiable ? 'true' : 'false');
+      payload.append('for_sell', form.for_sell === 'yes' ? 'true' : 'false');
       payload.append('size_square_meters', form.size_square_meters.trim());
 
       [...mediaFields, ...documentFields].forEach((field) => {
@@ -581,6 +583,27 @@ export default function ShopListingPage() {
                     <option value="no">No</option>
                   </select>
                 </label>
+                <div className="field-item">
+                  <span>For Sale?</span>
+                  <label className="field-note">
+                    <input
+                      type="radio"
+                      name="shop_for_sell"
+                      checked={form.for_sell === 'yes'}
+                      onChange={() => setForm((current) => ({ ...current, for_sell: 'yes' }))}
+                    />
+                    Yes, for sale
+                  </label>
+                  <label className="field-note">
+                    <input
+                      type="radio"
+                      name="shop_for_sell"
+                      checked={form.for_sell === 'no'}
+                      onChange={() => setForm((current) => ({ ...current, for_sell: 'no' }))}
+                    />
+                    No, for rent
+                  </label>
+                </div>
                 <label className="field-item">
                   <span>Shop Size</span>
                   <input value={form.size_square_meters} onChange={onFieldChange('size_square_meters')} placeholder="e.g. 32 sqm" />

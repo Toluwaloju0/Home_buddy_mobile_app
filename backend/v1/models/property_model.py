@@ -28,6 +28,7 @@ class ShopListingSchema(BaseModel):
     verification_media: List[Dict[str, str | Dict]] = []
     status: str = "pending_approval"
     is_negotiable: bool = True
+    for_sell: bool = True
     bathroom: bool = True
 
 
@@ -48,6 +49,7 @@ class LandListingSchema(BaseModel):
     verification_media: List[Dict[str, str | Dict]] = []
     status: str = "pending_approval"
     is_negotiable: bool = True
+    for_sell: bool = True
 
 
 class ApartmentListingSchema(BaseModel):
@@ -72,3 +74,4 @@ class ApartmentListingSchema(BaseModel):
     verification_media: List[Dict[str, str] | Dict] = []
     status: str = "pending_approval"
     is_negotiable: bool = True
+    for_sell: bool = True

@@ -29,6 +29,7 @@ const initialForm = {
   property_type: 'land',
   price: '',
   is_negotiable: true,
+  for_sell: '',
   size_square_meters: '',
   description: '',
   state: '',
@@ -363,8 +364,8 @@ export default function LandListingPage() {
 
   const validateStep = (stepIndex = activeStep) => {
     if (stepIndex === 0) {
-      if (!form.title.trim() || !form.price.trim() || !form.size_square_meters.trim() || !form.description.trim()) {
-        return 'Complete the title, price, land size, and description.';
+      if (!form.title.trim() || !form.price.trim() || !form.size_square_meters.trim() || !form.description.trim() || !form.for_sell) {
+        return 'Complete the title, price, listing purpose, land size, and description.';
       }
       const normalizedPrice = normalizeInteger(form.price);
       if (!normalizedPrice || Number(normalizedPrice) <= 0) {
@@ -451,6 +452,7 @@ export default function LandListingPage() {
       payload.append('building_no', normalizeInteger(form.building_no));
       payload.append('size_square_meters', form.size_square_meters.trim());
       payload.append('is_negotiable', form.is_negotiable ? 'true' : 'false');
+      payload.append('for_sell', form.for_sell === 'yes' ? 'true' : 'false');
 
       fileFields.forEach((field) => {
         const file = files[field.key]?.file;
@@ -577,6 +579,27 @@ export default function LandListingPage() {
                     <option value="no">No</option>
                   </select>
                 </label>
+                <div className="field-item">
+                  <span>For Sale?</span>
+                  <label className="field-note">
+                    <input
+                      type="radio"
+                      name="land_for_sell"
+                      checked={form.for_sell === 'yes'}
+                      onChange={() => setForm((current) => ({ ...current, for_sell: 'yes' }))}
+                    />
+                    Yes, for sale
+                  </label>
+                  <label className="field-note">
+                    <input
+                      type="radio"
+                      name="land_for_sell"
+                      checked={form.for_sell === 'no'}
+                      onChange={() => setForm((current) => ({ ...current, for_sell: 'no' }))}
+                    />
+                    No, for rent
+                  </label>
+                </div>
                 <label className="field-item">
                   <span>Land Size</span>
                   <input value={form.size_square_meters} onChange={onFieldChange('size_square_meters')} placeholder="e.g. 648 sqm" />

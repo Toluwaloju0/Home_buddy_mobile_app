@@ -12,548 +12,193 @@ States_list: List[str] = [
 ]
 
 States_with_lgas: Dict[str, List[str]] = {
-  "Abia": [
-    "Aba North",
-    "Aba South",
-    "Arochukwu",
-    "Bende",
-    "Ikwuano",
-    "Isiala Ngwa North",
-    "Isiala Ngwa South",
-    "Isuikwuato",
-    "Oboma Ngwa",
-    "Ohafia",
-    "Osisioma",
-    "Ugwunagbo",
-    "Ukwa East",
-    "Ukwa West",
-    "Umu-Nneochi",
-    "Umuahia North",
-    "Umuahia South"
+  "abia": [
+    "aba north", "aba south", "arochukwu", "bende", "ikwuano", "isiala ngwa north",
+    "isiala ngwa south", "isuikwuato", "oboma ngwa", "ohafia", "osisioma", "ugwunagbo",
+    "ukwa east", "ukwa west", "umu-nneochi", "umuahia north", "umuahia south"
   ],
-  "Federal Capital Territory": [
-    "Abaji",
-    "Bwari",
-    "Gwagwalada",
-    "Kuje",
-    "Kwali",
-    "Municipal"
+  "federal capital territory": [
+    "abaji", "bwari", "gwagwalada", "kuje", "kwali", "municipal"
   ],
-  "Adamawa": [
-    "Demsa",
-    "Fufore",
-    "Ganye",
-    "Girie",
-    "Gombi",
-    "Guyuk",
-    "Hong",
-    "Jada",
-    "Lamurde",
-    "Madagali",
-    "Maiha",
-    "Mayo-Belwa",
-    "Michika",
-    "Mubi North",
-    "Mubi South",
-    "Numan",
-    "Shelleng",
-    "Song",
-    "Teungo",
-    "Yola North",
-    "Yola South"
+  "adamawa": [
+    "demsa", "fufore", "ganye", "girie", "gombi", "guyuk", "hong", "jada", "lamurde", "madagali",
+    "maiha", "mayo-belwa", "michika", "mubi north", "mubi south", "numan", "shelleng", "song",
+    "teungo", "yola north", "yola south"
   ],
-  "Akwa Ibom": [
-    "Abak",
-    "Eastern Obolo",
-    "Eket",
-    "Esit Eket",
-    "Essien Udim",
-    "Etim Ekpo",
-    "Etinan",
-    "Ibeno",
-    "Ibesikpo Asutan",
-    "Ibiono Ibom",
-    "Ika",
-    "Ikono",
-    "Ikot Abasi",
-    "Ikot Ekpene",
-    "Ini",
-    "Itu",
-    "Mbo",
-    "Mkpat Enin",
-    "Nsit Atai",
-    "Nsit Ibom",
-    "Nsit Ubium",
-    "Obot Akara",
-    "Okobo",
-    "Onna",
-    "Oron",
-    "Oruk Anam",
-    "Udung Uko",
-    "Ukanafun",
-    "Uruan",
-    "Urue Offong|Oruko",
-    "Uyo"
+  "akwa ibom": [
+    "abak", "eastern obolo", "eket", "esit eket", "essien udim", "etim ekpo", "etinan", "ibeno",
+    "ibesikpo asutan", "ibiono ibom", "ika", "ikono", "ikot abasi", "ikot ekpene", "ini", "itu",
+    "mbo", "mkpat enin", "nsit atai", "nsit ibom", "nsit ubium", "obot akara", "okobo", "onna",
+    "oron", "oruk anam", "udung uko", "ukanafun", "uruan", "urue offong|oruko", "uyo"
   ],
-  "Anambra": [
-    "Aguata",
-    "Anambra East",
-    "Anambra West",
-    "Anaocha",
-    "Awka North",
-    "Awka South",
-    "Ayamelum",
-    "Dunukofia",
-    "Ekwusigo",
-    "Idemili North",
-    "Idemili South",
-    "Ihiala",
-    "Njikoka",
-    "Nnewi North",
-    "Nnewi South",
-    "Ogbaru",
-    "Onitsha North",
-    "Onitsha South",
-    "Orumba North",
-    "Orumba South",
-    "Oyi"
+  "anambra": [
+    "aguata", "anambra east", "anambra west", "anaocha", "awka north", "awka south", "ayamelum",
+    "dunukofia", "ekwusigo", "idemili north", "idemili south", "ihiala", "njikoka", "nnewi north",
+    "nnewi south", "ogbaru", "onitsha north", "onitsha south", "orumba north", "orumba south", "oyi"
   ],
-  "Bauchi": [
-    "Alkaleri",
-    "Bauchi",
-    "Bogoro",
-    "Damban",
-    "Darazo",
-    "Dass",
-    "Gamawa",
-    "Gamjuwa",
-    "Giade",
-    "Itas/Gadau",
-    "Jama'are",
-    "Katagum",
-    "Kirfi",
-    "Misau",
-    "Ningi",
-    "Shira",
-    "Tafawa-Balewa",
-    "Toro",
-    "Warji",
-    "Zaki"
+  "bauchi": [
+    "alkaleri", "bauchi", "bogoro", "damban", "darazo", "dass", "gamawa", "gamjuwa", "giade",
+    "itas/gadau", "jama'are", "katagum", "kirfi", "misau", "ningi", "shira", "tafawa-balewa",
+    "toro", "warji", "zaki"
   ],
-  "Bayelsa": [
-    "Brass",
-    "Ekeremor",
-    "Kolokuma-Opokuma",
-    "Nembe",
-    "Ogbia",
-    "Sagbama",
-    "Southern Ijaw",
-    "Yenagoa"
+  "bayelsa": [
+    "brass", "ekeremor", "kolokuma-opokuma", "nembe", "ogbia", "sagbama", "southern ijaw",
+    "yenagoa"
   ],
-  "Benue": [
-    "Ado",
-    "Agatu",
-    "Apa",
-    "Buruku",
-    "Gboko",
-    "Guma",
-    "Gwer East",
-    "Gwer West",
-    "Katsina- Ala",
-    "Konshisha",
-    "Kwande",
-    "Logo",
-    "Makurdi",
-    "Obi",
-    "Ogbadibo",
-    "Ohimini",
-    "Oju",
-    "Okpokwu",
-    "Oturkpo",
-    "Tarka",
-    "Ukum",
-    "Ushongo",
-    "Vandeikya"
+  "benue": [
+    "ado", "agatu", "apa", "buruku", "gboko", "guma", "gwer east", "gwer west", "katsina- ala",
+    "konshisha", "kwande", "logo", "makurdi", "obi", "ogbadibo", "ohimini", "oju", "okpokwu",
+    "oturkpo", "tarka", "ukum", "ushongo", "vandeikya"
   ],
-  "Borno": [
-    "Abadam",
-    "Askira/Uba",
-    "Bama",
-    "Bayo",
-    "Biu",
-    "Chibok",
-    "Damboa",
-    "Dikwa",
-    "Gubio",
-    "Guzamala",
-    "Gwoza",
-    "Hawul",
-    "Jere",
-    "Kaga",
-    "Kala/Balge",
-    "Konduga",
-    "Kukawa",
-    "Kwaya Kusar",
-    "Mafa",
-    "Magumeri",
-    "Maiduguri",
-    "Marte",
-    "Mobbar",
-    "Monguno",
-    "Ngala",
-    "Nganzai",
-    "Shani"
+  "borno": [
+    "abadam", "askira/uba", "bama", "bayo", "biu", "chibok", "damboa", "dikwa", "gubio",
+    "guzamala", "gwoza", "hawul", "jere", "kaga", "kala/balge", "konduga", "kukawa",
+    "kwaya kusar", "mafa", "magumeri", "maiduguri", "marte", "mobbar", "monguno", "ngala",
+    "nganzai", "shani"
   ],
-  "Cross River": [
-    "Abi",
-    "Akamkpa",
-    "Akpabuyo",
-    "Bakassi",
-    "Bekwarra",
-    "Biase",
-    "Boki",
-    "Calabar Municipality",
-    "Calabar South",
-    "Etung",
-    "Ikom",
-    "Obanliku",
-    "Obubra",
-    "Obudu",
-    "Odukpani",
-    "Ogoja",
-    "Yakurr",
-    "Yala"
+  "cross river": [
+    "abi", "akamkpa", "akpabuyo", "bakassi", "bekwarra", "biase", "boki", "calabar municipality",
+    "calabar south", "etung", "ikom", "obanliku", "obubra", "obudu", "odukpani", "ogoja", "yakurr",
+    "yala"
   ],
-  "Delta": [
-    "AniochaN",
-    "AniochaS",
-    "Bomadi",
-    "Burutu",
-    "Ethiope West",
-    "EthiopeE",
-    "IkaNorth",
-    "IkaSouth",
-    "IsokoNor",
-    "IsokoSou",
-    "Ndokwa East",
-    "Ndokwa West",
-    "Okpe",
-    "Oshimili North",
-    "Oshimili South",
-    "Patani",
-    "Sapele",
-    "Udu",
-    "Ughelli North",
-    "Ughelli South",
-    "Ukwuani",
-    "Uvwie",
-    "Warri North",
-    "Warri South",
-    "Warri South-West"
+  "delta": [
+    "aniochan", "aniochas", "bomadi", "burutu", "ethiope west", "ethiopee", "ikanorth", "ikasouth",
+    "isokonor", "isokosou", "ndokwa east", "ndokwa west", "okpe", "oshimili north", "oshimili south",
+    "patani", "sapele", "udu", "ughelli north", "ughelli south", "ukwuani", "uvwie", "warri north",
+    "warri south", "warri south-west"
   ],
-  "Ebonyi": [
-    "Abakalik",
-    "Afikpo North",
-    "Afikpo South",
-    "Ebonyi",
-    "Ezza North",
-    "Ezza South",
-    "Ikwo",
-    "Ishielu",
-    "Ivo",
-    "Izzi",
-    "Ohaozara",
-    "Ohaukwu",
-    "Onicha"
+  "ebonyi": [
+    "abakalik", "afikpo north", "afikpo south", "ebonyi", "ezza north", "ezza south", "ikwo",
+    "ishielu", "ivo", "izzi", "ohaozara", "ohaukwu", "onicha"
   ],
-  "Edo": [
-    "Akoko Edo",
-    "Egor",
-    "Esan Centtral",
-    "Esan North East",
-    "Esan South East",
-    "Esan West",
-    "Etsako Central",
-    "Etsako East",
-    "Etsako West",
-    "Igueben",
-    "Ikpoba-Okha",
-    "Oredo",
-    "Orhionmw",
-    "Ovia North East",
-    "Ovia South West",
-    "Owan East",
-    "Owan West",
-    "Uhunmwonde"
+  "edo": [
+    "akoko edo", "egor", "esan centtral", "esan north east", "esan south east", "esan west",
+    "etsako central", "etsako east", "etsako west", "igueben", "ikpoba-okha", "oredo", "orhionmw",
+    "ovia north east", "ovia south west", "owan east", "owan west", "uhunmwonde"
   ],
-  "Ekiti": [
-    "Ado-Ekiti",
-    "Efon",
-    "Ekiti East",
-    "Ekiti South West",
-    "Ekiti West",
-    "Emure",
-    "Gboyin",
-    "Ido-Osi",
-    "Ijero",
-    "Ikere",
-    "Ikole",
-    "Ilejemeje",
-    "Irepodun-Ifelodun",
-    "Ise-Orun",
-    "Moba",
-    "Oye"
+  "ekiti": [
+    "ado-ekiti", "efon", "ekiti east", "ekiti south west", "ekiti west", "emure", "gboyin",
+    "ido-osi", "ijero", "ikere", "ikole", "ilejemeje", "irepodun-ifelodun", "ise-orun", "moba",
+    "oye"
   ],
-  "Enugu": [
-    "Aninri",
-    "Awgu",
-    "Enugu East",
-    "Enugu North",
-    "EnuguSou",
-    "Ezeagu",
-    "Igbo-Eti",
-    "Igbo-eze North",
-    "Igbo-eze South",
-    "Isi-Uzo",
-    "Nkanu East",
-    "Nkanu West",
-    "Nsukka",
-    "Oji-River",
-    "Udenu",
-    "Udi",
-    "Uzo-Uwani"
+  "enugu": [
+    "aninri", "awgu", "enugu east", "enugu north", "enugusou", "ezeagu", "igbo-eti",
+    "igbo-eze north", "igbo-eze south", "isi-uzo", "nkanu east", "nkanu west", "nsukka",
+    "oji-river", "udenu", "udi", "uzo-uwani"
   ],
-  "Gombe": [
-    "Akko",
-    "Balanga",
-    "Billiri",
-    "Dukku",
-    "Funakaye",
-    "Gombe",
-    "Kaltungo",
-    "Kwami",
-    "Nafada",
-    "Shomgom",
-    "Yalmatu / Deba"
+  "gombe": [
+    "akko", "balanga", "billiri", "dukku", "funakaye", "gombe", "kaltungo", "kwami", "nafada",
+    "shomgom", "yalmatu / deba"
   ],
-  "Imo": [
-    "Aboh-Mbaise",
-    "Ahiazu-Mbaise",
-    "Ehime-Mbano",
-    "Ezinihitte Mbaise",
-    "Ideato North",
-    "Ideato South",
-    "Ihitte-Uboma Isinweke",
-    "Ikeduru",
-    "Isiala Mbano",
-    "Isu",
-    "Mbaitoli",
-    "Ngor-Okpala",
-    "Njaba",
-    "Nkwerre",
-    "Nwangele",
-    "Obowo",
-    "Oguta",
-    "Ohaji-Egbema",
-    "Okigwe",
-    "Orlu",
-    "Orsu",
-    "Oru-East",
-    "Oru-West",
-    "Owerri Municipal",
-    "Owerri North",
-    "Owerri West",
-    "Unuimo"
+  "imo": [
+    "aboh-mbaise", "ahiazu-mbaise", "ehime-mbano", "ezinihitte mbaise", "ideato north",
+    "ideato south", "ihitte-uboma isinweke", "ikeduru", "isiala mbano", "isu", "mbaitoli",
+    "ngor-okpala", "njaba", "nkwerre", "nwangele", "obowo", "oguta", "ohaji-egbema", "okigwe",
+    "orlu", "orsu", "oru-east", "oru-west", "owerri municipal", "owerri north", "owerri west",
+    "unuimo"
   ],
-  "Jigawa": [
-    "Auyo",
-    "Babura",
-    "Biriniwa",
-    "Birnin Kudu",
-    "Buji",
-    "Dutse",
-    "Gagarawa",
-    "Garki",
-    "Gumel",
-    "Guri",
-    "Gwaram",
-    "Gwiwa",
-    "Hadejia",
-    "Jahun",
-    "Kafin Hausa",
-    "Kaugama",
-    "Kazaure",
-    "Kirika Samma",
-    "Kiyawa",
-    "Maigatari",
-    "Malam Mado",
-    "Miga",
-    "Ringim",
-    "Roni",
-    "Sule Tankarkar",
-    "Taura",
-    "Yankwashi"
+  "jigawa": [
+    "auyo", "babura", "biriniwa", "birnin kudu", "buji", "dutse", "gagarawa", "garki", "gumel",
+    "guri", "gwaram", "gwiwa", "hadejia", "jahun", "kafin hausa", "kaugama", "kazaure",
+    "kirika samma", "kiyawa", "maigatari", "malam mado", "miga", "ringim", "roni", "sule tankarkar",
+    "taura", "yankwashi"
   ],
-  "Kaduna": [
-    "Birnin Gwari",
-    "Chikun",
-    "Giwa",
-    "Igabi",
-    "Ikara",
-    "Jaba",
-    "Jema'a",
-    "Kachia",
-    "Kaduna North",
-    "Kaduna South",
-    "Kagarko",
-    "Kajuru",
-    "Kaura",
-    "Kauru",
-    "Kubau",
-    "Kudan",
-    "Lere",
-    "Makarfi",
-    "Sabon Gari",
-    "Sanga",
-    "Soba",
-    "Zangon Kataf",
-    "Zaria"
+  "kaduna": [
+    "birnin gwari", "chikun", "giwa", "igabi", "ikara", "jaba", "jema'a", "kachia", "kaduna north",
+    "kaduna south", "kagarko", "kajuru", "kaura", "kauru", "kubau", "kudan", "lere", "makarfi",
+    "sabon gari", "sanga", "soba", "zangon kataf", "zaria"
   ],
-  "Kano": [
-    "Ajingi",
-    "Albasu",
-    "Bagwai",
-    "Bebeji",
-    "Bichi",
-    "Bunkure",
-    "Dala",
-    "Dambatta",
-    "Dawakin Kudu",
-    "Dawakin Tofa",
-    "Doguwa",
-    "Fagge",
-    "Gabasawa",
-    "Garko",
-    "Garum Mallam",
-    "Gaya",
-    "Gezawa",
-    "Gwale",
-    "Gwarzo",
-    "Kabo",
-    "Kano Municipal",
-    "Karaye",
-    "Kibiya",
-    "Kiru",
-    "Kumbotso",
-    "Kunchi",
-    "Kura",
-    "Madobi",
-    "Makoda",
-    "Minjibir",
-    "Nasarawa",
-    "Rano",
-    "Rimin Gado",
-    "Rogo",
-    "Shanono",
-    "Sumaila",
-    "Takai",
-    "Tarauni",
-    "Tofa",
-    "Tsanyawa",
-    "Tundun Wada",
-    "Ungogo",
-    "Warawa",
-    "Wudil"
+  "kano": [
+    "ajingi", "albasu", "bagwai", "bebeji", "bichi", "bunkure", "dala", "dambatta", "dawakin kudu",
+    "dawakin tofa", "doguwa", "fagge", "gabasawa", "garko", "garum mallam", "gaya", "gezawa",
+    "gwale", "gwarzo", "kabo", "kano municipal", "karaye", "kibiya", "kiru", "kumbotso", "kunchi",
+    "kura", "madobi", "makoda", "minjibir", "nasarawa", "rano", "rimin gado", "rogo", "shanono",
+    "sumaila", "takai", "tarauni", "tofa", "tsanyawa", "tundun wada", "ungogo", "warawa", "wudil"
   ],
-  "Katsina": [
-    "Bakori", "Batagarawa", "Batsari", "Baure", "Bindawa",
-    "Charanchi", "Dandume", "Danja", "Danmusa", "Daura", "Dutsi",
-    "Dutsin-M", "Faskari", "Funtua", "Ingawa", "Jibia", "Kafur",
-    "Kaita", "Kankara", "Kankiya", "Katsina (K)", "Kurfi", "Kusada",
-    "Mai'Adua", "Malumfashi", "Mani", "Mashi", "Matazu", "Musawa",
-    "Rimi", "Sabuwa", "Safana", "Sandamu", "Zango"
+  "katsina": [
+    "bakori", "batagarawa", "batsari", "baure", "bindawa", "charanchi", "dandume", "danja",
+    "danmusa", "daura", "dutsi", "dutsin-m", "faskari", "funtua", "ingawa", "jibia", "kafur",
+    "kaita", "kankara", "kankiya", "katsina (k)", "kurfi", "kusada", "mai'adua", "malumfashi",
+    "mani", "mashi", "matazu", "musawa", "rimi", "sabuwa", "safana", "sandamu", "zango"
   ],
-  "Kebbi": [
-    "Aleiro", "Arewa", "Argungu", "Augie", "Bagudo",
-    "Birnin Kebbi", "Bunza", "Dandi", "Danko Wasagu", "Fakai",
-    "Gwandu", "Jega", "Kalgo", "Koko/Bes", "Maiyama", "Ngaski",
-    "Sakaba", "Shanga", "Suru", "Yauri", "Zuru"
+  "kebbi": [
+    "aleiro", "arewa", "argungu", "augie", "bagudo", "birnin kebbi", "bunza", "dandi",
+    "danko wasagu", "fakai", "gwandu", "jega", "kalgo", "koko/bes", "maiyama", "ngaski", "sakaba",
+    "shanga", "suru", "yauri", "zuru"
   ],
-  "Kogi": [
-    "Adavi", "Ajaokuta", "Ankpa", "Bassa", "Dekina",
-    "Ibaji", "Idah", "Igalamela-Odolu", "Ijumu", "Kabba-Bunu",
-    "Koton-Karfe", "Lokoja", "Mopa-Muro", "Ofu", "Ogori Magongo",
-    "Okehi", "Okene", "Olamaboro", "Omala", "Yagba East", "Yagba West"
+  "kogi": [
+    "adavi", "ajaokuta", "ankpa", "bassa", "dekina", "ibaji", "idah", "igalamela-odolu", "ijumu",
+    "kabba-bunu", "koton-karfe", "lokoja", "mopa-muro", "ofu", "ogori magongo", "okehi", "okene",
+    "olamaboro", "omala", "yagba east", "yagba west"
   ],
-  "Kwara": [
-    "Asa", "Baruten", "Edu", "Ekiti", "Ifelodun", "Ilorin East", "Ilorin South",
-    "Ilorin West", "Irepodun", "Isin", "Kaiama", "Moro", "Offa", "Oke-Ero", "Oyun", "Pategi"
+  "kwara": [
+    "asa", "baruten", "edu", "ekiti", "ifelodun", "ilorin east", "ilorin south", "ilorin west",
+    "irepodun", "isin", "kaiama", "moro", "offa", "oke-ero", "oyun", "pategi"
   ],
-  "Lagos": [
-    "Agege", "Ajeromi/Ifelodun", "Alimosho", "Amuwo Odofin", "Apapa", "Badagary", "Epe", "Eti-Osa",
-    "Ibeju/Lekki", "Ifako/Ijaye", "Ikeja", "Ikorodu", "Kosofe", "Lagos Island",
-    "Lagos Mainland", "Mushin", "Ojo", "Oshodi/Isolo", "Shomolu", "Surulere"
+  "lagos": [
+    "agege", "ajeromi/ifelodun", "alimosho", "amuwo odofin", "apapa", "badagary", "epe", "eti-osa",
+    "ibeju/lekki", "ifako/ijaye", "ikeja", "ikorodu", "kosofe", "lagos island", "lagos mainland",
+    "mushin", "ojo", "oshodi/isolo", "shomolu", "surulere"
   ],
-  "Nassarawa": [
-    "Akwanga", "Awe", "Doma", "Karu", "Keana", "Keffi", "Kokona",
-    "Lafia", "Nasarawa", "Nassarawa Egon", "Obi", "Toto", "Wamba"
+  "nassarawa": [
+    "akwanga", "awe", "doma", "karu", "keana", "keffi", "kokona", "lafia", "nasarawa",
+    "nassarawa egon", "obi", "toto", "wamba"
   ],
-  "Niger": [
-    "Agaie", "Agwara", "Bida", "Borgu", "Bosso", "Chanchaga", "Edati", "Gbako",
-    "Gurara", "Katcha", "Kontogur", "Lapai", "Lavun", "Magama", "Mariga", "Mashegu",
-    "Mokwa", "Muya", "Paikoro", "Rafi","Rijau", "Shiroro", "Suleja", "Tafa", "Wushishi"
+  "niger": [
+    "agaie", "agwara", "bida", "borgu", "bosso", "chanchaga", "edati", "gbako", "gurara", "katcha",
+    "kontogur", "lapai", "lavun", "magama", "mariga", "mashegu", "mokwa", "muya", "paikoro", "rafi",
+    "rijau", "shiroro", "suleja", "tafa", "wushishi"
   ],
-  "Ogun": [
-    "Abeokuta North", "Abeokuta South", "Ado Odo-Ota", "Egbado North", "Egbado South", "Ewekoro",
-    "Ifo", "Ijebu East", "Ijebu North", "Ijebu North-East", "Ijebu-Ode", "Ikenne", "Imeko-Afon",
-    "Ipokia", "Obafemi-Owode", "Odeda", "Odogbolu", "Ogun Waterside", "Remo North", "Shagamu"
+  "ogun": [
+    "abeokuta north", "abeokuta south", "ado odo-ota", "egbado north", "egbado south", "ewekoro",
+    "ifo", "ijebu east", "ijebu north", "ijebu north-east", "ijebu-ode", "ikenne", "imeko-afon",
+    "ipokia", "obafemi-owode", "odeda", "odogbolu", "ogun waterside", "remo north", "shagamu"
   ],
-  "Ondo": [
-    "Akoko North-East", "Akoko South-East", "Akoko South-West",
-    "Akoko North West", "Akure North", "Akure South", "Ese-Odo", "Idanre", "Ifedore", "Ilaje",
-    "IleOluji/Okeigbo", "Irele", "Odigbo", "Okitipupa", "Ondo East", "Ondo West", "Ose", "Owo"
+  "ondo": [
+    "akoko north-east", "akoko south-east", "akoko south-west", "akoko north west", "akure north",
+    "akure south", "ese-odo", "idanre", "ifedore", "ilaje", "ileoluji/okeigbo", "irele", "odigbo",
+    "okitipupa", "ondo east", "ondo west", "ose", "owo"
   ],
-  "Osun": [
-    "Atakumosa East", "Atakumosa West",
-    "Ayedaade", "Ayedire", "Boluwaduro", "Boripe", "Ede North", "Ede South", "Egbedore",
-    "Ejigbo", "Ife East", "Ife North", "Ife South", "Ife Central", "Ifedayo", "Ifelodun",
-    "Ila", "Ilesha East", "Ilesha West", "Irepodun", "Irewole", "Isokan", "Iwo",
-    "Obokun", "Odo Otin", "Ola-Oluwa", "Olorunda", "Oriade", "Orolu", "Osogbo"
+  "osun": [
+    "atakumosa east", "atakumosa west", "ayedaade", "ayedire", "boluwaduro", "boripe", "ede north",
+    "ede south", "egbedore", "ejigbo", "ife east", "ife north", "ife south", "ife central",
+    "ifedayo", "ifelodun", "ila", "ilesha east", "ilesha west", "irepodun", "irewole", "isokan",
+    "iwo", "obokun", "odo otin", "ola-oluwa", "olorunda", "oriade", "orolu", "osogbo"
   ],
-  "Oyo": [
-    "Afijio", "Akinyele", "Atiba", "Atisbo", "Egbeda", "Ibadan North",
-    "Ibadan North East", "Ibadan North West", "Ibadan South East", "Ibadan South West", "Ibarapa Central",
-    "Ibarapa East", "Ibarapa North", "Ido", "Irepo", "Iseyin", "Itesiwaju", "Iwajowa", "Kajola",
-    "Lagelu", "Ogbomosho North", "Ogbomosho South", "Ogo-Oluwa", "Olorunsogo", "Oluyole",
-    "Ona-Ara", "Orelope", "Ori-Ire", "Oyo East", "Oyo West", "Saki East", "Saki West", "Surulere"
+  "oyo": [
+    "afijio", "akinyele", "atiba", "atisbo", "egbeda", "ibadan north", "ibadan north east",
+    "ibadan north west", "ibadan south east", "ibadan south west", "ibarapa central", "ibarapa east",
+    "ibarapa north", "ido", "irepo", "iseyin", "itesiwaju", "iwajowa", "kajola", "lagelu",
+    "ogbomosho north", "ogbomosho south", "ogo-oluwa", "olorunsogo", "oluyole", "ona-ara", "orelope",
+    "ori-ire", "oyo east", "oyo west", "saki east", "saki west", "surulere"
   ],
-  "Plateau": [
-    "Barkin Ladi", "Bassa", "Bokkos",
-    "Jos East", "Jos North", "Jos South", "Kanam", "Kanke", "Langtang North",
-    "Langtang South", "Mangu", "Mikang", "Pankshin", "Qua'anpa", "Riyom", "Shendam", "Wase"
+  "plateau": [
+    "barkin ladi", "bassa", "bokkos", "jos east", "jos north", "jos south", "kanam", "kanke",
+    "langtang north", "langtang south", "mangu", "mikang", "pankshin", "qua'anpa", "riyom",
+    "shendam", "wase"
   ],
-  "Rivers": [
-    "Abua/Odu", "Ahoada East",
-    "Ahoada West", "Akukutor", "Andoni/Odual", "Asari-Toru", "Bonny", "Degema", "Eleme",
-    "Emuoha", "Etche", "Gokana", "Ikwerre", "Khana", "Obio/Akpor", "Ogba/Egbema/Andoni",
-    "Ogu/Bolo", "Okrika", "Omumma", "Opobo/Nkoro", "Oyigbo", "Port Harcourt", "Tai"
+  "rivers": [
+    "abua/odu", "ahoada east", "ahoada west", "akukutor", "andoni/odual", "asari-toru", "bonny",
+    "degema", "eleme", "emuoha", "etche", "gokana", "ikwerre", "khana", "obio/akpor",
+    "ogba/egbema/andoni", "ogu/bolo", "okrika", "omumma", "opobo/nkoro", "oyigbo", "port harcourt",
+    "tai"
   ],
-  "Sokoto": [
-    "Binji", "Bodinga", "Dange-Shuni", "Gada", "Goronyo", "Gudu",
-    "Gwadabaw", "Illela", "Isa", "Kebbe", "Kware", "Rabah", "Sabon Birni", "Shagari", "Silame",
-    "Sokoto North", "Sokoto South","Tambawal", "Tangazar", "Tureta", "Wamakko", "Wurno", "Yabo"
+  "sokoto": [
+    "binji", "bodinga", "dange-shuni", "gada", "goronyo", "gudu", "gwadabaw", "illela", "isa",
+    "kebbe", "kware", "rabah", "sabon birni", "shagari", "silame", "sokoto north", "sokoto south",
+    "tambawal", "tangazar", "tureta", "wamakko", "wurno", "yabo"
   ],
-  "Taraba": [
-    "Ardo-Kola", "Bali", "Donga", "Gashaka", "Gassol", "Ibi", "Jalingo",
-    "Karim-Lamido", "Kurmi", "Lau", "Sardauna", "Takum", "Ussa", "Wukari", "Yorro", "Zing"
+  "taraba": [
+    "ardo-kola", "bali", "donga", "gashaka", "gassol", "ibi", "jalingo", "karim-lamido", "kurmi",
+    "lau", "sardauna", "takum", "ussa", "wukari", "yorro", "zing"
   ],
-  "Yobe": [
-    "Bade", "Borsari", "Damaturu", "Fika", "Fune", "Geidam", "Gujba", "Gulani", "Jakusko",
-    "Karasuwa", "Machina", "Nangere", "Nguru", "Potiskum", "Tarmuwa", "Yunusari", "Yusufari"
+  "yobe": [
+    "bade", "borsari", "damaturu", "fika", "fune", "geidam", "gujba", "gulani", "jakusko",
+    "karasuwa", "machina", "nangere", "nguru", "potiskum", "tarmuwa", "yunusari", "yusufari"
   ],
-  "Zamfara": [
-    "Anka", "Bakura", "Birnin Magaji", "Bukkuyum", "Bungudu", "Gummi",
-    "Gusau", "Kaura-Namoda", "Maradun", "Maru", "Shinkafi", "Talata-Mafara", "Tsafe", "Zurmi"
+  "zamfara": [
+    "anka", "bakura", "birnin magaji", "bukkuyum", "bungudu", "gummi", "gusau", "kaura-namoda",
+    "maradun", "maru", "shinkafi", "talata-mafara", "tsafe", "zurmi"
   ]
 }
  

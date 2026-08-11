@@ -6,8 +6,43 @@ import { API_BASE_URL } from "../../lib/api";
 import RoleAwareHeader from "../components/RoleAwareHeader";
 
 function getExteriorImage(listing) {
+  if (Array.isArray(listing.listing_media)) {
+    for (const media of listing.listing_media) {
+      const imageUrl = media && Object.values(media).find((value) => typeof value === "string" && value);
+      if (imageUrl) return imageUrl;
+    }
+  }
+
   const exteriorImage = Array.isArray(listing.exterior_images) ? listing.exterior_images[0] : null;
   return exteriorImage?.url || "";
+}
+
+async function refreshSearchSession() {
+  const response = await fetch(`${API_BASE_URL}/auth/token/refresh`, {
+    method: "GET",
+    credentials: "include",
+  });
+
+  return response.status === 200;
+}
+
+async function browseListings(location, page, signal) {
+  const url = `${API_BASE_URL}/properties/browse?location=${encodeURIComponent(location)}&page=${page}`;
+  const requestInit = {
+    method: "POST",
+    credentials: "include",
+    signal,
+  };
+
+  let response = await fetch(url, requestInit);
+  if (response.status === 205) {
+    const refreshed = await refreshSearchSession();
+    if (refreshed) {
+      response = await fetch(url, requestInit);
+    }
+  }
+
+  return response;
 }
 
 function SearchResultsContent() {
@@ -27,19 +62,16 @@ function SearchResultsContent() {
     setError(null);
     const controller = new AbortController();
 
-    fetch(`${API_BASE_URL}/properties/browse?location=${encodeURIComponent(location)}&page=${pageParam}`, {
-      credentials: "include",
-      signal: controller.signal,
-    })
+    browseListings(location, pageParam, controller.signal)
       .then(async (res) => {
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          setError(data.message || "Failed to load listings");
+        if (res.status === 205 || !res.ok || data.status === false) {
+          setError(data.payload || data.message || "Failed to load listings");
           setListings([]);
           setMeta(null);
         } else {
-          setListings((data.payload && data.payload.listings) || []);
-          setMeta((data.payload && data.payload.meta) || null);
+          setListings(Array.isArray(data.payload) ? data.payload : (data.payload && data.payload.listings) || []);
+          setMeta(Array.isArray(data.payload) ? null : (data.payload && data.payload.meta) || null);
         }
       })
       .catch((err) => {

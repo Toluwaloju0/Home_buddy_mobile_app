@@ -1,6 +1,5 @@
 """ a module to get and use seller profile routes """
 
-from datetime import datetime
 from bson import ObjectId
 from fastapi import APIRouter, Depends, File, Form, UploadFile, BackgroundTasks, Body
 from fastapi.responses import JSONResponse
@@ -253,6 +252,7 @@ async def submit_apartment_listing(
     size_square_meters: int = Form(...),
     other_amenities: List[str] = Form([]),
     is_negotiable: bool = Form(True),
+    for_sell: bool = Form(True),
     exterior_image: UploadFile | None = File(None),
     sitting_room_image: UploadFile | None  = File(None),
     bedroom_images: list[UploadFile] = File([]),
@@ -488,7 +488,7 @@ async def submit_apartment_listing(
         building_number=building_no, house_number=house_no, inspection_means=inspection_means,
         year_built=year_built, property_type=property_type, number_of_bedrooms=number_of_bedrooms,
         number_of_bathrooms=number_of_bathrooms, size_square_meters=size_square_meters, is_negotiable=is_negotiable,
-        other_amenities=other_amenities, description=description
+        other_amenities=other_amenities, description=description, for_sell=for_sell
     )
     listing_result = await storage.create_listing_submission(listing_document.model_dump())
     if not listing_result.status:
@@ -546,6 +546,7 @@ async def submit_shop_listing(
     description: str = Form(...),
     bathroom: bool = Form(True),
     is_negotiable: bool = Form(True),
+    for_sell: bool = Form(True),
     size_square_meters: str | None = Form(None),
     # this marks the beginning of the images for the shop listing
     exterior_image: UploadFile | None = File(None),
@@ -696,9 +697,9 @@ async def submit_shop_listing(
 
     # Create initial listing record to reserve a listing id document
     listing_document = ShopListingSchema(
-        seller_id=seller_id, title=title, price=price, state=state, is_negotiable=is_negotiable,
+        seller_id=seller_id, title=title, price=price, state=state, is_negotiable=is_negotiable, for_sell=for_sell,
         LGA=l_g_a, street=street, building_number=building_no, shop_number=shop_no, bathroom=bathroom,
-        description=description, inspection_means=inspection_means, size_square_meters=size_square_meters 
+        description=description, inspection_means=inspection_means, size_square_meters=size_square_meters
     )
 
     listing_result = await storage.create_listing_submission(listing_document.model_dump())
@@ -745,6 +746,7 @@ async def submit_land_listing(
     building_no: int = Form(...),
     size_square_meters: str = Form(...),
     is_negotiable: bool = Form(True),
+    for_sell: bool = Form(True),
     # this defines the needed images for land verification
     land_image: UploadFile | None = File(None),
     land_video: UploadFile | None = File(None),
@@ -857,7 +859,7 @@ async def submit_land_listing(
 
     # Create initial listing record to reserve a listing id document
     listing_document = LandListingSchema(
-        seller_id=seller_id, title=title, price=price, state=state, is_negotiable=is_negotiable, LGA=l_g_a, street=street,
+        seller_id=seller_id, title=title, price=price, state=state, is_negotiable=is_negotiable, LGA=l_g_a, street=street, for_sell=for_sell,
         building_number=building_no, description=description, inspection_means=inspection_means, size_square_meters=size_square_meters
     )
 
@@ -874,4 +876,35 @@ async def submit_land_listing(
         background_tasks.add_task(uploader.upload_listing_media, listing_id, key, value)
 
     content = api_response(True, "Land Listing submitted successfully and is pending admin approval")
+    return JSONResponse(content.to_dict())
+
+# create an enpoint to search for seller listings using title of that listing as the keyword
+@seller.get("/search", summary="Search seller's listings")
+async def search_listings(q: str, user_response=Depends(get_user_from_token)):
+    """Search for listings by title, description, or location for the authenticated seller."""
+
+    # Verify user authentication
+    if not user_response.status:
+        content = api_response(False, "The access token provided is not valid")
+        return JSONResponse(content.to_dict(), 401)
+
+    if not user_response.payload:
+        content = api_response(False, "The access token is expired, refresh and try again")
+        return JSONResponse(content.to_dict(), 205)
+
+    user = user_response.payload
+    user_id = str(user.get("_id"))
+
+    search_response = await storage.search_seller_listings(user_id, q)
+    if not search_response.status:
+        content = api_response(False, "Search failed")
+        return JSONResponse(content.to_dict(), 500)
+
+    results = search_response.payload
+
+    content = api_response(
+        True,
+        f"Found {len(results)} listings matching '{q}'",
+        results
+    )
     return JSONResponse(content.to_dict())

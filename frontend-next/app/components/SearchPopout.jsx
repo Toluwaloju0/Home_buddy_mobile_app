@@ -2,12 +2,22 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { API_BASE_URL } from "../../lib/api";
 
 export default function SearchPopout({ tone = "light", children = "Search" }) {
   const [open, setOpen] = useState(false);
   const [location, setLocation] = useState("");
+  const [error, setError] = useState("");
+  const [searching, setSearching] = useState(false);
   const inputRef = useRef(null);
   const router = useRouter();
+
+  function getBackendMessage(data, hasEmptyPayload) {
+    if (hasEmptyPayload) return "No listing is found for that state or local government area.";
+    if (typeof data?.payload === "string") return data.payload;
+    if (typeof data?.message === "string") return data.message;
+    return "No listings found for this search.";
+  }
 
   useEffect(() => {
     function onKey(e) {
@@ -31,19 +41,61 @@ export default function SearchPopout({ tone = "light", children = "Search" }) {
 
   function openModal(e) {
     e && e.preventDefault();
+    setError("");
     setOpen(true);
   }
 
   function closeModal() {
+    setError("");
     setOpen(false);
   }
 
-  function submit(e) {
+  async function refreshSearchSession() {
+    const response = await fetch(`${API_BASE_URL}/auth/token/refresh`, {
+      method: "GET",
+      credentials: "include",
+    });
+
+    return response.status === 200;
+  }
+
+  async function submit(e) {
     e && e.preventDefault();
     const loc = (location || "").trim();
     if (!loc) return;
-    setOpen(false);
-    router.push(`/search?location=${encodeURIComponent(loc)}&page=1`);
+    setError("");
+    setSearching(true);
+
+    try {
+      const searchUrl = `${API_BASE_URL}/properties/browse?location=${encodeURIComponent(loc)}&page=1`;
+      const requestInit = {
+        method: "POST",
+        credentials: "include",
+      };
+      let response = await fetch(searchUrl, requestInit);
+
+      if (response.status === 205) {
+        const refreshed = await refreshSearchSession();
+        if (refreshed) {
+          response = await fetch(searchUrl, requestInit);
+        }
+      }
+
+      const data = await response.json().catch(() => ({}));
+      const payload = Array.isArray(data.payload) ? data.payload : data.payload?.listings;
+
+      if (response.status === 200 && Array.isArray(payload) && payload.length > 0) {
+        setOpen(false);
+        router.push(`/search?location=${encodeURIComponent(loc)}&page=1`);
+        return;
+      }
+
+      setError(getBackendMessage(data, response.status === 200 && Array.isArray(payload) && payload.length === 0));
+    } catch (err) {
+      setError("Unable to search listings. Please try again.");
+    } finally {
+      setSearching(false);
+    }
   }
 
   return (
@@ -68,19 +120,21 @@ export default function SearchPopout({ tone = "light", children = "Search" }) {
               <input
                 ref={inputRef}
                 value={location}
-                onChange={(e) => setLocation(e.target.value)}
+                onChange={(e) => {
+                  setLocation(e.target.value);
+                  setError("");
+                }}
                 placeholder="Enter location (e.g. Lekki, Victoria Island)"
                 className="search-popout-input"
                 aria-label="Search location"
+                disabled={searching}
               />
               <div className="search-popout-actions">
-                <button type="submit" className="search-button">
-                  Search
-                </button>
-                <button type="button" className="search-popout-cancel" onClick={closeModal}>
-                  Cancel
+                <button type="submit" className="search-button" disabled={searching}>
+                  {searching ? "Searching..." : "Search"}
                 </button>
               </div>
+              {error && <p className="search-popout-cancel" role="alert">{error}</p>}
             </form>
           </div>
         </div>

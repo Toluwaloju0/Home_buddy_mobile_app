@@ -37,8 +37,7 @@ async def verify_google_token(request: Request, storage: DBStorage = Depends(get
         if not GOOGLE_CLIENT_ID:
             content = api_response(False, "Google OAuth not configured on server")
             return JSONResponse(content.to_dict(), status_code=500)
-        print("verifying the token with Google...")
-        
+
         # Verify the token with Google
         idinfo = id_token.verify_oauth2_token(
             token, 
