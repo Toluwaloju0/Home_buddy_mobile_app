@@ -775,14 +775,7 @@ a {
 .search-popout-cancel {
   flex: 1 0 100%;
   margin: 0.2rem 0 0;
-  color: #b42318;
-  font-size: 0.92rem;
-  font-weight: 700;
-}
-
-/* Featured properties styles (tabs + strip) */
-.featured-section {
-  padding: 2rem 2rem 1.5rem;
+  color: var(--text);
 }
 
 .featured-section .section-heading {

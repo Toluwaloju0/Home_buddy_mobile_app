@@ -40,7 +40,6 @@ async def browse_listings(
             filter["state"] = location   # use a regex here
         else:
             for value in States_with_lgas.values():
-                print(value)
                 if location in value:
                     filter["LGA"] = location.title()   # use a regex here also
                     break
@@ -54,7 +53,8 @@ async def browse_listings(
             seller_response = await storage.get_seller_by_user_id(user_id)
             if seller_response.status:
                 filter["seller_id"] = {"$ne": seller_response.payload.get("_id")}
-    if to_buy: filter["for_sell"] = True
+    if to_buy == False: filter["for_sell"] = False
+    if to_buy == True: filter["for_sell"] = True
     if property_type: filter["property_type"] = property_type
     if min_price and max_price: filter["price"] = get_price_value(min_price, max_price)
 
