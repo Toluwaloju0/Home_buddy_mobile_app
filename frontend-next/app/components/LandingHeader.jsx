@@ -1,6 +1,7 @@
-'use client';
+ 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { API_BASE_URL } from '@/lib/api';
 
@@ -18,6 +19,53 @@ export default function LandingHeader() {
   const handleNavClick = () => {
     setMobileMenuOpen(false);
   };
+
+  const router = useRouter();
+
+  async function refreshSearchSession() {
+    const response = await fetch(`${API_BASE_URL}/auth/token/refresh`, {
+      method: 'GET',
+      credentials: 'include',
+    });
+    return response.status === 200;
+  }
+
+  async function browseAndNavigate({ for_sell }) {
+    setLoading(true);
+    try {
+      const url = `${API_BASE_URL}/properties/browse?page=1`;
+      const body = {};
+      if (for_sell !== undefined) {
+        body.for_sell = for_sell;
+        body.to_buy = !!for_sell;
+      }
+
+      const requestInit = {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(body),
+      };
+
+      let response = await fetch(url, requestInit);
+      if (response.status === 205) {
+        const refreshed = await refreshSearchSession();
+        if (refreshed) {
+          response = await fetch(url, requestInit);
+        }
+      }
+
+      if (response.status === 200) {
+        const queryParts = ['page=1'];
+        if (for_sell !== undefined) queryParts.push(`to_buy=${!!for_sell}`);
+        router.push(`/search?${queryParts.join('&')}`);
+      }
+    } catch (err) {
+      console.error('Search request failed', err);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const handleGoogleCredential = async (googleResponse) => {
     setLoading(true);
@@ -116,21 +164,21 @@ export default function LandingHeader() {
 
       <nav className={`landing-nav ${mobileMenuOpen ? 'landing-nav--open' : ''}`} aria-label="Primary navigation">
         <div className="landing-nav-center">
-          <Link className={navLinkClassName} href="/signup?role=buyer">
+          <button className={navLinkClassName} type="button" onClick={() => browseAndNavigate({ for_sell: true })} disabled={loading}>
             Buy
-          </Link>
+          </button>
 
-          <Link className={navLinkClassName} href="/signup?role=buyer">
+          <button className={navLinkClassName} type="button" onClick={() => browseAndNavigate({ for_sell: false })} disabled={loading}>
             Rent
-          </Link>
+          </button>
 
           <Link className={navLinkClassName} href="/signup?role=seller">
             Sell
           </Link>
 
-          <Link className={navLinkClassName} href="/search">
+          <button className={navLinkClassName} type="button" onClick={() => browseAndNavigate({ for_sell: undefined })} disabled={loading}>
             Search
-          </Link>
+          </button>
 
           <button type="button" className="landing-nav-link landing-nav-link--disabled" disabled>
             Agents
@@ -155,21 +203,21 @@ export default function LandingHeader() {
         </div>
 
         <div className="landing-mobile-menu" aria-label="Mobile navigation links">
-          <Link className="landing-nav-link landing-nav-link--mobile" href="/signup?role=buyer" onClick={handleNavClick}>
+          <button className="landing-nav-link landing-nav-link--mobile" type="button" onClick={() => { browseAndNavigate({ for_sell: true }); handleNavClick(); }}>
             Buy
-          </Link>
+          </button>
 
-          <Link className="landing-nav-link landing-nav-link--mobile" href="/signup?role=buyer" onClick={handleNavClick}>
+          <button className="landing-nav-link landing-nav-link--mobile" type="button" onClick={() => { browseAndNavigate({ for_sell: false }); handleNavClick(); }}>
             Rent
-          </Link>
+          </button>
 
           <Link className="landing-nav-link landing-nav-link--mobile" href="/signup?role=seller" onClick={handleNavClick}>
             Sell
           </Link>
 
-          <Link className="landing-nav-link landing-nav-link--mobile" href="/search" onClick={handleNavClick}>
+          <button className="landing-nav-link landing-nav-link--mobile" type="button" onClick={() => { browseAndNavigate({ for_sell: undefined }); handleNavClick(); }}>
             Search
-          </Link>
+          </button>
 
           <button type="button" className="landing-nav-link landing-nav-link--disabled landing-nav-link--mobile" disabled>
             Agents

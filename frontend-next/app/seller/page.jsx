@@ -92,7 +92,6 @@ export default function SellerPage() {
 
     try {
       const response = await authFetch(
-        console.log("Calling the properties search endpoint")
         `${API_BASE_URL}/seller/search?q=${encodeURIComponent(searchQuery)}`,
         {
           method: 'GET',

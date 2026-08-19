@@ -66,34 +66,6 @@ async def browse_listings(
     content = api_response(True, f"Listings search completed", db_response.payload)
     return JSONResponse(content.to_dict())
 
-
-@properties.get("/rentals", summary="Browse rental listings")
-async def browse_rentals(page: int = Query(1, ge=1)):
-    """Return paginated rental listings (not sold)."""
-    per_page = 10
-    db_response = await storage.get_rental_listings(page, per_page)
-    if not db_response.status:
-        content = api_response(False, "Failed to fetch rental listings")
-        return JSONResponse(content.to_dict(), 500)
-
-    payload = db_response.payload or {}
-    results = payload.get("results", [])
-    total = int(payload.get("total", 0))
-
-    # Convert ObjectIds to strings for JSON serialization
-    for listing in results:
-        if isinstance(listing, dict) and listing.get("_id"):
-            listing["_id"] = str(listing["_id"])
-        if isinstance(listing, dict) and listing.get("seller_id"):
-            try:
-                listing["seller_id"] = str(listing["seller_id"])
-            except Exception:
-                pass
-
-    meta = {"page": int(page), "per_page": per_page, "total": total}
-    content = api_response(True, "Rental listings", {"listings": results, "meta": meta})
-    return JSONResponse(content.to_dict())
-
 @properties.get("/{property_id}", summary="Get property by id")
 async def get_property(property_id: str, user_response=Depends(get_user_from_token)):
     """Return the property detail but require a valid access token.
@@ -102,19 +74,28 @@ async def get_property(property_id: str, user_response=Depends(get_user_from_tok
     valid access token will receive a non-success response.
     """
 
-    # Verify user authentication
-    if not user_response.status:
-        content = api_response(False, "The access token provided is not valid")
+    if user_response.status and not user_response.payload:
+        content = api_response(False, "The access token is expired, refresh and try again")
         return JSONResponse(content.to_dict(), 205)
 
-    if not user_response.payload:
-        content = api_response(False, "The access token is expired, refresh and try again")
-        return JSONResponse(content.to_dict(), 401)
+    # check if the user is authenticated and then return the seller info else dont return seller info.
 
     listing_resp = await storage.get_listing_by_id(property_id)
     if not listing_resp.status or not listing_resp.payload:
         content = api_response(False, "Listing not found")
         return JSONResponse(content.to_dict(), 404)
 
-    content = api_response(True, "Listing retrieved", listing_resp.payload)
+    listing = listing_resp.payload
+
+    if user_response.status and user_response.payload:
+        # get the seller info and add it to the listing if the user is a seller and the listing belongs to the seller
+        seller_id = listing_resp.payload.get("seller_id")
+
+        seller_response = await storage.get_seller_info_by_id(seller_id)
+        if seller_response.status:
+            listing["seller"] = seller_response.payload
+    else: listing["seller"] = None
+    del listing["seller_id"]
+
+    content = api_response(True, "Listing retrieved", listing)
     return JSONResponse(content.to_dict())

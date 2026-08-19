@@ -128,14 +128,15 @@ class DBStorage:
         return function_response(True, user)
 
     @safe_db_operation
-    async def get_user_by_id(self, user_id: str):
+    async def get_user_by_id(self, user_id: str, del_filter: Dict[str, str] = None):
         """ a method to get the user by the user id
         Args:
             user_id (str): the user id to use in location a user
+            del_filter: (Dict) : a list of items to exclude from the user if provided
         Returns a response containing the user
         """
 
-        user = await self.__user.find_one({"_id": ObjectId(user_id)})
+        user = await self.__user.find_one({"_id": ObjectId(user_id)}, del_filter)
 
         if not user:
             return function_response(False)
@@ -404,6 +405,31 @@ class DBStorage:
 
         return function_response(True, properties_list) if properties_list else function_response(False)
 
+    """
+    seller operations are defined here
+    """
+
+    @safe_db_operation
+    async def get_seller_info_by_id(self, seller_id: str):
+        """ a method to get a seller user information using the seller id as arguments
+        Args:
+            seller_id: the seller id string
+        """
+
+        seller = await self.__seller.find_one({"_id": ObjectId(seller_id)}, {"user_id": 1, "_id": 0})
+        if not seller: return function_response(False)
+
+        user_response = await self.get_user_by_id(seller.get("user_id", None), {"_id": 0, "role": 0, "created_at": 0})
+        if not user_response.status: return function_response(False)
+
+        user = user_response.payload
+        if user.get("image_key"):
+            from services.s3_uploader import uploader
+            user["image_url"] = uploader.create_url(user.get("image_key"))
+            del user["image_key"]
+
+        return function_response(True, user)
+
     @safe_db_operation
     async def get_seller_by_user_id(self, user_id: str):
         """Get a seller profile document by its linked user id."""
@@ -588,42 +614,6 @@ class DBStorage:
         return function_response(True, results)
 
     @safe_db_operation
-    async def get_rental_listings(self, page: int = 1, per_page: int = 10):
-        """Return paginated listings that are rentals and not sold.
-
-        The filter attempts to match common rental indicators such as a
-        `category` containing "rent"/"rental", a `rent` field, or text
-        mentions in `title`/`description`. It also excludes listings marked
-        as sold.
-        """
-        listings = self.__db["listings"]
-
-        rental_filters = [
-            {"category": {"$regex": "rent", "$options": "i"}},
-            {"category": {"$regex": "rental", "$options": "i"}},
-            {"title": {"$regex": "rent", "$options": "i"}},
-            {"description": {"$regex": "rent", "$options": "i"}},
-            {"rent": {"$exists": True}},
-        ]
-
-        not_sold_filter = {
-            "$or": [
-                {"is_sold": False},
-                {"is_sold": {"$exists": False}},
-                {"status": {"$nin": ["sold", "completed", "closed"]}},
-            ]
-        }
-
-        query_filter = {"$and": [{"$or": rental_filters}, not_sold_filter]}
-
-        total = await listings.count_documents(query_filter)
-        skip = max(0, (int(page) - 1)) * int(per_page)
-        cursor = listings.find(query_filter).sort("created_at", -1).skip(skip).limit(int(per_page))
-        results = await cursor.to_list(length=int(per_page))
-
-        return function_response(True, {"results": results, "total": total})
-
-    @safe_db_operation
     async def get_inspections_by_requester(self, requester_id: str):
         """Return inspection requests made by a buyer (requester)."""
         inspections = self.__db["inspections"]
@@ -639,7 +629,6 @@ class DBStorage:
         
         Args:
             listing_id: The listing's ObjectId as string
-            
         Returns:
             The listing document with full media metadata
         """

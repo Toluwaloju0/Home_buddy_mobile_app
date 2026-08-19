@@ -69,6 +69,7 @@ const testimonials = [
 import Link from 'next/link';
 import SearchBar from './components/SearchBar';
 import SearchPopout from './components/SearchPopout';
+import RentBrowseButton from './components/RentBrowseButton';
 import FeaturedProperties from './components/FeaturedProperties';
 import LandingHeader from './components/LandingHeader';
 
@@ -103,7 +104,7 @@ export default function HomePage() {
               {card.title === 'Buy' ? (
                 <SearchPopout tone={card.tone === 'dark' ? 'dark' : 'light'}>{card.cta}</SearchPopout>
               ) : card.title === 'Rent' ? (
-                <a className={`static-action static-action--${card.tone === 'dark' ? 'dark' : 'light'}`} href="/rentals">{card.cta}</a>
+                <RentBrowseButton>{card.cta}</RentBrowseButton>
               ) : (
                 <a className={`static-action static-action--${card.tone === 'dark' ? 'dark' : 'light'}`} href="/signup?role=seller">{card.cta}</a>
               )}

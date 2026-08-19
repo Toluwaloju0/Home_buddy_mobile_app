@@ -104,15 +104,11 @@ export default function SearchBar() {
             if (e.target === e.currentTarget) setPopoutOpen(false);
           }}
         >
-          <div className="search-popout-dialog" role="dialog" aria-modal="true">
-            <button className="search-popout-close" onClick={() => setPopoutOpen(false)} aria-label="Close">
-              ×
-            </button>
-            <div className="search-popout-form">
-              <p className="search-popout-cancel" role="alert">
-                {error}
-              </p>
-            </div>
+          <div className="searchbar-popout-dialog" role="dialog" aria-modal="true">
+          <button className="search-popout-close" onClick={() => setPopoutOpen(false)} aria-label="Close">
+            ×
+          </button>
+          {error}
           </div>
         </div>
       )}

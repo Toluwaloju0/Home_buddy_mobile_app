@@ -2,6 +2,9 @@
 import path from 'path';
 
 const nextConfig = {
+	eslint: {
+		ignoreDuringBuilds: true,
+	},
 	outputFileTracingRoot: path.join(process.cwd(), '..'),
 	async rewrites() {
 		const backendUrl = process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';

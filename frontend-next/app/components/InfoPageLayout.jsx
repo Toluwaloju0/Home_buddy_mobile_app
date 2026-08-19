@@ -1,4 +1,4 @@
-import RoleAwareHeader from './RoleAwareHeader';
+import UserRoleHeader from './UserRoleHeader';
 
 const footerPrimaryLinks = [
   { label: 'Contact', href: '/contact' },
@@ -20,7 +20,7 @@ const footerSecondaryLinks = [
 export default function InfoPageLayout({ title, lead, highlights = [], sections = [] }) {
   return (
     <main className="page-shell info-page-shell">
-      <RoleAwareHeader />
+      <UserRoleHeader />
 
       <section className="info-page-hero">
         <p className="eyebrow">Home Buddy Connect Limited Information</p>
