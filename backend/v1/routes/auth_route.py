@@ -1,11 +1,12 @@
 """ a module to get and use the authentication routes"""
 
-from fastapi import APIRouter, Request, Depends
+from fastapi import APIRouter, Request, Depends, Body
 from fastapi.responses import JSONResponse
 from argon2.exceptions import VerifyMismatchError
 
 from models.user import UserCreate, User, UserRegister, UserRole
-from database.db_engine import storage
+from database.db_engine import storage, DBStorage
+from database.get_db import get_db
 from utils.responses import api_response
 from utils.cookie_token import token_manager
 from utils.email_checker import email_domain_checker
@@ -331,3 +332,57 @@ async def logout(request: Request):
     response.delete_cookie("access_token")
     response.delete_cookie("refresh_token")
     return response
+
+@auth.put("/password/reset")
+async def reset_password(
+    token: str,
+    new_password:str = Body(...),
+    storage: DBStorage = Depends(get_db)
+):
+    """ a function to reset the password of the user
+    Args:
+        token: the token sent to the user email address to verify that the user is the one requesting for a password reset
+        new_password: the new password for the user
+    """
+
+    # check if the token is valid and present in the database
+    from services.reset_token import ResetPassword
+    token_response = await ResetPassword.compare_token(token)
+    if not token_response:
+        content = api_response(False, "The reset password token is invalid or expired")
+        return JSONResponse(content.to_dict(), 400)
+
+    # check if the new password is strong enough
+    password_response = await password_strength_checker(new_password)
+    if not password_response.status:
+        content = api_response(False, "The new password is not strong enough")
+        return JSONResponse(content.to_dict(), 406)
+
+    # hash the new password and update the user password in the database
+    hashed_password = ph.hash(new_password)
+    await storage.update_user_by_id(token_response.get("user_id"), password=hashed_password)
+
+    content = api_response(True, "Password reset successful")
+    return JSONResponse(content.to_dict())
+
+@auth.post("/reset/password")
+async def request_password_reset(email: str, storage: DBStorage = Depends(get_db)):
+    """ an endpoint for users to request for a password reset link
+    Args:
+        email: the email address of the user
+    """
+
+    #  check if the email address belongs to a valid user
+
+    user_response = await storage.find_user_by_email(email.lower())
+    if not user_response.status:
+        content = api_response(False, "No user found with this email address")
+        return JSONResponse(content.to_dict(), 404)
+
+    email_sender_response = await email_sender.send_reset_password_mail(user_response.payload.get("_id"), user_response.payload.get("email"))
+    if not email_sender_response.status:
+        content = api_response(False, email_sender_response.payload)
+        return JSONResponse(content.to_dict(), 500)
+
+    content = api_response(True, "A password reset link has been sent to your email address")
+    return JSONResponse(content.to_dict())

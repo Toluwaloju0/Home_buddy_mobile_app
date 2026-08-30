@@ -196,6 +196,11 @@ export default function LoginPage() {
           >
             {loading ? 'Signing in...' : 'Continue with email'}
           </button>
+          <div className="forgot-password" style={{ marginTop: '0.5rem' }}>
+            <Link href="/reset/password" className="signup-link">
+              Forgot your password?
+            </Link>
+          </div>
         </form>
 
         <div className="divider">or</div>

@@ -38,6 +38,7 @@ const initialForm = {
   property_type: 'flat',
   price: '',
   is_negotiable: true,
+  for_sell: '',
   size_square_meters: '',
   description: '',
   year_built: '',
@@ -414,9 +415,9 @@ export default function ApartmentListingPage() {
       if (
         !form.title.trim() || !form.property_type || !form.price.trim() ||
         !form.size_square_meters || !form.description.trim() ||
-        !form.number_of_bedrooms || !form.number_of_bathrooms
+        !form.number_of_bedrooms || !form.number_of_bathrooms || !form.for_sell
       ) {
-        return 'Complete the title, property type, price, size, description, bedrooms, and bathrooms.';
+        return 'Complete the title, property type, price, listing purpose, size, description, bedrooms, and bathrooms.';
       }
       if (!normalizeInteger(form.price) || Number(normalizeInteger(form.price)) <= 0) {
         return 'Price must be a whole number greater than zero.';
@@ -520,6 +521,7 @@ export default function ApartmentListingPage() {
       payload.append('size_square_meters', normalizeInteger(form.size_square_meters));
       form.other_amenities.forEach((amenity) => payload.append('other_amenities', amenity));
       payload.append('is_negotiable', form.is_negotiable ? 'true' : 'false');
+      payload.append('for_sell', form.for_sell === 'yes' ? 'true' : 'false');
 
       singleMediaFields.forEach((field) => {
         const file = files[field.key]?.file;
@@ -667,6 +669,27 @@ export default function ApartmentListingPage() {
                     <option value="no">No</option>
                   </select>
                 </label>
+                <div className="field-item">
+                  <span>For Sale?</span>
+                  <label className="field-note">
+                    <input
+                      type="radio"
+                      name="apartment_for_sell"
+                      checked={form.for_sell === 'yes'}
+                      onChange={() => setForm((current) => ({ ...current, for_sell: 'yes' }))}
+                    />
+                    Yes, for sale
+                  </label>
+                  <label className="field-note">
+                    <input
+                      type="radio"
+                      name="apartment_for_sell"
+                      checked={form.for_sell === 'no'}
+                      onChange={() => setForm((current) => ({ ...current, for_sell: 'no' }))}
+                    />
+                    No, for rent
+                  </label>
+                </div>
                 <label className="field-item">
                   <span>Apartment Size</span>
                   <input value={form.size_square_meters} onChange={onIntegerFieldChange('size_square_meters')} inputMode="numeric" placeholder="e.g. 180" />

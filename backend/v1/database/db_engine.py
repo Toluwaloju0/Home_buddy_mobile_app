@@ -10,6 +10,7 @@ import logging
 from utils.responses import function_response
 from utils.password import ph
 from utils.settings import settings
+from utils.create_filter import *
 
 logger = logging.getLogger("home_buddy.db_engine")
 
@@ -57,6 +58,7 @@ class DBStorage:
         self.__listings = self.__db["listings"]
         self.__seller = self.__db["sellers"]
         self.__buyer = self.__db["buyers"]
+        self.__password = self.__db["reset_password"]
 
     async def ping(self) -> None:
         """Ping the database to validate connectivity."""
@@ -66,14 +68,12 @@ class DBStorage:
         """Initialize indexes for collections."""
         try:
             await self.__refresh_token.create_index([("created_at", 1)], expireAfterSeconds=300)
-        except Exception:
-            logger.exception("Failed to create index on refresh_token.created_at")
-
-        try:
             await self.__otp_code.create_index([("created_at", 1)], expireAfterSeconds=600)
+            await self.__password.create_index([("created_at", 1)], expireAfterSeconds=900)
         except Exception:
             logger.exception("Failed to create index on otp_code.created_at")
 
+    """ User Operations methods follow this documentation"""
     @safe_db_operation
     async def save_user(self, **kwargs):
         """ a method to save the user into the database
@@ -122,24 +122,21 @@ class DBStorage:
 
         from services.s3_uploader import uploader
 
-        user = await self.__user.find_one({"email": email})
+        user = await self.__user.find_one({"email": email.lower()}, {"password": 0, "image_key": 0})
         if not user:
             return function_response(False)
-        # do not expose password
-        user.pop("password", None)
-        if user.get("image_url"):
-            user["image_url"] = await uploader.resolve_accessible_s3_url(user.get("image_url"), user.get("image_key"))
         return function_response(True, user)
 
     @safe_db_operation
-    async def get_user_by_id(self, user_id: str):
+    async def get_user_by_id(self, user_id: str, del_filter: Dict[str, str] = None):
         """ a method to get the user by the user id
         Args:
             user_id (str): the user id to use in location a user
+            del_filter: (Dict) : a list of items to exclude from the user if provided
         Returns a response containing the user
         """
 
-        user = await self.__user.find_one({"_id": ObjectId(user_id)})
+        user = await self.__user.find_one({"_id": ObjectId(user_id)}, del_filter)
 
         if not user:
             return function_response(False)
@@ -190,6 +187,7 @@ class DBStorage:
         await self.__buyer.delete_many({"user_id": ObjectId(user_id)})
         await self.__seller.delete_many({"user_id": ObjectId(user_id)})
 
+    """ refresh token operations are defined from this documentation"""
     @safe_db_operation
     async def save_refresh_token(self, refresh_token_object: Dict):
         """ a method to save the refresh token and the email to the database
@@ -229,7 +227,8 @@ class DBStorage:
         await self.__refresh_token.delete_many({"token": refresh_token})
 
         return function_response(True, {"user_id": refresh_dict.get("user_id")})
-    
+
+    """ otp code operations are defined from here """
     @safe_db_operation
     async def save_otp_code(self, otp_dict: Dict):
         """ a method to save the provided otp code for each user
@@ -278,6 +277,53 @@ class DBStorage:
 
         await self.__otp_code.delete_many({"email": email.lower()})
 
+    """password reset operations are defined from here"""
+    @safe_db_operation
+    async def save_reset_password_object(self, reset_password_obj: Dict):
+        """ a method to save the reset password object to the database
+        Args:
+            reset_password_obj: the reset password object dictionary to be saved to the database
+        """
+        await self.delete_reset_token(reset_password_obj.get("user_id"))  # Ensure only one reset token per user
+
+        await self.__password.insert_one(reset_password_obj)
+
+        return function_response(True)
+
+    @safe_db_operation
+    async def get_reset_object(self, hashed_token: str):
+        """ a method to retrieve the refresh token object using the hashed token
+        Args:
+            hashed_token: the hashed token object used to get the reset object
+        """
+
+        password_obj = await self.__password.find_one({"token": hashed_token})
+        if not password_obj: return function_response(False)
+
+        await self.delete_reset_token(password_obj.get("user_id"))
+        return function_response(True, password_obj)
+
+    @safe_db_operation
+    async def delete_reset_token(self, user_id: str):
+        """ a method to delete all refresh tokens using the user_id
+        Args:
+            user_id: the user id of the user so as to get all tokens using that user id
+        """
+
+        await self.__password.delete_many({"user_id": ObjectId(user_id)})
+
+    @safe_db_operation
+    async def get_reset_object_by_user_id(self, user_id: str):
+        """ a method to get the reset object using the user_id
+        Args:
+            user_id: the user id
+        """
+
+        reset_object = await self.__password.find_one({"user_id": ObjectId(user_id)})
+
+        return function_response(True, reset_object) if reset_object else function_response(False)
+
+    """ buyer operations are defined from here """
     @safe_db_operation
     async def get_buyer_by_user_id(self, user_id: str):
         """Get a buyer profile document by its linked user id."""
@@ -323,32 +369,6 @@ class DBStorage:
         # use the dictionary provided to get listings which suit the buyers settings
         from services.s3_uploader import uploader
 
-        # create a mini function to create the filter value for min and max price
-        def get_price_value(min_price: int, max_price: int):
-            """ a mini function to get the value for the price to add to the filter
-            Args:
-                min_price: the minimum price
-                max_price: the max price
-            """
-
-            min_price = min_price - 10000 if min_price - 10000 > 0 else 0
-            max_price = max_price + 10000
-
-            return {"$gte": min_price, "$lte": max_price}
-
-        # create a mini function to create the filter value for min and max sizes
-        def get_size_value(min_size: int, max_size: int):
-                """ a mini function to get the value for the sizee to add to the filter
-                Args:
-                    min_size: the minimum size
-                    max_size: the max size
-                """
-    
-                min_size = min_size - 100 if min_size - 100 > 0 else 0
-                max_size = max_size + 100
-    
-                return {"$gte": min_size, "$lte": max_size}
-
         # check if the user has a seller account
         seller_id = await self.__seller.find_one({"user_id": user_id}, {"_id": 1})
 
@@ -384,6 +404,31 @@ class DBStorage:
                         media = uploader.create_url(value)
 
         return function_response(True, properties_list) if properties_list else function_response(False)
+
+    """
+    seller operations are defined here
+    """
+
+    @safe_db_operation
+    async def get_seller_info_by_id(self, seller_id: str):
+        """ a method to get a seller user information using the seller id as arguments
+        Args:
+            seller_id: the seller id string
+        """
+
+        seller = await self.__seller.find_one({"_id": ObjectId(seller_id)}, {"user_id": 1, "_id": 0})
+        if not seller: return function_response(False)
+
+        user_response = await self.get_user_by_id(seller.get("user_id", None), {"_id": 0, "role": 0, "created_at": 0})
+        if not user_response.status: return function_response(False)
+
+        user = user_response.payload
+        if user.get("image_key"):
+            from services.s3_uploader import uploader
+            user["image_url"] = uploader.create_url(user.get("image_key"))
+            del user["image_key"]
+
+        return function_response(True, user)
 
     @safe_db_operation
     async def get_seller_by_user_id(self, user_id: str):
@@ -542,66 +587,31 @@ class DBStorage:
         return function_response(True, [])
 
     @safe_db_operation
-    async def get_listings_by_location(self, location: str, page: int = 1, per_page: int = 10):
+    async def get_listings_by_location(self, page: int = 1, filter={}):
         """Search and return paginated listings matching a location string.
 
         Args:
             location: Partial or full location text to match (case-insensitive).
-            page: 1-based page number.
-            per_page: number of items per page.
+            page: the page number for the data to be displayed
+            filter: the filter to be appliced to the search
         Returns:
             FunctionResponse with payload: {"results": [...], "total": <int>}.
         """
-        listings = self.__db["listings"]
-        query_filter = {"location": {"$regex": location, "$options": "i"}, "status": "approved"}
 
-        total = await listings.count_documents(query_filter)
-        skip = max(0, (int(page) - 1)) * int(per_page)
-        cursor = listings.find(query_filter, {"_id": 1, "title": 1, "description": 1, "location": 1, "media": 1}).sort("created_at", -1).skip(skip).limit(int(per_page))
-        results = await cursor.to_list(length=int(per_page))
+        from services.s3_uploader import uploader
 
+        skip = max(0, (int(page) - 1)) * 10
+        cursor = self.__listings.find(filter, {"_id": 1, "title": 1, "description": 1, "price": 1, "listing_media": 1, "property_type": 1, "for_sell": 1}).skip(skip).limit(10)
+        results = await cursor.to_list()
+
+        # for each listing gotten create a url to display for the media displayed for each listing
         for result in results:
-            exterior_data = result.get("media", {}).get("exterior_images", [])
-            del result["media"]
-            result["exterior_images"] = exterior_data
+            for media in result["listing_media"]:
+                for key, value in media.items():
+                    if value.get("key", None):
+                        media[key] = uploader.create_url(value.get("key"))
 
-        return function_response(True, {"results": results, "total": total})
-
-    @safe_db_operation
-    async def get_rental_listings(self, page: int = 1, per_page: int = 10):
-        """Return paginated listings that are rentals and not sold.
-
-        The filter attempts to match common rental indicators such as a
-        `category` containing "rent"/"rental", a `rent` field, or text
-        mentions in `title`/`description`. It also excludes listings marked
-        as sold.
-        """
-        listings = self.__db["listings"]
-
-        rental_filters = [
-            {"category": {"$regex": "rent", "$options": "i"}},
-            {"category": {"$regex": "rental", "$options": "i"}},
-            {"title": {"$regex": "rent", "$options": "i"}},
-            {"description": {"$regex": "rent", "$options": "i"}},
-            {"rent": {"$exists": True}},
-        ]
-
-        not_sold_filter = {
-            "$or": [
-                {"is_sold": False},
-                {"is_sold": {"$exists": False}},
-                {"status": {"$nin": ["sold", "completed", "closed"]}},
-            ]
-        }
-
-        query_filter = {"$and": [{"$or": rental_filters}, not_sold_filter]}
-
-        total = await listings.count_documents(query_filter)
-        skip = max(0, (int(page) - 1)) * int(per_page)
-        cursor = listings.find(query_filter).sort("created_at", -1).skip(skip).limit(int(per_page))
-        results = await cursor.to_list(length=int(per_page))
-
-        return function_response(True, {"results": results, "total": total})
+        return function_response(True, results)
 
     @safe_db_operation
     async def get_inspections_by_requester(self, requester_id: str):
@@ -619,7 +629,6 @@ class DBStorage:
         
         Args:
             listing_id: The listing's ObjectId as string
-            
         Returns:
             The listing document with full media metadata
         """

@@ -104,6 +104,17 @@ class Settings:
     def sightengine_api_secret(self) -> str | None:
         return self.get("SIGHTENGINE_API_SECRET")
 
+    @cached_property
+    def email_domain(self) -> str | None:
+        return self.get("MAILERSEND_DOMAIN")
+
+    @cached_property
+    def email_name(self) -> str | None:
+        return self.get("MAILERSEND_NAME")
+
+    @cached_property
+    def mailersend_key(self) -> str | None:
+        return self.get("MAILERSEND_TOKEN")
 
 settings = Settings()
 
