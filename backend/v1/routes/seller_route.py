@@ -327,7 +327,7 @@ async def submit_apartment_listing(
         content = api_response(False, "The user must be a seller")
         return JSONResponse(content.to_dict(), 400)
 
-    if property_type.lower() not in ["flat", "mini flat", "bunglow", "penthouse", "duplex"]:
+    if property_type.lower() not in ["flat", "mini flat", "bungalow", "penthouse", "duplex"]:
         content = api_response(False, "This endpoint is for submitting apartments such as duplex and flats")
         return JSONResponse(content.to_dict(), 400)
 
