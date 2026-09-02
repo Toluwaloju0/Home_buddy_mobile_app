@@ -86,6 +86,9 @@ function SearchResultsContent() {
   const hasPageParam = searchParams.has("page");
   const toBuyParam = searchParams.get("to_buy");
   const toBuy = toBuyParam === null ? undefined : toBuyParam === 'true';
+  const propertyTypeParam = searchParams.get("property_type") || '';
+  const minPriceParam = searchParams.get("min_price") || '';
+  const maxPriceParam = searchParams.get("max_price") || '';
 
   const [listings, setListings] = useState([]);
   const [meta, setMeta] = useState(null);
@@ -95,16 +98,31 @@ function SearchResultsContent() {
   const [listingType, setListingType] = useState(
     toBuy === true ? 'buy' : toBuy === false ? 'rent' : 'any'
   );
-  const [propertyType, setPropertyType] = useState('');
-  const [minPrice, setMinPrice] = useState('');
-  const [maxPrice, setMaxPrice] = useState('');
+  const [propertyType, setPropertyType] = useState(propertyTypeParam);
+  const [minPrice, setMinPrice] = useState(minPriceParam);
+  const [maxPrice, setMaxPrice] = useState(maxPriceParam);
   const [filterLocation, setFilterLocation] = useState(location);
-  const [lastFilters, setLastFilters] = useState({});
+  const [lastFilters, setLastFilters] = useState({
+    property_type: propertyTypeParam || undefined,
+    min_price: minPriceParam ? Number(minPriceParam) : undefined,
+    max_price: maxPriceParam ? Number(maxPriceParam) : undefined,
+  });
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   useEffect(() => {
     setFilterLocation(location);
   }, [location]);
+
+  useEffect(() => {
+    setPropertyType(propertyTypeParam);
+    setMinPrice(minPriceParam);
+    setMaxPrice(maxPriceParam);
+    setLastFilters({
+      property_type: propertyTypeParam || undefined,
+      min_price: minPriceParam ? Number(minPriceParam) : undefined,
+      max_price: maxPriceParam ? Number(maxPriceParam) : undefined,
+    });
+  }, [propertyTypeParam, minPriceParam, maxPriceParam]);
 
   useEffect(() => {
     if (toBuy === true) {
@@ -154,6 +172,9 @@ function SearchResultsContent() {
     if (location) queryParts.push(`location=${encodeURIComponent(location)}`);
     queryParts.push(`page=${p}`);
     if (toBuy !== undefined) queryParts.push(`to_buy=${toBuy}`);
+    if (lastFilters.property_type) queryParts.push(`property_type=${encodeURIComponent(lastFilters.property_type)}`);
+    if (lastFilters.min_price) queryParts.push(`min_price=${lastFilters.min_price}`);
+    if (lastFilters.max_price) queryParts.push(`max_price=${lastFilters.max_price}`);
     router.push(`/search?${queryParts.join('&')}`);
   }
 
@@ -177,6 +198,9 @@ function SearchResultsContent() {
     if (filterLocation) queryParts.push(`location=${encodeURIComponent(filterLocation)}`);
     queryParts.push(`page=1`);
     if (payload.toBuy !== undefined) queryParts.push(`to_buy=${payload.toBuy}`);
+    if (payload.property_type) queryParts.push(`property_type=${encodeURIComponent(payload.property_type)}`);
+    if (payload.min_price) queryParts.push(`min_price=${payload.min_price}`);
+    if (payload.max_price) queryParts.push(`max_price=${payload.max_price}`);
     router.push(`/search?${queryParts.join('&')}`);
 
     setShowMobileFilters(false);
