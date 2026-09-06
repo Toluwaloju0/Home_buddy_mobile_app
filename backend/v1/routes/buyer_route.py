@@ -13,6 +13,38 @@ from utils.state_list import States_list, States_with_lgas
 
 buyer = APIRouter(prefix="/buyer", tags=["Buyers"], dependencies=[Depends(get_user_from_token)])
 
+
+@buyer.get("/seller/{seller_id}")
+async def get_seller_information(
+    seller_id: str,
+    user_response=Depends(get_user_from_token),
+    storage: DBStorage = Depends(get_db),
+):
+    """Return the seller name and image URL for buyer messaging."""
+    if not user_response.status:
+        content = api_response(False, "The access token provided is not valid")
+        return JSONResponse(content.to_dict(), 401)
+    if not user_response.payload:
+        content = api_response(False, "The access token is expired, refresh and try again")
+        return JSONResponse(content.to_dict(), 205)
+
+    seller_response = await storage.get_seller_info_by_id(seller_id)
+    if not seller_response.status or not seller_response.payload:
+        content = api_response(False, "Seller not found")
+        return JSONResponse(content.to_dict(), 404)
+
+    seller = seller_response.payload
+    seller_name = f"{seller.get('first_name', '')} {seller.get('last_name', '')}".strip()
+    content = api_response(
+        True,
+        "Seller information retrieved successfully",
+        {
+            "name": seller_name or seller.get("email", "Seller"),
+            "image_url": seller.get("image_url"),
+        },
+    )
+    return JSONResponse(content.to_dict())
+
 @buyer.get("/me")
 async def get_recommended_listings_settings(
     user_response = Depends(get_user_from_token),
@@ -198,4 +230,40 @@ async def get_recommended_listings(
         content = api_response(False, "No property to get")
         return JSONResponse(content.to_dict(), 400)
     content = api_response(True, "Recommended listigs gotten successfully", recommended_listings_response.payload)
+    return JSONResponse(content.to_dict())
+
+@buyer.get("/saved")
+async def get_saved_listings(user_response = Depends(get_user_from_token)):
+    """Return saved listings (shortlist) for the authenticated user.
+
+    This implementation expects an optional `saved_listings` field on the
+    user document which is a list of listing IDs. If none exists an empty
+    list is returned.
+    """
+    if not user_response.status:
+        content = api_response(False, "The access token provided is not valid")
+        return JSONResponse(content.to_dict(), 400)
+
+    if not user_response.payload:
+        content = api_response(False, "The access token is expired, refresh and try again")
+        return JSONResponse(content.to_dict(), 205)
+
+    user = user_response.payload
+    saved_ids = user.get("saved_listings") or []
+
+    results = []
+    for lid in saved_ids:
+        listing_resp = await storage.get_listing_by_id(lid)
+        if listing_resp.status and listing_resp.payload:
+            listing = listing_resp.payload
+            if listing.get("_id"):
+                listing["_id"] = str(listing["_id"])
+            if listing.get("seller_id"):
+                try:
+                    listing["seller_id"] = str(listing["seller_id"])
+                except Exception:
+                    pass
+            results.append(listing)
+
+    content = api_response(True, "Saved listings retrieved", results)
     return JSONResponse(content.to_dict())

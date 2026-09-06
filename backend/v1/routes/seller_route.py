@@ -1,7 +1,7 @@
 """ a module to get and use seller profile routes """
 
 from bson import ObjectId
-from fastapi import APIRouter, Depends, File, Form, UploadFile, BackgroundTasks, Body
+from fastapi import APIRouter, Depends, File, Form, UploadFile, BackgroundTasks, Body, Query
 from fastapi.responses import JSONResponse
 from typing import Dict, List
 
@@ -13,8 +13,46 @@ from models.property_model import ShopListingSchema, LandListingSchema, Apartmen
 from utils.state_list import States_list, States_with_lgas
 from utils.responses import api_response
 from services.s3_uploader import uploader
+from services.conversation_service import ConversationService
+from services.seller_service import SellerService
 
 seller = APIRouter(prefix="/seller", tags=["Seller"])
+
+
+@seller.get("/messages")
+async def get_seller_messages(
+    page: int = Query(1, ge=1),
+    user_response=Depends(get_user_from_token),
+):
+    """Return all conversations belonging to the authenticated seller."""
+    if not user_response.status:
+        return JSONResponse(api_response(False, "The access token provided is not valid").to_dict(), 401)
+    if not user_response.payload:
+        return JSONResponse(api_response(False, "The access token is expired, refresh and try again").to_dict(), 205)
+
+    seller_response = await storage.get_seller_by_user_id(str(user_response.payload.get("_id")))
+    if not seller_response.status or not seller_response.payload:
+        return JSONResponse(api_response(False, "Seller profile not found").to_dict(), 404)
+
+    conversations = await SellerService().get_seller_conversations(
+        str(seller_response.payload["_id"]),
+        page,
+    )
+    return JSONResponse(api_response(True, "Seller conversations retrieved successfully", conversations).to_dict())
+
+
+@seller.get("/buyer/{buyer_id}")
+async def get_buyer_information(buyer_id: str, user_response=Depends(get_user_from_token)):
+    """Return the buyer name and image for a selected seller conversation."""
+    if not user_response.status:
+        return JSONResponse(api_response(False, "The access token provided is not valid").to_dict(), 401)
+    if not user_response.payload:
+        return JSONResponse(api_response(False, "The access token is expired, refresh and try again").to_dict(), 205)
+
+    buyer = await SellerService().get_buyer_information(buyer_id)
+    if not buyer:
+        return JSONResponse(api_response(False, "Buyer not found").to_dict(), 404)
+    return JSONResponse(api_response(True, "Buyer information retrieved successfully", buyer).to_dict())
 
 @seller.get("/me")
 async def get_my_seller_profile(
@@ -327,7 +365,7 @@ async def submit_apartment_listing(
         content = api_response(False, "The user must be a seller")
         return JSONResponse(content.to_dict(), 400)
 
-    if property_type.lower() not in ["flat", "mini flat", "bunglow", "penthouse", "duplex"]:
+    if property_type.lower() not in ["flat", "mini flat", "bungalow", "penthouse", "duplex"]:
         content = api_response(False, "This endpoint is for submitting apartments such as duplex and flats")
         return JSONResponse(content.to_dict(), 400)
 

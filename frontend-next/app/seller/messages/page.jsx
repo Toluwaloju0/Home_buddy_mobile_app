@@ -1,13 +1,25 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { API_BASE_URL, authFetch, redirectToLogin } from '../../../lib/api';
 import SellerHeader from '../../components/SellerHeader';
+import UserAvatar from '../../components/UserAvatar';
+
+function sortMessagesByCreatedAt(messageList) {
+  return [...messageList].sort((first, second) => {
+    const firstTime = Date.parse(first?.created_at || '');
+    const secondTime = Date.parse(second?.created_at || '');
+    if (Number.isNaN(firstTime)) return Number.isNaN(secondTime) ? 0 : -1;
+    if (Number.isNaN(secondTime)) return 1;
+    return firstTime - secondTime;
+  });
+}
 
 function MessagesContent() {
   const [user, setUser] = useState(null);
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
+  const [buyerInfo, setBuyerInfo] = useState(null);
   const [messages, setMessages] = useState([]);
   const [messageInput, setMessageInput] = useState('');
   const [loadingUser, setLoadingUser] = useState(true);
@@ -15,6 +27,8 @@ function MessagesContent() {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const socketRef = useRef(null);
+  const socketRequestsRef = useRef([]);
 
   // Load user
   useEffect(() => {
@@ -53,7 +67,7 @@ function MessagesContent() {
     let mounted = true;
 
     async function loadConversations() {
-      const response = await authFetch(`${API_BASE_URL}/messages/`, {
+      const response = await authFetch(`${API_BASE_URL}/seller/messages`, {
         method: 'GET',
       });
 
@@ -80,6 +94,70 @@ function MessagesContent() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!selectedConversation?.buyer_id) return;
+
+    let mounted = true;
+    async function loadBuyerInfo() {
+      const response = await authFetch(`${API_BASE_URL}/seller/buyer/${selectedConversation.buyer_id}`, { method: 'GET' });
+      const data = await response?.json().catch(() => null);
+      if (mounted && response?.status === 200) setBuyerInfo(data?.payload || null);
+    }
+
+    loadBuyerInfo();
+    return () => { mounted = false; };
+  }, [selectedConversation]);
+
+  useEffect(() => () => {
+    socketRequestsRef.current.forEach(({ reject }) => reject(new Error('Message connection closed')));
+    socketRequestsRef.current = [];
+    socketRef.current?.close();
+  }, []);
+
+  function getMessageSocket(conversationId) {
+    if (socketRef.current?.readyState === window.WebSocket.OPEN) {
+      if (socketRef.current.conversationId === conversationId) {
+        return Promise.resolve(socketRef.current);
+      }
+      socketRef.current.close();
+    }
+
+    if (socketRef.current?.readyState === window.WebSocket.CONNECTING) {
+      socketRef.current.close();
+    }
+
+    return new Promise((resolve, reject) => {
+      const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+      const socket = new window.WebSocket(
+        `${protocol}://${window.location.host}${API_BASE_URL}/messages/${encodeURIComponent(conversationId)}/ws`,
+      );
+      socket.conversationId = conversationId;
+      socketRef.current = socket;
+      socket.onopen = () => resolve(socket);
+      socket.onerror = () => reject(new Error('Message connection failed'));
+      socket.onclose = () => {
+        socketRequestsRef.current.forEach(({ reject: rejectRequest }) => rejectRequest(new Error('Message connection closed')));
+        socketRequestsRef.current = [];
+        if (socketRef.current === socket) socketRef.current = null;
+      };
+    });
+  }
+
+  function sendMessageSocket(conversationId, messageBody) {
+    return getMessageSocket(conversationId).then((socket) => new Promise((resolve, reject) => {
+      const request = { resolve, reject };
+      socketRequestsRef.current.push(request);
+      socket.onmessage = (event) => {
+        const response = JSON.parse(event.data);
+        const pendingRequest = socketRequestsRef.current.shift();
+        if (!pendingRequest) return;
+        if (response.status) pendingRequest.resolve(response.payload);
+        else pendingRequest.reject(new Error(response.message || 'Unable to send message.'));
+      };
+      socket.send(JSON.stringify(messageBody));
+    }));
+  }
+
   // Load messages for selected conversation
   useEffect(() => {
     let mounted = true;
@@ -88,11 +166,11 @@ function MessagesContent() {
 
     async function loadMessages() {
       setLoadingMessages(true);
-      const buyerId = selectedConversation._id?.buyer_id || selectedConversation.sender_id;
-      const listingId = selectedConversation._id?.listing_id || selectedConversation.listing_id;
+      const buyerId = selectedConversation.buyer_id;
+      const sellerId = selectedConversation.seller_id;
 
       const response = await authFetch(
-        `${API_BASE_URL}/messages/${buyerId}/${listingId}`,
+        `${API_BASE_URL}/conversation?${new URLSearchParams({ buyer_id: buyerId, seller_id: sellerId })}`,
         { method: 'GET' }
       );
 
@@ -105,7 +183,7 @@ function MessagesContent() {
       if (!mounted) return;
 
       if (response.status === 200 && data?.payload) {
-        setMessages(data.payload);
+        setMessages(sortMessagesByCreatedAt(data.payload));
       } else {
         console.error('Failed to load messages:', data?.message);
       }
@@ -125,36 +203,20 @@ function MessagesContent() {
     setSendingMessage(true);
 
     try {
-      const buyerId = selectedConversation._id?.buyer_id || selectedConversation.sender_id;
-      const listingId = selectedConversation._id?.listing_id || selectedConversation.listing_id;
-      const listingTitle = selectedConversation.listing_title || 'Property';
+      const conversationId = selectedConversation._id || selectedConversation.conversation_id;
+      if (!conversationId) {
+        throw new Error('Conversation ID is unavailable');
+      }
 
-      const formData = new FormData();
-      formData.append('receiver_id', buyerId);
-      formData.append('listing_id', listingId);
-      formData.append('listing_title', listingTitle);
-      formData.append('message_text', messageInput.trim());
-
-      const response = await authFetch(`${API_BASE_URL}/messages/send`, {
-        method: 'POST',
-        body: formData,
+      const savedMessage = await sendMessageSocket(conversationId, {
+        message_text: messageInput.trim(),
       });
 
-      const data = await response.json().catch(() => null);
-
-      if (response.status === 200) {
+      if (savedMessage) {
+        setMessages((current) => sortMessagesByCreatedAt([...current, savedMessage]));
         setMessageInput('');
-        // Reload messages
-        const reloadResponse = await authFetch(
-          `${API_BASE_URL}/messages/${buyerId}/${listingId}`,
-          { method: 'GET' }
-        );
-        const reloadData = await reloadResponse.json().catch(() => null);
-        if (reloadResponse.status === 200) {
-          setMessages(reloadData.payload || []);
-        }
       } else {
-        alert(data?.message || 'Failed to send message');
+        throw new Error('Failed to send message');
       }
     } catch (error) {
       console.error('Send message error:', error);
@@ -242,20 +304,19 @@ function MessagesContent() {
             <div className="conversations-list">
               {filteredConversations.map((conv) => (
                 <button
-                  key={`${conv._id?.buyer_id}-${conv._id?.listing_id}`}
+                  key={conv._id || conv.conversation_id}
                   type="button"
                   className={`conversation-item ${
-                    selectedConversation?._id?.buyer_id === conv._id?.buyer_id &&
-                    selectedConversation?._id?.listing_id === conv._id?.listing_id
+                    (selectedConversation?._id || selectedConversation?.conversation_id) === (conv._id || conv.conversation_id)
                       ? 'active'
                       : ''
                   }`}
                   onClick={() => setSelectedConversation(conv)}
                 >
-                  <div className="conversation-avatar">{(conv.sender_name || 'U').charAt(0)}</div>
+                  <div className="conversation-avatar">{(buyerInfo?.name || conv.buyer_id || 'U').charAt(0)}</div>
                   <div className="conversation-content">
                     <div className="conversation-header">
-                      <span className="conversation-name">{conv.sender_name || 'Unknown'}</span>
+                      <span className="conversation-name">{buyerInfo?.name || 'Buyer'}</span>
                       <span className="conversation-time">
                         {new Date(conv.last_message_at).toLocaleTimeString([], {
                           hour: '2-digit',
@@ -263,7 +324,7 @@ function MessagesContent() {
                         })}
                       </span>
                     </div>
-                    <div className="conversation-preview">{conv.last_message}</div>
+                    <div className="conversation-preview">{conv.last_message || 'No messages yet'}</div>
                     {conv.unread_count > 0 && (
                       <span className="unread-badge">{conv.unread_count}</span>
                     )}
@@ -281,10 +342,11 @@ function MessagesContent() {
               {/* Conversation Header */}
               <div className="conversation-header-bar">
                 <div className="conversation-header-info">
-                  <h2>{selectedConversation.sender_name || 'Unknown Buyer'}</h2>
+                  <h2>{buyerInfo?.name || 'Buyer'}</h2>
                   <p className="listing-ref">{selectedConversation.listing_title || 'Property'}</p>
                 </div>
                 <div className="conversation-header-actions">
+                  <UserAvatar src={buyerInfo?.image_url || ''} name={buyerInfo?.name || 'Buyer'} size="md" />
                   <button type="button" className="icon-button" title="Call">☎️</button>
                   <button type="button" className="icon-button" title="Video">📹</button>
                   <button type="button" className="icon-button" title="More">⋯</button>
