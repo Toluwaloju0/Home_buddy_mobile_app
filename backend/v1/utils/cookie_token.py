@@ -49,6 +49,8 @@ class Token:
             return get_user_response
         except jwt.ExpiredSignatureError:
             return function_response(True)
+        except jwt.InvalidTokenError:
+            return function_response(False)
         
     async def create_refresh_token(self, user_id: str):
         """ a method to create the refresh token

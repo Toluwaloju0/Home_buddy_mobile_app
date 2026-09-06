@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import UserRoleHeader from '../../components/UserRoleHeader';
 import UserAvatar from '../../components/UserAvatar';
-import { API_BASE_URL } from '../../../lib/api';
+import { API_BASE_URL, authFetch } from '../../../lib/api';
 
 const footerPrimaryLinks = [
   { label: 'Contact', href: '/contact' },
@@ -107,20 +107,18 @@ export default function PropertyDetailPage() {
       setError('');
 
       try {
-        const response = await fetch(`${API_BASE_URL}/properties/${propertyId}`, {
+        const response = await authFetch(`${API_BASE_URL}/properties/${propertyId}`, {
           method: 'GET',
-          credentials: 'include',
         });
+
+        if (!response) return;
+
         const data = await response.json().catch(() => null);
 
         if (!mounted) return;
 
-        if (!response.ok && response.status !== 205) {
+        if (!response.ok) {
           throw new Error(data?.message || 'Failed to load listing');
-        }
-
-        if (response.status === 205) {
-          throw new Error(data?.message || 'Your session has expired. Please log in again to view seller details.');
         }
 
         setListing(data?.payload || null);
@@ -150,6 +148,7 @@ export default function PropertyDetailPage() {
     })),
   ].slice(0, 4);
   const sellerName = `${listing?.seller?.first_name || ''} ${listing?.seller?.last_name || ''}`.trim() || 'Verified seller';
+  const sellerId = listing?.seller_id || listing?.seller?._id || listing?.seller?.id;
   const addressParts = [listing?.building_number, listing?.street, listing?.LGA, listing?.state].filter(Boolean);
   const isForRent = listing?.for_sell === false;
   const intentLabel = isForRent ? 'For rent' : 'For sale';
@@ -294,9 +293,17 @@ export default function PropertyDetailPage() {
                         <span>{listing.seller.email || 'Email not provided'}</span>
                         <span>{listing.seller.phone_number || 'Phone number not provided'}</span>
                       </div>
-                      <a className="buyer-primary-button seller-card-action" href={`mailto:${listing.seller.email || ''}`}>
+                      <Link
+                        className="buyer-primary-button seller-card-action"
+                        href={{
+                          pathname: `/buyer/messages/${sellerId}`,
+                          query: {
+                            propertyId,
+                          },
+                        }}
+                      >
                         Send message
-                      </a>
+                      </Link>
                     </>
                   ) : (
                     <div className="seller-card-locked">
