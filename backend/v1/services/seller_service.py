@@ -24,23 +24,17 @@ class SellerService:
         client = AsyncMongoClient(self._mongo_uri)
         try:
             database = client.get_database("Home_Buddy")
-            buyer = await database["buyers"].find_one(
-                {"_id": ObjectId(buyer_id)},
-                {"user_id": 1},
-            )
-            if not buyer or not buyer.get("user_id"):
-                return None
 
             user = await database["users"].find_one(
-                {"_id": buyer["user_id"]},
-                {"first_name": 1, "last_name": 1, "email": 1, "image_key": 1},
+                {"_id": ObjectId(buyer_id)},
+                {"first_name": 1, "last_name": 1, "image_key": 1},
             )
             if not user:
                 return None
 
             name = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip()
             return {
-                "name": name or user.get("email", "Buyer"),
+                "name": name,
                 "image_url": uploader.create_url(user.get("image_key")),
             }
         finally:

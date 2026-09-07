@@ -19,7 +19,7 @@ function MessagesContent() {
   const [user, setUser] = useState(null);
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
-  const [buyerInfo, setBuyerInfo] = useState(null);
+  const [buyerInfoById, setBuyerInfoById] = useState({});
   const [messages, setMessages] = useState([]);
   const [messageInput, setMessageInput] = useState('');
   const [loadingUser, setLoadingUser] = useState(true);
@@ -95,18 +95,22 @@ function MessagesContent() {
   }, []);
 
   useEffect(() => {
-    if (!selectedConversation?.buyer_id) return;
+    if (!conversations.length) return;
 
     let mounted = true;
-    async function loadBuyerInfo() {
-      const response = await authFetch(`${API_BASE_URL}/seller/buyer/${selectedConversation.buyer_id}`, { method: 'GET' });
-      const data = await response?.json().catch(() => null);
-      if (mounted && response?.status === 200) setBuyerInfo(data?.payload || null);
+    async function loadBuyerInformation() {
+      const buyerIds = [...new Set(conversations.map((conversation) => conversation.buyer_id).filter(Boolean))];
+      const results = await Promise.all(buyerIds.map(async (buyerId) => {
+        const response = await authFetch(`${API_BASE_URL}/seller/buyer/${buyerId}`, { method: 'GET' });
+        const data = await response?.json().catch(() => null);
+        return response?.status === 200 && data?.payload ? [buyerId, data.payload] : null;
+      }));
+      if (mounted) setBuyerInfoById(Object.fromEntries(results.filter(Boolean)));
     }
 
-    loadBuyerInfo();
+    loadBuyerInformation();
     return () => { mounted = false; };
-  }, [selectedConversation]);
+  }, [conversations]);
 
   useEffect(() => () => {
     socketRequestsRef.current.forEach(({ reject }) => reject(new Error('Message connection closed')));
@@ -227,7 +231,7 @@ function MessagesContent() {
   };
 
   const filteredConversations = conversations.filter((conv) => {
-    const senderName = conv.sender_name || 'Unknown';
+    const senderName = buyerInfoById[conv.buyer_id]?.name || 'Buyer';
     return senderName.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
@@ -313,15 +317,15 @@ function MessagesContent() {
                   }`}
                   onClick={() => setSelectedConversation(conv)}
                 >
-                  <div className="conversation-avatar">{(buyerInfo?.name || conv.buyer_id || 'U').charAt(0)}</div>
+                  <div className="conversation-avatar">{(buyerInfoById[conv.buyer_id]?.name || conv.buyer_id || 'U').charAt(0)}</div>
                   <div className="conversation-content">
                     <div className="conversation-header">
-                      <span className="conversation-name">{buyerInfo?.name || 'Buyer'}</span>
+                      <span className="conversation-name">{buyerInfoById[conv.buyer_id]?.name || 'Buyer'}</span>
                       <span className="conversation-time">
-                        {new Date(conv.last_message_at).toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
+                        {conv.created_at ? new Date(conv.created_at).toLocaleString([], {
+                          dateStyle: 'short',
+                          timeStyle: 'short',
+                        }) : ''}
                       </span>
                     </div>
                     <div className="conversation-preview">{conv.last_message || 'No messages yet'}</div>
@@ -342,31 +346,15 @@ function MessagesContent() {
               {/* Conversation Header */}
               <div className="conversation-header-bar">
                 <div className="conversation-header-info">
-                  <h2>{buyerInfo?.name || 'Buyer'}</h2>
+                  <h2>{buyerInfoById[selectedConversation.buyer_id]?.name || 'Buyer'}</h2>
                   <p className="listing-ref">{selectedConversation.listing_title || 'Property'}</p>
                 </div>
-                <div className="conversation-header-actions">
-                  <UserAvatar src={buyerInfo?.image_url || ''} name={buyerInfo?.name || 'Buyer'} size="md" />
-                  <button type="button" className="icon-button" title="Call">☎️</button>
-                  <button type="button" className="icon-button" title="Video">📹</button>
-                  <button type="button" className="icon-button" title="More">⋯</button>
-                </div>
+                <UserAvatar
+                  src={buyerInfoById[selectedConversation.buyer_id]?.image_url || ''}
+                  name={buyerInfoById[selectedConversation.buyer_id]?.name || 'Buyer'}
+                  size="md"
+                />
               </div>
-
-              {/* Property Info Card */}
-              {selectedConversation && (
-                <div className="property-info-card">
-                  <div className="property-info-section">
-                    <span className="property-label">Location</span>
-                    <span className="property-value">{selectedConversation.listing_title || 'Property'}</span>
-                  </div>
-                  <div className="property-info-section">
-                    <span className="property-label">Price</span>
-                    <span className="property-value">Contact for offer</span>
-                  </div>
-                  <button type="button" className="view-offer-btn">View Offer</button>
-                </div>
-              )}
 
               {/* Messages Thread */}
               {loadingMessages ? (
