@@ -2199,6 +2199,42 @@ a {
 .seller-profile-dashboard-alert p { margin: 0.3rem 0 0; color: var(--muted); line-height: 1.5; }
 .seller-profile-dashboard-alert .action-button { flex: 0 0 auto; text-decoration: none; }
 
+.seller-verification-gate-dialog {
+  width: min(460px, calc(100vw - 2rem));
+}
+
+.seller-verification-gate-content {
+  display: grid;
+  gap: 0.8rem;
+  color: #fff;
+}
+
+.seller-verification-gate-content h2 {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.seller-verification-gate-content p {
+  margin: 0;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.seller-verification-delay-button {
+  justify-self: start;
+  border: 0;
+  border-radius: 0.6rem;
+  background: #fff;
+  color: var(--surface-strong);
+  font-weight: 800;
+  padding: 0.55rem 0.8rem;
+  cursor: pointer;
+}
+
+.seller-verification-delay-button:hover {
+  transform: translateY(-1px);
+}
+
 .seller-verification-cta {
   display: flex;
   align-items: center;

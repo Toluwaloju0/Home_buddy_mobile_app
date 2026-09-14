@@ -106,10 +106,6 @@ async def create_seller_profile(
     if seller.id_type.lower() in ["nin", "voters_card"] and not seller.id_number:
         content = api_response(False, "The number of the provided identification type must be provided")
         return JSONResponse(content.to_dict(), 400)
-    if not seller.account_name or not seller.bank_name or not seller.account_number:
-        content = api_response(False, "The account details must be provided for payments")
-        return JSONResponse(content.to_dict(), 400)
-    
     # create the seller dictionary and upload it to the database
     seller_dict = seller.model_dump()
     seller_dict["user_id"] = ObjectId(user_response.payload.get("_id"))
@@ -125,16 +121,12 @@ async def create_seller_profile(
 @seller.put("/me")
 async def update_my_seller_profile(
     about_me: str | None = Body(),
-    bank_name: str | None = Body(),
-    account_number: str | None = Body(),
     user_response=Depends(get_user_from_token),
     storage: DBStorage = Depends(get_db)
 ):
     """Update the authenticated seller profile and the linked user profile.
     Args:
         about_me: to update the seller description
-        bank_name: to update the bank name of the seller
-        account_number: to update the account number of the seller
     """
 
     if not user_response.status:
@@ -149,8 +141,6 @@ async def update_my_seller_profile(
 
     update_dict = {}
     if about_me: update_dict["about_me"] = about_me
-    if bank_name: update_dict["bank_name"] = bank_name
-    if account_number: update_dict["account_number"] = account_number
 
     update_response = await storage.update_seller_by_user_id(user_response.payload.get("_id"), update_dict)
     if not update_response.status:

@@ -19,24 +19,16 @@ const initialSellerFormState = {
   aboutMe: '',
   idType: '',
   idNumber: '',
-  accountName: '',
-  bankName: '',
-  accountNumber: '',
 };
 
 const initialSellerEditFormState = {
   aboutMe: '',
-  bankName: '',
-  accountNumber: '',
 };
 
 const sellerFieldLabels = {
   about_me: 'About me',
   id_type: 'ID type',
   id_number: 'ID number',
-  account_name: 'Account name',
-  bank_name: 'Bank name',
-  account_number: 'Account number',
 };
 
 const MAX_PROFILE_IMAGE_BYTES = 1024 * 1024; // 1 MB
@@ -202,7 +194,6 @@ function SellerInformationSection({
   const readOnlySellerProfileFields = [
     ['id_type', sellerProfile?.id_type],
     ['id_number', sellerProfile?.id_number],
-    ['account_name', sellerProfile?.account_name],
   ];
   const verificationStatus = String(sellerProfile?.is_verified ?? '').toLowerCase();
 
@@ -214,7 +205,7 @@ function SellerInformationSection({
             <p className="settings-kicker">Seller onboarding</p>
             <h2>Seller Profile</h2>
           </div>
-          <span>Your seller identity and payout details</span>
+          <span>Your seller identity details</span>
         </div>
 
         {loadingSellerProfile ? (
@@ -239,29 +230,6 @@ function SellerInformationSection({
                   <strong>{value || 'Not provided'}</strong>
                 </div>
               ))}
-              <label className="seller-profile-edit-field">
-                Bank name
-                <input
-                  className="form-input"
-                  type="text"
-                  value={sellerEditForm.bankName}
-                  onChange={onSellerEditFieldChange('bankName')}
-                  placeholder="Enter bank name"
-                  required
-                />
-              </label>
-              <label className="seller-profile-edit-field">
-                Account number
-                <input
-                  className="form-input"
-                  type="text"
-                  inputMode="numeric"
-                  value={sellerEditForm.accountNumber}
-                  onChange={onSellerEditFieldChange('accountNumber')}
-                  placeholder="Enter account number"
-                  required
-                />
-              </label>
               </div>
               {hasSellerProfileChanges && (
                 <div className="settings-actions seller-profile-create-actions">
@@ -299,7 +267,7 @@ function SellerInformationSection({
               <div>
                 <h3>Create your seller profile</h3>
                 <p>
-                  Add your verification and payout information so your seller account is ready for listings and payments.
+                  Add your verification information so your seller account is ready for review.
                 </p>
               </div>
             </div>
@@ -336,40 +304,6 @@ function SellerInformationSection({
                   value={sellerForm.idNumber}
                   onChange={onSellerFieldChange('idNumber')}
                   placeholder="Enter your ID number"
-                  required
-                />
-              </label>
-              <label>
-                Account Name
-                <input
-                  className="form-input"
-                  type="text"
-                  value={sellerForm.accountName}
-                  onChange={onSellerFieldChange('accountName')}
-                  placeholder="Enter account name"
-                  required
-                />
-              </label>
-              <label>
-                Bank Name
-                <input
-                  className="form-input"
-                  type="text"
-                  value={sellerForm.bankName}
-                  onChange={onSellerFieldChange('bankName')}
-                  placeholder="Enter bank name"
-                  required
-                />
-              </label>
-              <label>
-                Account Number
-                <input
-                  className="form-input"
-                  type="text"
-                  inputMode="numeric"
-                  value={sellerForm.accountNumber}
-                  onChange={onSellerFieldChange('accountNumber')}
-                  placeholder="Enter account number"
                   required
                 />
               </label>
@@ -437,6 +371,9 @@ export default function SellerProfileSettingsPage() {
   const [profileImageFile, setProfileImageFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
   const imageInputRef = useRef(null);
+  const sellerRedirectMessageRef = useRef(
+    typeof window === 'undefined' ? '' : new URLSearchParams(window.location.search).get('message') || ''
+  );
 
   const loadUser = async () => {
     const response = await authFetch(`${API_BASE_URL}/user/me`, {
@@ -487,14 +424,12 @@ export default function SellerProfileSettingsPage() {
         setSellerProfile(payload);
         setSellerEditForm({
           aboutMe: payload?.about_me || '',
-          bankName: payload?.bank_name || '',
-          accountNumber: payload?.account_number || '',
         });
-        setSellerFeedback(null);
+        if (!sellerRedirectMessageRef.current) setSellerFeedback(null);
       } else if (response.status === 200 && data?.status === false) {
         setSellerProfile(null);
         setSellerEditForm(initialSellerEditFormState);
-        setSellerFeedback(null);
+        if (!sellerRedirectMessageRef.current) setSellerFeedback(null);
       } else {
         setSellerProfile(null);
         setSellerEditForm(initialSellerEditFormState);
@@ -526,8 +461,18 @@ export default function SellerProfileSettingsPage() {
   }, []);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('section') === 'seller') {
+    if (typeof window === 'undefined') return;
+
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.get('section') === 'seller') {
       setActiveMode('seller');
+    }
+
+    const message = searchParams.get('message') || '';
+    sellerRedirectMessageRef.current = message;
+
+    if (message) {
+      setSellerFeedback({ type: 'error', text: message });
     }
   }, []);
 
@@ -559,15 +504,9 @@ export default function SellerProfileSettingsPage() {
 
     const changes = {};
     const currentAboutMe = sellerProfile.about_me || '';
-    const currentBankName = sellerProfile.bank_name || '';
-    const currentAccountNumber = sellerProfile.account_number || '';
     const nextAboutMe = sellerEditForm.aboutMe.trim();
-    const nextBankName = sellerEditForm.bankName.trim();
-    const nextAccountNumber = sellerEditForm.accountNumber.trim();
 
     if (nextAboutMe !== currentAboutMe) changes.about_me = nextAboutMe;
-    if (nextBankName !== currentBankName) changes.bank_name = nextBankName;
-    if (nextAccountNumber !== currentAccountNumber) changes.account_number = nextAccountNumber;
 
     return changes;
   }, [sellerEditForm, sellerProfile]);
@@ -717,9 +656,6 @@ export default function SellerProfileSettingsPage() {
       about_me: sellerForm.aboutMe.trim(),
       id_type: sellerForm.idType,
       id_number: sellerForm.idNumber.trim(),
-      account_name: sellerForm.accountName.trim(),
-      bank_name: sellerForm.bankName.trim(),
-      account_number: sellerForm.accountNumber.trim(),
     };
 
     if (Object.values(payload).some((value) => !value)) {
