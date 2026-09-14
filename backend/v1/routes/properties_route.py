@@ -66,6 +66,32 @@ async def browse_listings(
     content = api_response(True, f"Listings search completed", db_response.payload)
     return JSONResponse(content.to_dict())
 
+
+@properties.get("/{property_id}/image", summary="Get a property image")
+async def get_property_image(property_id: str):
+    """Return the property-type image URL or the property type placeholder."""
+    listing_response = await storage.get_listing_by_id(property_id)
+    if not listing_response.status or not listing_response.payload:
+        return JSONResponse(
+            api_response(False, "Property not found", {"image_url": "property"}).to_dict(),
+            404,
+        )
+
+    listing = listing_response.payload
+    property_type = str(listing.get("property_type", "property")).lower()
+    image_key = "land_image" if property_type == "land" else "shop_exterior" if property_type == "shop" else "exterior"
+
+    for media in listing.get("listing_media") or []:
+        image_url = media.get(image_key)
+        if isinstance(image_url, str) and image_url:
+            return JSONResponse(
+                api_response(True, "Property image retrieved", {"image_url": image_url}).to_dict()
+            )
+
+    return JSONResponse(
+        api_response(True, "Property image unavailable", {"image_url": property_type}).to_dict()
+    )
+
 @properties.get("/{property_id}", summary="Get property by id")
 async def get_property(property_id: str, user_response=Depends(get_user_from_token)):
     """Return the property detail but require a valid access token.
@@ -95,7 +121,7 @@ async def get_property(property_id: str, user_response=Depends(get_user_from_tok
         if seller_response.status:
             listing["seller"] = seller_response.payload
     else: listing["seller"] = None
-    del listing["seller_id"]
+    if not user_response.status: del listing["seller_id"]
 
     content = api_response(True, "Listing retrieved", listing)
     return JSONResponse(content.to_dict())

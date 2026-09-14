@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { API_BASE_URL, authFetch, redirectToLogin } from '../../lib/api';
 import SellerHeader from '../components/SellerHeader';
+import SellerVerificationGateModal from '../components/SellerVerificationGateModal';
 
 const reasons = [
   { key: 'verified', label: 'Verified listings', icon: '/icons/verified.svg' },
@@ -12,6 +13,9 @@ const reasons = [
   { key: 'insights', label: 'Lagos insights', icon: '/icons/insights.svg' },
   { key: 'facility', label: 'Facility management', icon: '/icons/facility.svg' },
 ];
+
+const sellerInfoRedirectMessage = 'Please first fill the seller information before proceeding to list a property or service.';
+const sellerInfoRedirectPath = `/seller/profile?section=seller&message=${encodeURIComponent(sellerInfoRedirectMessage)}`;
 
 export default function SellerPage() {
   const router = useRouter();
@@ -22,6 +26,9 @@ export default function SellerPage() {
   const [searching, setSearching] = useState(false);
   const [loadingSellerProfile, setLoadingSellerProfile] = useState(true);
   const [hasSellerProfile, setHasSellerProfile] = useState(false);
+  const [sellerAccessStatus, setSellerAccessStatus] = useState('loading');
+  const [verificationGateOpen, setVerificationGateOpen] = useState(false);
+  const [notifyStatus, setNotifyStatus] = useState(null);
 
   useEffect(() => {
     let mounted = true;
@@ -64,10 +71,20 @@ export default function SellerPage() {
         const data = await response?.json().catch(() => null);
 
         if (!mounted) return;
-        setHasSellerProfile(response?.status === 200 && data?.status === true && Boolean(data?.payload));
+        const hasProfile = response?.status === 200 && data?.status === true && Boolean(data?.payload);
+        const isVerified = hasProfile && (
+          data.payload.is_verified === true ||
+          String(data.payload.is_verified).toLowerCase() === 'true'
+        );
+
+        setHasSellerProfile(hasProfile);
+        setSellerAccessStatus(hasProfile ? (isVerified ? 'verified' : 'unverified') : 'missing');
       } catch (error) {
         console.error('Seller dashboard profile check failed:', error);
-        if (mounted) setHasSellerProfile(false);
+        if (mounted) {
+          setHasSellerProfile(false);
+          setSellerAccessStatus('missing');
+        }
       } finally {
         if (mounted) setLoadingSellerProfile(false);
       }
@@ -114,6 +131,39 @@ export default function SellerPage() {
     }
 
     setSearching(false);
+  };
+
+  const handleListPropertyClick = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (loadingSellerProfile || sellerAccessStatus === 'loading') return;
+
+    if (sellerAccessStatus === 'verified') {
+      router.push('/seller/listings/new');
+      return;
+    }
+
+    if (sellerAccessStatus === 'missing') {
+      router.push(sellerInfoRedirectPath);
+      return;
+    }
+
+    setNotifyStatus(null);
+    setVerificationGateOpen(true);
+  };
+
+  const handleNotifyAdmin = () => {
+    setNotifyStatus({
+      type: 'success',
+      text: 'Opening an email to support so admin can review the delay.',
+    });
+
+    if (typeof window !== 'undefined') {
+      const subject = encodeURIComponent('Seller verification approval delay');
+      const body = encodeURIComponent('Hello Admin,\n\nPlease review my pending seller verification details. I would like to proceed with listing a property or service.\n\nThank you.');
+      window.location.href = `mailto:support@homebuddy.ng?subject=${subject}&body=${body}`;
+    }
   };
 
   return (
@@ -174,8 +224,10 @@ export default function SellerPage() {
           className="info-card info-card--dark"
           role="button"
           tabIndex={0}
-          onClick={() => router.push('/seller/listings/new')}
-          onKeyDown={(e) => { if (e.key === 'Enter') router.push('/seller/listings/new'); }}
+          onClick={handleListPropertyClick}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') handleListPropertyClick(e);
+          }}
           style={{ cursor: 'pointer' }}
         >
           <div className="card-image" aria-hidden="true">
@@ -188,7 +240,7 @@ export default function SellerPage() {
           <div className="card-body">
             <h2>Sell</h2>
             <p>List your property easily and reach verified buyers</p>
-            <button type="button" className="action-button" onClick={() => router.push('/seller/listings/new')}>List a Property</button>
+            <button type="button" className="action-button" onClick={handleListPropertyClick}>List a Property</button>
           </div>
         </article>
         <article
@@ -248,6 +300,13 @@ export default function SellerPage() {
           ))}
         </div>
       </section>
+
+      <SellerVerificationGateModal
+        open={verificationGateOpen}
+        onClose={() => setVerificationGateOpen(false)}
+        onNotifyAdmin={handleNotifyAdmin}
+        notifyStatus={notifyStatus}
+      />
 
 
       <footer className="footer">

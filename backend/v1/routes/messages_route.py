@@ -1,214 +1,125 @@
 """Module for handling buyer-seller messaging between listings."""
 
-from datetime import datetime
-from bson import ObjectId
-from fastapi import APIRouter, Depends, Form
+import asyncio
+import json
+
+from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 
-from database.db_engine import storage
+from models.message_model import MessageSchema
 from middlewares.verify_user import get_user_from_token
+from services.conversation_service import ConversationService
+from utils.cookie_token import token_manager
 from utils.responses import api_response
 
-
-async def serialize_mongo_value(value):
-    """Convert Mongo-specific values into JSON-safe primitives."""
-    if isinstance(value, ObjectId):
-        return str(value)
-    if isinstance(value, datetime):
-        return value.isoformat()
-    if isinstance(value, dict):
-        return {key: await serialize_mongo_value(item) for key, item in value.items()}
-    if isinstance(value, list):
-        return [await serialize_mongo_value(item) for item in value]
-    return value
+messages = APIRouter(tags=["Messages"])
 
 
-messages = APIRouter(prefix="/messages", tags=["Messages"], dependencies=[Depends(get_user_from_token)])
-
-
-@messages.post("/send")
-async def send_message(
-    receiver_id: str = Form(...),
-    listing_id: str = Form(...),
-    message_text: str = Form(...),
-    listing_title: str = Form(None),
-    user_response=Depends(get_user_from_token),
+@messages.get("/message/{message_id}/text", summary="Get a referenced message")
+async def get_message_text(
+	message_id: str,
+	user_response=Depends(get_user_from_token),
 ):
-    """Send a message from an authenticated user to another user about a listing."""
+	"""Return the message referenced by a tagged message ID."""
+	if not user_response.status:
+		return JSONResponse(api_response(False, "The access token provided is not valid").to_dict(), 401)
+	if not user_response.payload:
+		return JSONResponse(api_response(False, "The access token is expired, refresh and try again").to_dict(), 205)
 
-    if not user_response.status:
-        content = api_response(False, "The access token provided is not valid")
-        return JSONResponse(content.to_dict(), 205)
-
-    if not user_response.payload:
-        content = api_response(False, "The access token is expired, refresh and try again")
-        return JSONResponse(content.to_dict(), 401)
-
-    user = user_response.payload
-    sender_id = str(user.get("_id"))
-    sender_name = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip() or user.get("email", "User")
-
-    if not receiver_id or not message_text.strip():
-        content = api_response(False, "receiver_id and message_text are required")
-        return JSONResponse(content.to_dict(), 400)
-
-    # Preserve the authenticated user's actual role for future buyer/seller flows.
-    sender_role = user.get("role", "seller")
-
-    message_data = {
-        "sender_id": sender_id,
-        "sender_name": sender_name,
-        "sender_role": sender_role,
-        "receiver_id": receiver_id,
-        "listing_id": listing_id,
-        "listing_title": listing_title or "Property",
-        "message_text": message_text.strip(),
-        "created_at": datetime.now(),
-        "read": False,
-    }
-
-    save_response = await storage.save_message(message_data)
-    if not save_response.status:
-        content = api_response(False, "Failed to send message")
-        return JSONResponse(content.to_dict(), 500)
-
-    content = api_response(True, "Message sent successfully", save_response.payload)
-    return JSONResponse(content.to_dict())
+	message = await ConversationService().get_message(message_id)
+	if not message:
+		return JSONResponse(api_response(False, "Message not found").to_dict(), 404)
+	return JSONResponse(api_response(True, "Message retrieved successfully", message).to_dict())
 
 
-@messages.get("/")
-async def get_conversations(user_response=Depends(get_user_from_token)):
-    """Get all conversations for the authenticated user (seller or buyer)."""
-
-    if not user_response.status:
-        content = api_response(False, "The access token provided is not valid")
-        return JSONResponse(content.to_dict(), 205)
-
-    if not user_response.payload:
-        content = api_response(False, "The access token is expired, refresh and try again")
-        return JSONResponse(content.to_dict(), 401)
-
-    user = user_response.payload
-    user_id = str(user.get("_id"))
-
-    # Get conversations where user is a seller (receiver)
-    seller_conversations_response = await storage.get_seller_conversations(user_id)
-    if not seller_conversations_response.status:
-        content = api_response(False, "Failed to retrieve conversations")
-        return JSONResponse(content.to_dict(), 500)
-
-    conversations = seller_conversations_response.payload
-    serialized_conversations = [await serialize_mongo_value(conv) for conv in conversations]
-
-    content = api_response(True, "Conversations retrieved successfully", serialized_conversations)
-    return JSONResponse(content.to_dict())
-
-
-@messages.get("/buyer")
-async def get_buyer_conversations(user_response=Depends(get_user_from_token)):
-    """Get all conversations for the authenticated buyer."""
-
-    if not user_response.status:
-        content = api_response(False, "The access token provided is not valid")
-        return JSONResponse(content.to_dict(), 205)
-
-    if not user_response.payload:
-        content = api_response(False, "The access token is expired, refresh and try again")
-        return JSONResponse(content.to_dict(), 401)
-
-    user = user_response.payload
-    user_id = str(user.get("_id"))
-
-    buyer_conversations_response = await storage.get_buyer_conversations(user_id)
-    if not buyer_conversations_response.status:
-        content = api_response(False, "Failed to retrieve conversations")
-        return JSONResponse(content.to_dict(), 500)
-
-    conversations = buyer_conversations_response.payload
-    serialized_conversations = [await serialize_mongo_value(conv) for conv in conversations]
-
-    content = api_response(True, "Buyer conversations retrieved successfully", serialized_conversations)
-    return JSONResponse(content.to_dict())
-
-
-@messages.get("/{buyer_id}/{listing_id}")
-async def get_conversation_thread(
-    buyer_id: str,
-    listing_id: str,
-    user_response=Depends(get_user_from_token),
+@messages.post("/messages/conversation", summary="Create a conversation")
+async def create_conversation(
+	buyer_id: str = Query(..., min_length=1),
+	seller_id: str = Query(..., min_length=1),
+	user_response=Depends(get_user_from_token),
 ):
-    """Get all messages in a conversation between a seller and a buyer for a specific listing."""
+	"""Create or return the conversation ID for a buyer and seller pair."""
 
-    if not user_response.status:
-        content = api_response(False, "The access token provided is not valid")
-        return JSONResponse(content.to_dict(), 205)
+	if not user_response.status:
+		content = api_response(False, "The access token provided is not valid")
+		return JSONResponse(content.to_dict(), 401)
 
-    if not user_response.payload:
-        content = api_response(False, "The access token is expired, refresh and try again")
-        return JSONResponse(content.to_dict(), 401)
-
-    user = user_response.payload
-    seller_id = str(user.get("_id"))
-
-    messages_response = await storage.get_conversation_messages(seller_id, buyer_id, listing_id)
-    if not messages_response.status:
-        content = api_response(False, "Failed to retrieve conversation messages")
-        return JSONResponse(content.to_dict(), 500)
-
-    conversation_messages = messages_response.payload
-    serialized_messages = [await serialize_mongo_value(msg) for msg in conversation_messages]
-
-    content = api_response(True, "Conversation retrieved successfully", serialized_messages)
-    return JSONResponse(content.to_dict())
+	if not user_response.payload:
+		content = api_response(False, "The access token is expired, refresh and try again")
+		return JSONResponse(content.to_dict(), 205)
 
 
-@messages.get("/unread/count")
-async def get_unread_count(user_response=Depends(get_user_from_token)):
-    """Get the count of unread messages for the authenticated user."""
+	conversation_id = await ConversationService().create_conversation(buyer_id, seller_id)
+	content = api_response(True, "Conversation created successfully", {"conversation_id": conversation_id})
+	return JSONResponse(content.to_dict())
 
-    if not user_response.status:
-        content = api_response(False, "The access token provided is not valid")
-        return JSONResponse(content.to_dict(), 205)
+@messages.websocket("/messages/{conversation_id}/ws")
+async def send_message_websocket(websocket: WebSocket, conversation_id: str):
+	"""Accept messages until five minutes pass without another message."""
+	access_token = websocket.cookies.get("access_token")
+	user_response = await token_manager.verify_access_token(access_token)
+	if not user_response.status:
+		await websocket.close(code=4001)
+		return
+	if not user_response.payload:
+		await websocket.close(code=4005)
+		return
 
-    if not user_response.payload:
-        content = api_response(False, "The access token is expired, refresh and try again")
-        return JSONResponse(content.to_dict(), 401)
+	await websocket.accept()
+	service = ConversationService()
+	sender_id = str(user_response.payload.get("_id"))
+	if not sender_id:
+		await websocket.close(code=4003)
+		return
+	try:
+		while True:
+			try:
+				raw_message = await asyncio.wait_for(websocket.receive_text(), timeout=300)
+			except asyncio.TimeoutError:
+				await websocket.close(code=1000)
+				return
 
-    user = user_response.payload
-    user_id = str(user.get("_id"))
+			try:
+				message_data = json.loads(raw_message)
+				if not isinstance(message_data, dict):
+					raise ValueError("message body must be an object")
+				message_data["sender_id"] = sender_id
+				message_data["conversation_id"] = conversation_id
+				message = MessageSchema.model_validate(message_data)
+			except (json.JSONDecodeError, ValueError, TypeError):
+				await websocket.send_json({"status": False, "message": "message_text is required"})
+				continue
 
-    count_response = await storage.get_unread_message_count(user_id)
-    if not count_response.status:
-        content = api_response(False, "Failed to retrieve unread count")
-        return JSONResponse(content.to_dict(), 500)
+			message.sender_id = sender_id
+			message.conversation_id = conversation_id
+			if not message.message_text.strip():
+				await websocket.send_json({"status": False, "message": "message_text is required"})
+				continue
 
-    content = api_response(True, "Unread count retrieved", count_response.payload)
-    return JSONResponse(content.to_dict())
+			saved_message = await service.save_message(message)
+			await websocket.send_json(api_response(True, "Message sent successfully", saved_message).to_dict())
+	except WebSocketDisconnect:
+		return
 
 
-@messages.put("/{buyer_id}/read")
-async def mark_conversation_as_read(
-    buyer_id: str,
-    listing_id: str = Form(None),
-    user_response=Depends(get_user_from_token),
+@messages.get("/conversation", summary="Get a buyer-seller conversation")
+async def get_conversation(
+	buyer_id: str = Query(..., min_length=1),
+	seller_id: str = Query(..., min_length=1),
+	page: int = Query(1, ge=1),
+	user_response=Depends(get_user_from_token),
 ):
-    """Mark all messages from a specific buyer as read."""
+	"""Return the newest page of messages for a buyer-seller conversation."""
 
-    if not user_response.status:
-        content = api_response(False, "The access token provided is not valid")
-        return JSONResponse(content.to_dict(), 205)
+	if not user_response.status:
+		content = api_response(False, "The access token provided is not valid")
+		return JSONResponse(content.to_dict(), 401)
 
-    if not user_response.payload:
-        content = api_response(False, "The access token is expired, refresh and try again")
-        return JSONResponse(content.to_dict(), 401)
+	if not user_response.payload:
+		content = api_response(False, "The access token is expired, refresh and try again")
+		return JSONResponse(content.to_dict(), 205)
 
-    user = user_response.payload
-    seller_id = str(user.get("_id"))
-
-    mark_response = await storage.mark_messages_as_read(seller_id, buyer_id, listing_id)
-    if not mark_response.status:
-        content = api_response(False, "Failed to mark messages as read")
-        return JSONResponse(content.to_dict(), 500)
-
-    content = api_response(True, "Messages marked as read", mark_response.payload)
-    return JSONResponse(content.to_dict())
+	service = ConversationService()
+	conversation_messages = await service.get_messages(buyer_id, seller_id, page)
+	content = api_response(True, "The conversation has been retrieved successfully", conversation_messages)
+	return JSONResponse(content.to_dict())

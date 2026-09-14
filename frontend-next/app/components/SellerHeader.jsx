@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation'; // Added usePathname
 import { API_BASE_URL, authFetch } from '../../lib/api';
 import UserAvatar from './UserAvatar';
+import SellerVerificationGateModal from './SellerVerificationGateModal';
 
 const sellerMenuItems = [
   { label: 'Land', href: '/seller/listings/new/land' },
@@ -14,6 +15,9 @@ const sellerMenuItems = [
   { label: 'Messages', href: '/seller/messages' },
   { label: 'Services', href: '/seller/services' },
 ];
+
+const sellerInfoRedirectMessage = 'Please first fill the seller information before proceeding to list a property or service.';
+const sellerInfoRedirectPath = `/seller/profile?section=seller&message=${encodeURIComponent(sellerInfoRedirectMessage)}`;
 
 export default function SellerHeader({ 
   user: providedUser, 
@@ -31,6 +35,9 @@ export default function SellerHeader({
   const [switchingRole, setSwitchingRole] = useState(false);
   const [loadedUser, setLoadedUser] = useState(null);
   const [loadingOwnUser, setLoadingOwnUser] = useState(providedUser === undefined);
+  const [sellerAccessStatus, setSellerAccessStatus] = useState('loading');
+  const [verificationGateOpen, setVerificationGateOpen] = useState(false);
+  const [notifyStatus, setNotifyStatus] = useState(null);
 
   // 1. Close menus when the URL changes (User clicked a link)
   useEffect(() => {
@@ -87,6 +94,31 @@ export default function SellerHeader({
     loadUser();
   }, [providedUser]);
 
+  const loadSellerAccessStatus = useCallback(async () => {
+    try {
+      const response = await authFetch(`${API_BASE_URL}/seller/me`, { method: 'GET' });
+      const data = await response?.json().catch(() => null);
+
+      if (response?.status === 200 && data?.status === true && data?.payload) {
+        const isVerified = data.payload.is_verified === true || String(data.payload.is_verified).toLowerCase() === 'true';
+        const nextStatus = isVerified ? 'verified' : 'unverified';
+        setSellerAccessStatus(nextStatus);
+        return nextStatus;
+      }
+
+      setSellerAccessStatus('missing');
+      return 'missing';
+    } catch (error) {
+      console.error('Seller header profile check failed:', error);
+      setSellerAccessStatus('missing');
+      return 'missing';
+    }
+  }, []);
+
+  useEffect(() => {
+    loadSellerAccessStatus();
+  }, [loadSellerAccessStatus]);
+
   const user = providedUser === undefined ? loadedUser : providedUser;
   const loadingUser = providedUser === undefined ? loadingOwnUser : providedLoadingUser;
 
@@ -114,6 +146,40 @@ export default function SellerHeader({
     } finally { setSwitchingRole(false); }
   };
 
+  const handleProtectedSellerLink = async (event, href) => {
+    event.preventDefault();
+    setMobileMenuOpen(false);
+    setDropdownOpen(false);
+
+    const resolvedStatus = sellerAccessStatus === 'loading' ? await loadSellerAccessStatus() : sellerAccessStatus;
+
+    if (resolvedStatus === 'verified') {
+      router.push(href);
+      return;
+    }
+
+    if (resolvedStatus === 'missing') {
+      router.push(sellerInfoRedirectPath);
+      return;
+    }
+
+    setNotifyStatus(null);
+    setVerificationGateOpen(true);
+  };
+
+  const handleNotifyAdmin = () => {
+    setNotifyStatus({
+      type: 'success',
+      text: 'Opening an email to support so admin can review the delay.',
+    });
+
+    if (typeof window !== 'undefined') {
+      const subject = encodeURIComponent('Seller verification approval delay');
+      const body = encodeURIComponent('Hello Admin,\n\nPlease review my pending seller verification details. I would like to proceed with listing a property or service.\n\nThank you.');
+      window.location.href = `mailto:support@homebuddy.ng?subject=${subject}&body=${body}`;
+    }
+  };
+
   return (
     <header className="topbar seller-topbar">
       {/* LEFT: LOGO */}
@@ -132,7 +198,12 @@ export default function SellerHeader({
       {/* CENTER: DESKTOP NAV & MOBILE TOGGLE */}
       <nav className="landing-nav-center">
         {sellerMenuItems.map((item) => (
-          <Link key={item.href} className="landing-nav-link" href={item.href}>
+          <Link
+            key={item.href}
+            className="landing-nav-link"
+            href={item.href}
+            onClick={item.label === 'Services' ? (event) => handleProtectedSellerLink(event, item.href) : undefined}
+          >
             {item.label}
           </Link>
         ))}
@@ -207,12 +278,19 @@ export default function SellerHeader({
               key={item.href} 
               href={item.href} 
               className="landing-nav-link landing-nav-link--mobile"
+              onClick={item.label === 'Services' ? (event) => handleProtectedSellerLink(event, item.href) : undefined}
             >
               {item.label}
             </Link>
           ))}
         </div>
       )}
+      <SellerVerificationGateModal
+        open={verificationGateOpen}
+        onClose={() => setVerificationGateOpen(false)}
+        onNotifyAdmin={handleNotifyAdmin}
+        notifyStatus={notifyStatus}
+      />
     </header>
   );
 }

@@ -1,4 +1,4 @@
-"""Seller profile model for seller-specific KYC and business details."""
+"""Seller profile model for seller-specific KYC details."""
 
 from pydantic import BaseModel
 
@@ -9,6 +9,3 @@ class Seller(BaseModel):
     about_me: str | None = None
     id_type: str
     id_number: str | None
-    account_name: str
-    bank_name: str
-    account_number: str

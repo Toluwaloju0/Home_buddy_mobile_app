@@ -28,29 +28,6 @@ const reasons = [
   { key: 'facility', label: 'Facility management', icon: '/icons/facility.svg', href: '/services' },
 ];
 
-const properties = [
-  {
-    name: 'Lekki Luxury Apartment',
-    location: 'Lekki Phase 1, Lagos',
-    image: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=1600&q=80',
-  },
-  {
-    name: 'Maitama Comfort Flat',
-    location: 'Yaba, Lagos',
-    image: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=1600&q=80',
-  },
-  {
-    name: 'Island View Apartment',
-    location: 'Victoria Island, Lagos',
-    image: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1600&q=80',
-  },
-  {
-    name: 'Epe Garden Land',
-    location: 'Epe, Lagos',
-    image: 'https://images.unsplash.com/photo-1505843513577-22bb7d21e455?auto=format&fit=crop&w=1600&q=80',
-  },
-];
-
 const testimonials = [
   {
     text: 'Home Buddy helped me find a verified apartment quickly; the process was smooth and trustworthy.',
@@ -81,11 +58,10 @@ export default function HomePage() {
       <section className="hero">
         <div className="hero-overlay" />
         <div className="hero-copy">
-          <p className="eyebrow">Trusted real estate, built for Nigeria</p>
           <h1>Find Your Perfect Home In Nigeria Faster, Easier, and Safer</h1>
           <p>
             Home Buddy Connect Limited Provides Real Estate And Property services Including Renting, Leasing, Buying, And Selling Of Verified Residential And 
-            Commercial Properties, Along With Facility Management And Integrated Waste Management Solutions To Ensure Safe, Clean And Well-maintained Environments
+            Commercial Properties ... <span className='eyebrow'><Link href="/about-us">Read More</Link></span>
           </p>
 
           <SearchBar />

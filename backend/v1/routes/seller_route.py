@@ -1,7 +1,7 @@
 """ a module to get and use seller profile routes """
 
 from bson import ObjectId
-from fastapi import APIRouter, Depends, File, Form, UploadFile, BackgroundTasks, Body
+from fastapi import APIRouter, Depends, File, Form, UploadFile, BackgroundTasks, Body, Query
 from fastapi.responses import JSONResponse
 from typing import Dict, List
 
@@ -13,8 +13,46 @@ from models.property_model import ShopListingSchema, LandListingSchema, Apartmen
 from utils.state_list import States_list, States_with_lgas
 from utils.responses import api_response
 from services.s3_uploader import uploader
+from services.conversation_service import ConversationService
+from services.seller_service import SellerService
 
 seller = APIRouter(prefix="/seller", tags=["Seller"])
+
+
+@seller.get("/messages")
+async def get_seller_messages(
+    page: int = Query(1, ge=1),
+    user_response=Depends(get_user_from_token),
+):
+    """Return all conversations belonging to the authenticated seller."""
+    if not user_response.status:
+        return JSONResponse(api_response(False, "The access token provided is not valid").to_dict(), 401)
+    if not user_response.payload:
+        return JSONResponse(api_response(False, "The access token is expired, refresh and try again").to_dict(), 205)
+
+    seller_response = await storage.get_seller_by_user_id(str(user_response.payload.get("_id")))
+    if not seller_response.status or not seller_response.payload:
+        return JSONResponse(api_response(False, "Seller profile not found").to_dict(), 404)
+
+    conversations = await SellerService().get_seller_conversations(
+        str(seller_response.payload["_id"]),
+        page,
+    )
+    return JSONResponse(api_response(True, "Seller conversations retrieved successfully", conversations).to_dict())
+
+
+@seller.get("/buyer/{buyer_id}")
+async def get_buyer_information(buyer_id: str, user_response=Depends(get_user_from_token)):
+    """Return the buyer name and image for a selected seller conversation."""
+    if not user_response.status:
+        return JSONResponse(api_response(False, "The access token provided is not valid").to_dict(), 401)
+    if not user_response.payload:
+        return JSONResponse(api_response(False, "The access token is expired, refresh and try again").to_dict(), 205)
+
+    buyer = await SellerService().get_buyer_information(buyer_id)
+    if not buyer:
+        return JSONResponse(api_response(False, "Buyer not found").to_dict(), 404)
+    return JSONResponse(api_response(True, "Buyer information retrieved successfully", buyer).to_dict())
 
 @seller.get("/me")
 async def get_my_seller_profile(
@@ -68,10 +106,6 @@ async def create_seller_profile(
     if seller.id_type.lower() in ["nin", "voters_card"] and not seller.id_number:
         content = api_response(False, "The number of the provided identification type must be provided")
         return JSONResponse(content.to_dict(), 400)
-    if not seller.account_name or not seller.bank_name or not seller.account_number:
-        content = api_response(False, "The account details must be provided for payments")
-        return JSONResponse(content.to_dict(), 400)
-    
     # create the seller dictionary and upload it to the database
     seller_dict = seller.model_dump()
     seller_dict["user_id"] = ObjectId(user_response.payload.get("_id"))
@@ -87,16 +121,12 @@ async def create_seller_profile(
 @seller.put("/me")
 async def update_my_seller_profile(
     about_me: str | None = Body(),
-    bank_name: str | None = Body(),
-    account_number: str | None = Body(),
     user_response=Depends(get_user_from_token),
     storage: DBStorage = Depends(get_db)
 ):
     """Update the authenticated seller profile and the linked user profile.
     Args:
         about_me: to update the seller description
-        bank_name: to update the bank name of the seller
-        account_number: to update the account number of the seller
     """
 
     if not user_response.status:
@@ -111,8 +141,6 @@ async def update_my_seller_profile(
 
     update_dict = {}
     if about_me: update_dict["about_me"] = about_me
-    if bank_name: update_dict["bank_name"] = bank_name
-    if account_number: update_dict["account_number"] = account_number
 
     update_response = await storage.update_seller_by_user_id(user_response.payload.get("_id"), update_dict)
     if not update_response.status:
@@ -327,7 +355,7 @@ async def submit_apartment_listing(
         content = api_response(False, "The user must be a seller")
         return JSONResponse(content.to_dict(), 400)
 
-    if property_type.lower() not in ["flat", "mini flat", "bunglow", "penthouse", "duplex"]:
+    if property_type.lower() not in ["flat", "mini flat", "bungalow", "penthouse", "duplex"]:
         content = api_response(False, "This endpoint is for submitting apartments such as duplex and flats")
         return JSONResponse(content.to_dict(), 400)
 

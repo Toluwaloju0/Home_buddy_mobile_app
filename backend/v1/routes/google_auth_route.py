@@ -99,6 +99,7 @@ async def verify_google_token(request: Request, storage: DBStorage = Depends(get
 
         return response
     except Exception:
+        raise Exception
         content = api_response(False, "Authentication failed. Please try again.")
         print(content.to_dict(), "3")
         return JSONResponse(content.to_dict(), status_code=500)

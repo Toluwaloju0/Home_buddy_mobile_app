@@ -8,9 +8,20 @@ import BuyerHeader from '../components/BuyerHeader';
 
 const propertyFilters = [
   { key: 'all', label: 'All types' },
-  { key: 'buy', label: 'Buy' },
-  { key: 'rent', label: 'Rent' },
-  { key: 'shortlet', label: 'Short let' },
+  { key: 'shop', label: 'Shop' },
+  { key: 'land', label: 'Land' },
+  { key: 'flat', label: 'Flat' },
+  { key: 'mini flat', label: 'Mini flat' },
+  { key: 'bungalow', label: 'Bungalow' },
+  { key: 'penthouse', label: 'Penthouse' },
+  { key: 'duplex', label: 'Duplex' },
+];
+
+const budgetFilters = [
+  { key: 'all', label: 'Any budget' },
+  { key: '800000-1000000', label: '₦800,000 - ₦1,000,000', min: 800000, max: 1000000 },
+  { key: '1000000-5000000', label: '₦1,000,000 - ₦5,000,000', min: 1000000, max: 5000000 },
+  { key: '5000000-10000000', label: '₦5,000,000 - ₦10,000,000', min: 5000000, max: 10000000 },
 ];
 
 const getListingImage = (listing) => {
@@ -34,6 +45,9 @@ export default function BuyerPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [propertyType, setPropertyType] = useState('all');
   const [budget, setBudget] = useState('all');
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState('');
+  const [searchErrorOpen, setSearchErrorOpen] = useState(false);
   const [loadingBuyerProfile, setLoadingBuyerProfile] = useState(true);
   const [hasBuyerProfile, setHasBuyerProfile] = useState(false);
 
@@ -125,18 +139,101 @@ export default function BuyerPage() {
 
   const visibleHomes = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
+    const selectedBudget = budgetFilters.find((item) => item.key === budget);
 
     return recommendedHomes.filter((home) => {
       const category = home.category || home.property_type || '';
-      const priceStr = home.price || home.price_display || '';
+      const price = Number(home.price || home.rent || 0);
+      const priceStr = home.price || home.price_display || home.rent || '';
       const matchesType = propertyType === 'all' || category === propertyType;
-      const matchesBudget = budget === 'all' || (priceStr && priceStr.includes(budget));
+      const matchesBudget = budget === 'all' || (
+        Number.isFinite(price) &&
+        selectedBudget?.min &&
+        selectedBudget?.max &&
+        price >= selectedBudget.min &&
+        price <= selectedBudget.max
+      );
       const matchesQuery = !query || [home.title || '', home.location || home.full_address || '', priceStr, category]
         .join(' ').toLowerCase().includes(query);
 
       return matchesType && matchesBudget && matchesQuery;
     });
   }, [recommendedHomes, budget, propertyType, searchQuery]);
+
+  function getSearchMessage(data, hasEmptyPayload) {
+    if (hasEmptyPayload) return 'No listing is found for that state or local government area.';
+    if (typeof data?.payload === 'string') return data.payload;
+    if (typeof data?.message === 'string') return data.message;
+    return 'No listings found for this search.';
+  }
+
+  async function refreshSearchSession() {
+    const response = await fetch(`${API_BASE_URL}/auth/token/refresh`, {
+      method: 'GET',
+      credentials: 'include',
+    });
+
+    return response.status === 200;
+  }
+
+  async function handleSearchSubmit(event) {
+    event.preventDefault();
+
+    const location = searchQuery.trim();
+    const selectedBudget = budgetFilters.find((item) => item.key === budget);
+    const queryParts = ['page=1'];
+    const body = {};
+
+    if (location) queryParts.push(`location=${encodeURIComponent(location)}`);
+    if (propertyType !== 'all') body.property_type = propertyType;
+    if (selectedBudget?.min && selectedBudget?.max) {
+      body.min_price = selectedBudget.min;
+      body.max_price = selectedBudget.max;
+    }
+
+    setSearching(true);
+    setSearchError('');
+    setSearchErrorOpen(false);
+
+    try {
+      const url = `${API_BASE_URL}/properties/browse?${queryParts.join('&')}`;
+      const requestInit = {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(body),
+      };
+
+      let response = await fetch(url, requestInit);
+      if (response.status === 205) {
+        const refreshed = await refreshSearchSession();
+        if (refreshed) response = await fetch(url, requestInit);
+      }
+
+      const data = await response.json().catch(() => ({}));
+      const payload = Array.isArray(data.payload) ? data.payload : data.payload?.listings;
+
+      if (response.status === 200 && Array.isArray(payload) && payload.length > 0) {
+        const searchParams = [...queryParts];
+        if (propertyType !== 'all') searchParams.push(`property_type=${encodeURIComponent(propertyType)}`);
+        if (selectedBudget?.min && selectedBudget?.max) {
+          searchParams.push(`min_price=${selectedBudget.min}`);
+          searchParams.push(`max_price=${selectedBudget.max}`);
+        }
+
+        router.push(`/search?${searchParams.join('&')}`);
+        return;
+      }
+
+      setSearchError(getSearchMessage(data, response.status === 200 && Array.isArray(payload) && payload.length === 0));
+      setSearchErrorOpen(true);
+    } catch (err) {
+      setSearchError('Unable to search listings. Please try again.');
+      setSearchErrorOpen(true);
+    } finally {
+      setSearching(false);
+    }
+  }
 
   useEffect(() => {
     let mounted = true;
@@ -170,7 +267,7 @@ export default function BuyerPage() {
 
       try {
         const [savedRes, inspRes, msgRes] = await Promise.all([
-          authFetch(`${API_BASE_URL}/user/saved`, { method: 'GET' }),
+          authFetch(`${API_BASE_URL}/buyer/saved`, { method: 'GET' }),
           authFetch(`${API_BASE_URL}/inspections/my-requests`, { method: 'GET' }),
           authFetch(`${API_BASE_URL}/messages/buyer`, { method: 'GET' }),
         ]);
@@ -292,7 +389,7 @@ export default function BuyerPage() {
         </section>
 
         <section className="buyer-search-panel" aria-label="Search and filters">
-          <form className="buyer-search-form" onSubmit={(e) => e.preventDefault()}>
+          <form className="buyer-search-form" onSubmit={handleSearchSubmit}>
             <input
               type="text"
               className="buyer-search-input"
@@ -315,18 +412,39 @@ export default function BuyerPage() {
             <label className="buyer-filter-field">
               <span>Budget</span>
               <select value={budget} onChange={(e) => setBudget(e.target.value)}>
-                <option value="all">Any budget</option>
-                <option value="800,000">Up to ₦800,000</option>
-                <option value="1,000,000">Up to ₦1,000,000</option>
-                <option value="2,000,000">Up to ₦2,000,000</option>
+                {budgetFilters.map((filter) => (
+                  <option key={filter.key} value={filter.key}>
+                    {filter.label}
+                  </option>
+                ))}
               </select>
             </label>
 
-            <button type="submit" className="buyer-primary-button buyer-primary-button--search">
-              Search
+            <button type="submit" className="buyer-primary-button buyer-primary-button--search" disabled={searching}>
+              {searching ? 'Searching...' : 'Search'}
             </button>
           </form>
         </section>
+
+        {searchErrorOpen && (
+          <div
+            className="search-popout-overlay"
+            onClick={(event) => {
+              if (event.target === event.currentTarget) setSearchErrorOpen(false);
+            }}
+          >
+            <div className="searchbar-popout-dialog" role="dialog" aria-modal="true">
+              <button className="search-popout-close" onClick={() => setSearchErrorOpen(false)} aria-label="Close">
+                ×
+              </button>
+              <div className="search-popout-form">
+                <p className="searchbar-popout-message rent-popout-message" role="alert">
+                  {searchError}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         <section className="buyer-section" id="recommendations">
           <div className="section-header">

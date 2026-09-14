@@ -7,7 +7,6 @@ import { API_BASE_URL } from '@/lib/api';
 
 export default function LandingHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [googleRendered, setGoogleRendered] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const navLinkClassName = useMemo(() => 'landing-nav-link', []);
@@ -110,11 +109,10 @@ export default function LandingHeader() {
     const existing = document.getElementById('gsi-script');
     if (existing && window.google && window.google.accounts && window.google.accounts.id) {
       window.google.accounts.id.initialize({ client_id: clientId, callback: handleGoogleCredential });
-      window.google.accounts.id.renderButton(document.getElementById('g_id_signin_container'), { theme: 'outline', size: 'large', width: '100%' });
-      setTimeout(() => {
-        const c = document.getElementById('g_id_signin_container');
-        if (c && c.childElementCount > 0) setGoogleRendered(true);
-      }, 100);
+      const container = document.getElementById('g_id_signin_container');
+      if (container) {
+        window.google.accounts.id.renderButton(container, { theme: 'outline', size: 'large', width: '100%' });
+      }
       return;
     }
 
@@ -126,11 +124,10 @@ export default function LandingHeader() {
     script.onload = () => {
       if (window.google && window.google.accounts && window.google.accounts.id) {
         window.google.accounts.id.initialize({ client_id: clientId, callback: handleGoogleCredential });
-        window.google.accounts.id.renderButton(document.getElementById('g_id_signin_container'), { theme: 'outline', size: 'large', width: '100%' });
-        setTimeout(() => {
-          const c = document.getElementById('g_id_signin_container');
-          if (c && c.childElementCount > 0) setGoogleRendered(true);
-        }, 100);
+        const container = document.getElementById('g_id_signin_container');
+        if (container) {
+          window.google.accounts.id.renderButton(container, { theme: 'outline', size: 'large', width: '100%' });
+        }
       }
     };
     document.body.appendChild(script);
