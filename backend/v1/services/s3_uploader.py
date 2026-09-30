@@ -52,7 +52,7 @@ class S3Uploader:
 
         storage = DBStorage()
         
-        key = f"listings/{listing_id}/{media_name}.{media.filename.split(".")[-1]}"
+        key = f"listings/{listing_id}/{media_name}.{media.filename.split('.')[-1]}"
 
         try:
             client = boto3.client(
