@@ -81,6 +81,10 @@ class Settings:
         return self.get("FRONTEND_URL", "http://localhost:3000")
 
     @cached_property
+    def backend_url(self) -> str:
+        return self.get("BACKEND_URL", "http://localhost:8000")
+
+    @cached_property
     def aws_s3_bucket(self) -> str | None:
         return self.get("AWS_S3_BUCKET") or self.get("AWS_BUCKET_NAME")
 
