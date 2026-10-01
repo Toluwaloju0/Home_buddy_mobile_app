@@ -37,11 +37,10 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         settings.frontend_url,
-        settings.backend_url
     ],
-    allow_credentials=True,  # IMPORTANT: Required for cookies
-    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"],
-    allow_headers=["*"],  # Allow all headers
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
 )
 
 app.mount("/uploads", StaticFiles(directory=str(uploads_dir)), name="uploads")
