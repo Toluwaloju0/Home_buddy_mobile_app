@@ -37,6 +37,8 @@ async def verify_google_token(request: Request, storage: DBStorage = Depends(get
 
         if not token:
             content = api_response(False, "No credential provided")
+            print(body, "\n", "=" * 100)
+            print("Error found while checking for the credential")
             return JSONResponse(content.to_dict(), status_code=400)
         
         if not GOOGLE_CLIENT_ID:
@@ -53,6 +55,7 @@ async def verify_google_token(request: Request, storage: DBStorage = Depends(get
         # check if the email address is verified by google
         if not idinfo.get("email_verified", False):
             content = api_response(False, "Email not verified by Google")
+            print("error found while verifying the email address")
             return JSONResponse(content.to_dict(), status_code=400)
 
         # check if a user with the email address exists
