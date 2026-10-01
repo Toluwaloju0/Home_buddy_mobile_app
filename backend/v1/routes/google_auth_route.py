@@ -22,6 +22,11 @@ google_auth = APIRouter(prefix="/auth/google", tags=["Google Authentication"])
 GOOGLE_CLIENT_ID = settings.google_client_id
 FRONTEND_URL = settings.frontend_url
 
+@google_auth.get("/verify")
+async def google_verification_route():
+    """Confirm the Google authentication verification route is available."""
+    return JSONResponse({"status": True, "message": "Google auth verification route is available"})
+
 @google_auth.post("/verify")
 async def verify_google_token(request: Request, storage: DBStorage = Depends(get_db)):
     """Verify Google OAuth token and log the user in."""
