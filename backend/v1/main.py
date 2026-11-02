@@ -29,8 +29,8 @@ app = FastAPI(
     version="1.0.0"
 )
 
-uploads_dir = Path(__file__).resolve().parent / "uploads"
-uploads_dir.mkdir(parents=True, exist_ok=True)
+# uploads_dir = Path(__file__).resolve().parent / "uploads"
+# uploads_dir.mkdir(parents=True, exist_ok=True)
 
 # CRITICAL: Configure CORS for Next.js integration
 app.add_middleware(
@@ -43,7 +43,7 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-app.mount("/uploads", StaticFiles(directory=str(uploads_dir)), name="uploads")
+# app.mount("/uploads", StaticFiles(directory=str(uploads_dir)), name="uploads")
 
 @app.get("/")
 async def homepage():
