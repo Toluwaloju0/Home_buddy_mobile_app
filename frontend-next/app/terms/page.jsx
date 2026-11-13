@@ -8,6 +8,10 @@ export default function TermsPage() {
       highlights={['User Responsibilities', 'Listing Standards', 'Platform Use']}
       sections={[
         {
+          title: 'Safety and Payments',
+          text: 'Your safety starts with making informed decisions. Please verify before you pay.',
+        },
+        {
           title: 'Use of Platform',
           text: 'Users agree to provide accurate information and use Home Buddy Connect Limited only for lawful property-related activities.',
         },

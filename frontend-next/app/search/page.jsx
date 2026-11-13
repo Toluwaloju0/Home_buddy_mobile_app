@@ -380,6 +380,12 @@ function SearchResultsContent() {
         <span>Page {pageParam}</span>
         <button onClick={() => gotoPage(pageParam + 1)} disabled={listings.length < 10}>Next</button>
       </div>
+
+      <section className="search-safety-notice" aria-labelledby="search-safety-notice-title">
+        <p className="search-safety-notice__label">Safety notice</p>
+        <h2 id="search-safety-notice-title">Verify before you pay</h2>
+        <p>Your safety starts with making informed decisions. Please verify before you pay.</p>
+      </section>
         </div>
       </div>
     </main>

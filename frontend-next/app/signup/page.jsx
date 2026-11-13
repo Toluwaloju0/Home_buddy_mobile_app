@@ -1,9 +1,10 @@
 "use client";
 
-import { Suspense, useState, useEffect } from 'react';
+import { Suspense, useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { API_BASE_URL } from '@/lib/api';
+import SafetyNoticeModal from '../components/SafetyNoticeModal';
 
 function SignupContent() {
   const router = useRouter();
@@ -19,6 +20,10 @@ function SignupContent() {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleRendered, setGoogleRendered] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [safetyNoticeOpen, setSafetyNoticeOpen] = useState(false);
+  const [pendingRegistration, setPendingRegistration] = useState(null);
+  const termsAcceptedRef = useRef(false);
 
   useEffect(() => {
     const pre = searchParams.get('role');
@@ -27,6 +32,15 @@ function SignupContent() {
 
   const handleSignup = async (e) => {
     e.preventDefault();
+    if (!termsAccepted) {
+      setError('Please accept the Terms of Use and Privacy Policy to create an account.');
+      return;
+    }
+    setPendingRegistration({ type: 'email' });
+    setSafetyNoticeOpen(true);
+  };
+
+  const completeEmailSignup = async () => {
     setError('');
     setMessage('');
     setLoading(true);
@@ -65,7 +79,7 @@ function SignupContent() {
     }
   };
 
-  const handleGoogleCredential = async (googleResponse) => {
+  const completeGoogleSignup = async (credential) => {
     setError('');
     setMessage('');
     setLoading(true);
@@ -76,7 +90,7 @@ function SignupContent() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ credential: googleResponse.credential }),
+        body: JSON.stringify({ credential }),
         credentials: 'include',
       });
 
@@ -92,6 +106,30 @@ function SignupContent() {
       setError(err.message || 'An error occurred. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleCredential = (googleResponse) => {
+    if (!termsAcceptedRef.current) {
+      setError('Please accept the Terms of Use and Privacy Policy to create an account.');
+      return;
+    }
+    setPendingRegistration({ type: 'google', credential: googleResponse.credential });
+    setSafetyNoticeOpen(true);
+  };
+
+  const handleSafetyNoticeContinue = async () => {
+    const registration = pendingRegistration;
+    setSafetyNoticeOpen(false);
+    setPendingRegistration(null);
+
+    if (registration?.type === 'google') {
+      await completeGoogleSignup(registration.credential);
+      return;
+    }
+
+    if (registration?.type === 'email') {
+      await completeEmailSignup();
     }
   };
 
@@ -233,6 +271,21 @@ function SignupContent() {
             </label>
           </div>
 
+          <label className="terms-acceptance">
+            <input
+              type="checkbox"
+              checked={termsAccepted}
+              onChange={(event) => {
+                setTermsAccepted(event.target.checked);
+                termsAcceptedRef.current = event.target.checked;
+              }}
+              disabled={loading}
+            />
+            <span>
+              I agree to the <Link href="/terms">Terms of Use</Link> and <Link href="/privacy">Privacy Policy</Link>.
+            </span>
+          </label>
+
           {message && <div className="success-message">{message}</div>}
           {error && <div className="error-message">{error}</div>}
 
@@ -270,7 +323,7 @@ function SignupContent() {
         </div>
 
         <div className="terms-text">
-          By signing in you agree to Home Buddy Connect Limited{' '}
+          By creating an account you agree to Home Buddy Connect Limited{' '}
           <Link href="/terms">Terms of Use</Link> and{' '}
           <Link href="/privacy">Privacy Policy</Link>
         </div>
@@ -282,6 +335,15 @@ function SignupContent() {
           </Link>
         </div>
       </div>
+      <SafetyNoticeModal
+        open={safetyNoticeOpen}
+        onClose={() => {
+          setSafetyNoticeOpen(false);
+          setPendingRegistration(null);
+        }}
+        onContinue={handleSafetyNoticeContinue}
+        continueLabel="I understand, continue"
+      />
     </main>
   );
 }

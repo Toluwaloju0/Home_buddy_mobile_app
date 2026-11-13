@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import UserRoleHeader from '../../components/UserRoleHeader';
 import UserAvatar from '../../components/UserAvatar';
+import SafetyNoticeModal from '../../components/SafetyNoticeModal';
 import { API_BASE_URL, authFetch } from '../../../lib/api';
 
 const footerPrimaryLinks = [
@@ -98,6 +99,7 @@ export default function PropertyDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showAllPhotos, setShowAllPhotos] = useState(false);
+  const [safetyNoticeOpen, setSafetyNoticeOpen] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -152,6 +154,10 @@ export default function PropertyDetailPage() {
   const addressParts = [listing?.building_number, listing?.street, listing?.LGA, listing?.state].filter(Boolean);
   const isForRent = listing?.for_sell === false;
   const intentLabel = isForRent ? 'For rent' : 'For sale';
+  const sellerMessageHref = {
+    pathname: `/buyer/messages/${sellerId}`,
+    query: { propertyId },
+  };
 
   return (
     <main className="page-shell listing-detail-page">
@@ -295,11 +301,10 @@ export default function PropertyDetailPage() {
                       </div>
                       <Link
                         className="buyer-primary-button seller-card-action"
-                        href={{
-                          pathname: `/buyer/messages/${sellerId}`,
-                          query: {
-                            propertyId,
-                          },
+                        href={sellerMessageHref}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          setSafetyNoticeOpen(true);
                         }}
                       >
                         Send message
@@ -318,6 +323,13 @@ export default function PropertyDetailPage() {
           </>
         )}
       </div>
+
+      <SafetyNoticeModal
+        open={safetyNoticeOpen}
+        onClose={() => setSafetyNoticeOpen(false)}
+        onContinue={() => router.push(sellerMessageHref)}
+        continueLabel="Continue to message"
+      />
 
       <Footer />
     </main>
