@@ -4,6 +4,7 @@ import { Suspense, useEffect, useRef, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import BuyerHeader from '../../../components/BuyerHeader';
 import UserAvatar from '../../../components/UserAvatar';
+import SafetyNoticeModal from '../../../components/SafetyNoticeModal';
 import { API_BASE_URL, authFetch, redirectToLogin } from '../../../../lib/api';
 
 function getMessageBody(message) {
@@ -44,6 +45,7 @@ function BuyerConversationContent() {
   const [taggedMessage, setTaggedMessage] = useState(null);
   const [messagePropertyImages, setMessagePropertyImages] = useState({});
   const [referencedMessages, setReferencedMessages] = useState({});
+  const [safetyNoticeOpen, setSafetyNoticeOpen] = useState(false);
   const socketRef = useRef(null);
   const socketRequestsRef = useRef([]);
 
@@ -309,6 +311,11 @@ function BuyerConversationContent() {
     }
   }
 
+  function requestSendMessage() {
+    if (!messageInput.trim() || sendingMessage) return;
+    setSafetyNoticeOpen(true);
+  }
+
   return (
     <main className="page-shell messages-page">
       <BuyerHeader user={user} loadingUser={loadingUser} />
@@ -410,14 +417,14 @@ function BuyerConversationContent() {
               onKeyDown={(event) => {
                 if (event.key === 'Enter' && !event.shiftKey) {
                   event.preventDefault();
-                  handleSendMessage();
+                  requestSendMessage();
                 }
               }}
             />
             <button
               type="button"
               className="message-send-btn"
-              onClick={handleSendMessage}
+              onClick={requestSendMessage}
               disabled={!messageInput.trim() || sendingMessage}
               title="Send message"
             >
@@ -426,6 +433,15 @@ function BuyerConversationContent() {
           </div>
         </section>
       </div>
+      <SafetyNoticeModal
+        open={safetyNoticeOpen}
+        onClose={() => setSafetyNoticeOpen(false)}
+        onContinue={() => {
+          setSafetyNoticeOpen(false);
+          handleSendMessage();
+        }}
+        continueLabel="Send message"
+      />
     </main>
   );
 }
