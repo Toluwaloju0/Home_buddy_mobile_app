@@ -858,6 +858,31 @@ class DBStorage:
         except VerifyMismatchError:
             return function_response(False)
 
+    async def ensure_admin_exists(
+        self, email: str | None, password: str | None, name: str | None
+    ) -> None:
+        """Create the initial admin record when the admin collection is empty."""
+        existing_admin = await self.__admin.find_one({}, {"_id": 1})
+        if existing_admin:
+            return
+
+        normalized_email = email.strip().lower() if email else ""
+        normalized_name = name.strip() if name else ""
+        if not normalized_email or not password or not normalized_name:
+            raise RuntimeError(
+                "ADMIN_EMAIL, ADMIN_PASSWORD, and ADMIN_NAME must be set "
+                "when the admin collection is empty"
+            )
+
+        await self.__admin.insert_one(
+            {
+                "email": normalized_email,
+                "password": ph.hash(password),
+                "name": normalized_name,
+                "role": "admin",
+            }
+        )
+
     @safe_db_operation
     async def get_admin_by_id(self, admin_id: str):
         """Get an admin document by its id from the admins collection."""

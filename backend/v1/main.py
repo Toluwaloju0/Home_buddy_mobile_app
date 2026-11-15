@@ -58,6 +58,16 @@ async def get_status():
 async def startup_event():
     await storage.init_indexes()
     await storage.ping()
+    await create_admin_user()
+
+
+async def create_admin_user() -> None:
+    """Seed the admin collection once when the application starts."""
+    await storage.ensure_admin_exists(
+        email=settings.admin_email,
+        password=settings.admin_password,
+        name=settings.admin_name,
+    )
 
 # add the middleware for the application
 app.add_middleware(DBSessionMiddleware)
@@ -77,5 +87,5 @@ app.include_router(inquiries)
 app.include_router(messages)
 
 
-if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=settings.backend_port, reload=True)
+# if __name__ == "__main__":
+#     uvicorn.run("main:app", host="0.0.0.0", port=settings.backend_port, reload=True)
