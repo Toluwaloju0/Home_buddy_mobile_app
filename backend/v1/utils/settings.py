@@ -61,6 +61,18 @@ class Settings:
         return self.get("MONGO_URI")
 
     @cached_property
+    def admin_email(self) -> str | None:
+        return self.get("ADMIN_EMAIL")
+
+    @cached_property
+    def admin_password(self) -> str | None:
+        return self.get("ADMIN_PASSWORD")
+
+    @cached_property
+    def admin_name(self) -> str | None:
+        return self.get("ADMIN_NAME")
+
+    @cached_property
     def google_account(self) -> str | None:
         return self.get("GOOGLE_ACCOUNT")
 
