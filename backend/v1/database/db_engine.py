@@ -847,7 +847,6 @@ class DBStorage:
         if not admin:
             return function_response(False)
 
-
         stored_password = admin.get("password")
         if not stored_password:
             return function_response(False)

@@ -58,7 +58,7 @@ class Settings:
 
     @cached_property
     def mongo_uri(self) -> str | None:
-        return self.get("MONGO_URI")
+        return self.get("MONGODB_URI")
 
     @cached_property
     def admin_email(self) -> str | None:
