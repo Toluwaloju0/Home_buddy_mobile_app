@@ -231,7 +231,6 @@ async def admin_login(user_data: UserCreate):
 
     email = user_data.email
     password = user_data.password
-    print(email, "===============", password)
 
     get_admin_response = await storage.get_admin_by_email(email, password)
     if not get_admin_response.status:
